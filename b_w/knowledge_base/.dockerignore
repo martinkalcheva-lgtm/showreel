@@ -1,0 +1,25 @@
+# 虚拟环境（几百 MB，容器里由 uv 重新装）
+.venv/
+
+# 版本控制 / IDE
+.git/
+.gitignore
+.idea/
+
+# 测试与本地产物
+test/
+temp-files/
+*.pyc
+__pycache__/
+**/__pycache__/
+
+# 环境变量（容器内用挂载的 .env.docker，不把密钥烤进镜像）
+.env
+.env.*
+!.env.example
+
+# 助手/工具目录
+.workbuddy/
+
+# 文档
+*.md

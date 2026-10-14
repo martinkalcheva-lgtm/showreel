@@ -1,0 +1,29 @@
+# 环境变量（含密钥）—— 模板除外
+.env
+.env.*
+!.env.example
+!.env.docker.example
+# 虚拟环境
+.venv/
+
+# IDE
+.idea/
+
+# 助手工作数据
+.workbuddy/
+
+# 临时 / 备份
+temp/
+temp-files/
+*.bak
+*.bak-*
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+
+# 日志
+*.log
+
+# 学习练习脚本（与项目无关，不上传）
+test/

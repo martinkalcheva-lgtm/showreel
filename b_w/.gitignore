@@ -1,0 +1,41 @@
+# ===== 环境与密钥（绝不进库）=====
+.env
+.env.*
+!.env.example
+!.env.docker.example
+*.bak
+*.bak-*
+*_old/
+*-old/
+
+# ===== Python =====
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# ===== Node =====
+node_modules/
+dist/
+
+# ===== IDE / 工具 =====
+.idea/
+.vscode/
+.workbuddy/
+
+# ===== 日志与临时 =====
+logs/
+*.log
+temp/
+temp-files/
+test/app.log
+
+# ===== 大文件（模型权重等）=====
+ws/data-agent/docker/embedding/
+
+# ===== 含真实密钥的本地配置（已确认，不进库）=====
+ws/data-agent/conf/
+
+# ===== 保留旧仓库元数据（BOSS- 仓库历史）=====
+knowledge_base/.git_boss_old/

@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="pI0YNslSDXCMJK7zxqbGWp">
+<head data-page-node-id="NFnH9hrqnEJq1TKZ2LvYeP">
+<meta charset="UTF-8" data-page-node-id="wqUmMSb2VQdXkaWosKAo6c">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="3WRnCx2DUS4WsEvEb8F0wF">
+<title>电商小二 · 商务亮色主题 · UI 预览（不改项目代码）</title>
+<script src="https://media.xingyun3d.com/xingyun3d/general/litesdk/xmovAvatar@latest.js"></script>
+<style>
+  /* ===================================================================
+     商务亮色主题：白底 + 浅灰蓝 + 商务蓝(#1a56db) 强调色
+     对齐项目 App.vue 的 token 命名，方便整套替换。
+     =================================================================== */
+  :root {
+    color-scheme: light;
+
+    --color-bg-deep: #eef2f8;
+    --color-bg-mid: #f5f7fb;
+    --color-bg-surface: #ffffff;
+    --color-surface: #ffffff;
+    --color-surface-raised: #f7f9fc;
+    --color-surface-field: #ffffff;
+
+    --color-text-primary: #16233a;
+    --color-text-secondary: #5b6b83;
+    --color-text-muted: #8a97ab;
+
+    --color-accent: #1a56db;              /* 商务蓝 */
+    --color-accent-strong: #1444b8;
+    --color-accent-soft: rgba(26, 86, 219, 0.10);
+    --color-accent-soft-bg: rgba(26, 86, 219, 0.05);
+
+    --color-warm: #b45309;
+    --color-success: #15803d;
+    --color-info: #0369a1;
+    --color-danger: #dc2626;
+
+    --color-border: #e2e8f0;
+    --color-border-light: #eef2f7;
+    --color-border-strong: #cbd5e1;
+
+    --radius-sm: 10px;
+    --radius-md: 16px;
+    --radius-lg: 24px;
+    --shadow-lg: 0 12px 32px rgba(15, 42, 74, 0.08);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 18px 22px 26px;
+    min-height: 100vh;
+    font-family: "Inter", -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    color: var(--color-text-primary);
+    background: linear-gradient(180deg, #f8fafd 0%, var(--color-bg-deep) 100%);
+  }
+
+  /* ===== 页面骨架 ===== */
+  .app-layout { max-width: 1500px; margin: 0 auto; display: flex; gap: 22px; align-items: stretch; }
+  .workspace {
+    flex: 1; min-width: 0;
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 22px;
+  }
+
+  /* ===== 电商客服系统（数字人唯一可活动区域）===== */
+  .chat-card {
+    position: relative;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    min-height: 660px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    transition: box-shadow 250ms ease;
+  }
+  .chat-card.boundary-hit { box-shadow: var(--shadow-lg), inset 0 0 0 2px rgba(26, 86, 219, 0.45); }
+
+  .chat-header { padding: 20px 24px 14px; border-bottom: 1px solid var(--color-border-light); }
+  .chat-header h1 {
+    margin: 0 0 14px; font-size: 21px; font-weight: 800; letter-spacing: .2px;
+    color: #12263f;
+    padding-left: 12px;
+    border-left: 4px solid var(--color-accent);
+  }
+  .service-info { display: flex; align-items: center; justify-content: space-between; }
+  .service-left { display: flex; align-items: center; gap: 10px; }
+  .service-avatar {
+    width: 42px; height: 42px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 21px;
+    background: linear-gradient(135deg, #ffe3ba, #ffb877);
+    border: 1px solid #f4d3aa;
+    position: relative;
+  }
+  .status-indicator {
+    position: absolute; right: 0; bottom: 0; width: 11px; height: 11px;
+    border-radius: 50%; background: var(--color-success);
+    border: 2px solid #ffffff;
+  }
+  .service-name { font-size: 15px; font-weight: 700; color: #12263f; }
+  .service-status { font-size: 12px; color: var(--color-accent); font-weight: 600; }
+  .clear-button {
+    background: #ffffff; border: 1px solid var(--color-border);
+    color: var(--color-text-secondary); font-size: 12px; padding: 8px 14px;
+    border-radius: var(--radius-sm); cursor: pointer; display: flex; gap: 6px; align-items: center;
+    transition: background 150ms ease, border-color 150ms ease;
+  }
+  .clear-button:hover { background: var(--color-surface-raised); border-color: var(--color-border-strong); }
+
+  .controls { padding: 14px 24px 0; }
+  .field > span { font-size: 11px; color: var(--color-text-muted); display: block; margin-bottom: 6px; }
+  .field-row { display: flex; gap: 10px; }
+  .field-row input {
+    flex: 1; background: var(--color-surface-field);
+    border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+    padding: 11px 13px; color: var(--color-text-primary); font-size: 14px; outline: none;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+  .field-row input:focus { border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-soft); }
+  .secondary-button {
+    background: #ffffff; border: 1px solid var(--color-border);
+    color: var(--color-text-secondary); border-radius: var(--radius-sm);
+    padding: 11px 14px; font-size: 12px; cursor: pointer; white-space: nowrap;
+    transition: background 150ms ease;
+  }
+  .secondary-button:hover { background: var(--color-surface-raised); }
+
+  .messages { flex: 1; padding: 18px 24px 20px; overflow-y: auto; overflow-x: hidden; position: relative; }
+  .error-message { color: var(--color-danger); font-size: 12px; margin: 8px 0 0; line-height: 1.6; }
+  .is-new { animation: fadeUp .26s ease; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(7px) } to { opacity: 1; transform: none } }
+  .history-divider {
+    text-align: center; font-size: 12px; color: var(--color-text-muted); margin: 4px 0 16px;
+  }
+  .history-divider span { background: #ffffff; padding: 0 10px; }
+
+  .turn-card {
+    background: #f8fafd; border: 1px solid #e8eef6;
+    border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 14px;
+  }
+  .turn-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .turn-badge {
+    background: var(--color-accent); color: #ffffff; font-weight: 700;
+    font-size: 12px; padding: 3px 12px; border-radius: 9999px;
+  }
+  .turn-label { font-size: 12px; color: var(--color-text-muted); }
+  .section-header { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; }
+  .avatar-wrapper {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, #7ea8f5, #2f5fd0);
+  }
+  .agent-name { font-size: 14px; font-weight: 600; color: var(--color-accent); }
+  .agent-label { display: block; font-size: 11px; color: var(--color-text-muted); }
+  .turn-bubble {
+    background: var(--color-accent); color: #ffffff; font-weight: 600;
+    padding: 10px 18px; border-radius: var(--radius-md); font-size: 14px;
+    margin-left: auto; width: fit-content; max-width: 80%;
+  }
+  .bot-line {
+    background: #f7f9fc; border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm); padding: 12px 14px; font-size: 14px;
+    color: var(--color-text-primary); margin-bottom: 12px;
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  }
+  .bot-line .mini-actions span { margin-left: 8px; color: var(--color-text-muted); font-size: 13px; }
+  .typing { display: flex; align-items: center; gap: 9px; }
+  .typing-bubble {
+    background: #f1f5fb; border: 1px solid var(--color-border);
+    border-radius: 9999px; padding: 8px 16px; display: flex; align-items: center;
+    gap: 6px; font-size: 12px; color: var(--color-text-secondary);
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent); animation: blink 1.2s infinite; }
+  .dot:nth-child(2) { animation-delay: .2s; } .dot:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 0%,80%,100% { opacity: .25 } 40% { opacity: 1 } }
+
+  .chat-footer {
+    padding: 14px 24px 18px; border-top: 1px solid var(--color-border-light);
+    display: flex; gap: 10px;
+  }
+  .chat-footer input {
+    flex: 1; background: var(--color-surface-field); border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm); padding: 14px; color: var(--color-text-primary);
+    font-size: 14px; outline: none;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+  .chat-footer input:focus { border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-soft); }
+  .send-button {
+    background: var(--color-accent); color: #ffffff; font-weight: 700; border: none;
+    border-radius: var(--radius-sm); padding: 0 24px; font-size: 13px; cursor: pointer;
+    line-height: 1.35; white-space: nowrap;
+    transition: background 150ms ease;
+  }
+  .send-button:hover:not(:disabled) { background: var(--color-accent-strong); }
+  .send-button:disabled { opacity: .45; cursor: not-allowed; }
+
+  /* ===== 右侧业务对象 ===== */
+  .sidebar-card {
+    position: relative;
+    background: var(--color-surface); border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-lg);
+    display: flex; flex-direction: column; min-height: 660px;
+    width: 370px;
+    transition: width 280ms cubic-bezier(.2,.8,.2,1), padding 280ms ease;
+  }
+  .sidebar-card h2 {
+    margin: 0 0 14px; font-size: 17px; font-weight: 800; color: #12263f;
+    padding-left: 12px; border-left: 4px solid var(--color-accent);
+  }
+
+  /* 贴左边中间的收起/展开按钮（收起后箭头翻转）*/
+  .biz-edge-btn {
+    position: absolute; left: -21px; top: 50%; transform: translateY(-50%);
+    width: 22px; height: 52px; padding: 0; z-index: 5;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--color-border); border-right: none;
+    border-radius: 10px 0 0 10px;
+    background: #ffffff; color: var(--color-accent);
+    box-shadow: -4px 0 12px rgba(15, 42, 74, 0.08);
+    cursor: pointer;
+    transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+  }
+  .biz-edge-btn:hover { background: var(--color-accent); color: #ffffff; border-color: var(--color-accent); }
+  .biz-edge-btn svg { transition: transform 260ms ease; }
+  .sidebar-card.collapsed .biz-edge-btn svg { transform: rotate(180deg); }
+
+  /* ---------- 业务对象：收起态（贴右的窄竖条）---------- */
+  .sidebar-card.collapsed { width: 58px; padding: 16px 8px; align-items: center; }
+  .sidebar-card.collapsed > *:not(.biz-collapsed-face):not(.biz-edge-btn) { display: none; }
+  .biz-collapsed-face { display: none; }
+  .sidebar-card.collapsed .biz-collapsed-face {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    width: 100%; height: 100%;
+    cursor: pointer; user-select: none;
+  }
+  .biz-vertical-text {
+    writing-mode: vertical-rl; text-orientation: upright;
+    letter-spacing: 4px; font-size: 13px; font-weight: 700; color: #12263f;
+    white-space: nowrap;
+  }
+  .tabs { display: flex; gap: 10px; margin-bottom: 16px; }
+  .tab {
+    padding: 8px 24px; border-radius: 9999px; font-size: 14px; cursor: pointer;
+    background: #f1f5fb; color: var(--color-text-secondary);
+    border: 1px solid var(--color-border);
+    transition: background 150ms ease, color 150ms ease;
+  }
+  .tab.active { background: var(--color-accent); color: #ffffff; font-weight: 700; border-color: var(--color-accent); }
+  .biz-card {
+    background: #fbfcfe; border: 1px solid var(--color-border);
+    border-radius: var(--radius-md); padding: 14px; margin-bottom: 14px;
+  }
+  .biz-img {
+    height: 118px; border-radius: var(--radius-sm); display: flex;
+    align-items: center; justify-content: center; color: #fff;
+    font-size: 21px; font-weight: 700; margin-bottom: 12px;
+  }
+  .img-blue { background: linear-gradient(135deg, #3b6fd4, #1c3f8f); }
+  .img-orange { background: linear-gradient(135deg, #f2a13c, #d97706); }
+  .biz-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; color: #16233a; }
+  .biz-sub { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 8px; }
+  .biz-price { color: var(--color-warm); font-weight: 800; font-size: 15px; }
+  .biz-tag {
+    display: inline-block; font-size: 11px; color: var(--color-warm);
+    background: rgba(180, 83, 9, .10); border-radius: 6px; padding: 2px 8px;
+  }
+  .biz-btn {
+    width: 100%; margin-top: 12px; background: #ffffff;
+    border: 1px solid var(--color-border); color: var(--color-text-secondary);
+    border-radius: var(--radius-sm); padding: 10px; font-size: 13px; cursor: pointer;
+    transition: background 150ms ease, border-color 150ms ease;
+  }
+  .biz-btn:hover { background: var(--color-accent-soft-bg); border-color: var(--color-accent); color: var(--color-accent); }
+
+  /* ===================================================================
+     数字人悬浮窗
+     =================================================================== */
+  .dh-widget {
+    position: absolute;
+    left: 24px; bottom: 96px;
+    width: 176px; height: 292px;
+    z-index: 60;
+    display: flex; flex-direction: column;
+    border-radius: var(--radius-md);
+    background: #ffffff;
+    border: 1px solid var(--color-border-strong);
+    box-shadow: 0 12px 30px rgba(15, 42, 74, 0.14), 0 0 0 1px rgba(26, 86, 219, 0.05);
+    overflow: hidden;
+    transition: box-shadow 200ms ease;
+  }
+  .dh-widget:hover { box-shadow: 0 14px 34px rgba(15, 42, 74, 0.18), 0 0 0 2px rgba(26, 86, 219, 0.18); }
+  .dh-widget.dragging { transition: none; cursor: grabbing; }
+
+  .dh-widget-bar {
+    height: 30px; flex-shrink: 0;
+    display: flex; align-items: center; gap: 7px;
+    padding: 0 8px 0 10px;
+    background: linear-gradient(180deg, rgba(26, 86, 219, .10), rgba(26, 86, 219, .03));
+    border-bottom: 1px solid var(--color-border-light);
+    cursor: grab; user-select: none; touch-action: none;
+  }
+  .dh-widget-bar:active { cursor: grabbing; }
+  .dh-status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-text-muted); flex-shrink: 0; }
+  .dh-dot-ready { background: var(--color-success); }
+  .dh-dot-loading { background: var(--color-warm); animation: dhPulse 1.2s ease-in-out infinite; }
+  .dh-dot-error { background: var(--color-danger); }
+  @keyframes dhPulse { 0%,100% { opacity: 1; transform: scale(1) } 50% { opacity: .45; transform: scale(.82) } }
+  .dh-widget-title {
+    font-size: 11px; color: var(--color-text-secondary); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; flex: 1;
+  }
+  .dh-grip {
+    font-size: 12px; color: var(--color-accent); letter-spacing: 1px;
+    padding: 2px 4px; border-radius: 6px;
+  }
+  .dh-widget-bar:hover .dh-grip { background: rgba(26, 86, 219, .12); }
+
+  .dh-widget-stage { position: relative; flex: 1; min-height: 0; }
+  .dh-canvas {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    background: linear-gradient(180deg, #eef4ff, #dce7fa); overflow: hidden;
+  }
+  .dh-overlay { position: absolute; inset: 0; z-index: 2; }
+  .dh-placeholder {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 7px; padding: 12px; text-align: center;
+    background: var(--color-accent-soft-bg);
+    border: 1px dashed var(--color-border-strong);
+  }
+  .dh-placeholder[hidden] { display: none; }
+  .dh-placeholder-icon {
+    width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--color-accent-soft); color: var(--color-accent); font-size: 15px;
+  }
+  .dh-placeholder-title { margin: 0; font-size: 12px; color: var(--color-text-secondary); }
+  .dh-placeholder-sub { margin: 0; font-size: 10px; color: var(--color-text-muted); line-height: 1.5; }
+  .dh-progress { width: 78%; height: 4px; border-radius: 3px; background: rgba(15, 42, 74, .10); overflow: hidden; }
+  .dh-progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--color-accent), var(--color-info)); transition: width .3s; }
+  .dh-spinner {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid rgba(26, 86, 219, .20); border-top-color: var(--color-accent);
+    animation: dhSpin .8s linear infinite;
+  }
+  @keyframes dhSpin { to { transform: rotate(360deg) } }
+
+  .dh-widget-foot {
+    flex-shrink: 0; padding: 7px 8px 8px;
+    border-top: 1px solid var(--color-border-light);
+    background: #f7f9fc;
+  }
+  .dh-button {
+    width: 100%; border: 1px solid rgba(26, 86, 219, .35);
+    background: var(--color-accent-soft); color: var(--color-accent);
+    border-radius: 8px; padding: 7px 6px; font-size: 11px; font-weight: 600; cursor: pointer;
+  }
+  .dh-button:disabled { opacity: .6; cursor: not-allowed; }
+  .dh-button-danger { border-color: rgba(220, 38, 38, .4); background: rgba(220, 38, 38, .08); color: var(--color-danger); }
+
+  .dh-resize {
+    position: absolute; right: 0; bottom: 0;
+    width: 16px; height: 16px; cursor: nwse-resize; z-index: 4;
+    background: linear-gradient(135deg, transparent 45%, rgba(26, 86, 219, .55) 45%, rgba(26, 86, 219, .55) 60%, transparent 60%,
+                                        transparent 72%, rgba(26, 86, 219, .55) 72%, rgba(26, 86, 219, .55) 87%, transparent 87%);
+    touch-action: none;
+  }
+  .dh-tip {
+    position: absolute; z-index: 61; pointer-events: none;
+    font-size: 11px; color: var(--color-accent); white-space: nowrap;
+    background: #ffffff; border: 1px solid rgba(26, 86, 219, .30);
+    box-shadow: 0 4px 12px rgba(15, 42, 74, .12);
+    padding: 3px 10px; border-radius: 9999px;
+  }
+
+  /* ---------- ➖ 收起按钮 ---------- */
+  .dh-collapse-btn {
+    flex-shrink: 0; width: 18px; height: 18px; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    border: none; border-radius: 50%; background: transparent;
+    color: var(--color-text-secondary); font-size: 11px; line-height: 1;
+    cursor: pointer; transition: background 150ms ease, color 150ms ease;
+  }
+  .dh-collapse-btn:hover { background: rgba(26, 86, 219, .14); color: var(--color-accent); }
+
+  /* ---------- 收起态：缩成右侧一个小圆圈 ---------- */
+  .dh-widget.dh-anim {
+    transition: width 240ms cubic-bezier(.2,.8,.2,1),
+                height 240ms cubic-bezier(.2,.8,.2,1),
+                border-radius 240ms ease,
+                box-shadow 200ms ease;
+  }
+  .dh-widget.collapsed { border-radius: 50%; }
+  .dh-widget.collapsed .dh-widget-bar,
+  .dh-widget.collapsed .dh-widget-stage,
+  .dh-widget.collapsed .dh-widget-foot,
+  .dh-widget.collapsed .dh-resize { display: none !important; }
+
+  .dh-collapsed-face { display: none; }
+  .dh-widget.collapsed .dh-collapsed-face {
+    display: flex; position: relative;
+    width: 100%; height: 100%; border-radius: 50%;
+    align-items: center; justify-content: center;
+    cursor: grab; touch-action: none;
+    color: var(--color-accent);
+    background: radial-gradient(circle at 38% 30%, #f4f8ff, #d7e4ff 74%);
+    border: 1px solid rgba(26, 86, 219, .22);
+  }
+  .dh-widget.collapsed .dh-collapsed-face:active { cursor: grabbing; }
+  .dh-collapsed-dot {
+    position: absolute; right: 4px; bottom: 4px;
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--color-text-muted);
+    border: 2px solid #ffffff;
+  }
+</style>
+</head>
+<body data-page-node-id="i8ltrhfyAfbnF1jn8Ji1Q9">
+
+<div class="app-layout" data-page-node-id="1wCfIXsgAnj2zSz3UEspUK">
+  <div class="workspace" data-page-node-id="x8npF3t8o7E8WDm8CkkQY3">
+
+    <!-- ============ 电商客服系统 ============ -->
+    <div class="chat-card" id="chatCard" data-page-node-id="MOYgr0u1ONbNBnfBsH1z3Q">
+      <header class="chat-header" data-page-node-id="K3O4KdjBEA5Sm5UrItPc2x">
+        <h1 data-page-node-id="hGtnWquDEERY62FWMBuEVP">电商客服系统</h1>
+        <div class="service-info" data-page-node-id="wC0No9t1obC1TR5GlLBql7">
+          <div class="service-left" data-page-node-id="AIXQ6oxzr7Q0FRgciAtUux">
+            <div class="service-avatar" data-page-node-id="wCjyA1xLnTGnn8tDGIhGZ0">🍊<span class="status-indicator" data-page-node-id="IlIWecduuoMihchx2uMURy"></span></div>
+            <div data-page-node-id="q7Q4l5GWGiHOV2ghSMZk3t">
+              <div class="service-name" data-page-node-id="TrF9joB36Dcxbrn84xp9jb">小宝</div>
+              <div class="service-status" data-page-node-id="EM0PvDvfQg9MdDq1C72gSr">● 在线</div>
+            </div>
+          </div>
+          <button class="clear-button" data-page-node-id="meHmTcA1wskLfI2KnXl04r"><span data-page-node-id="V2fgwEI23Pc0ZyuSYUlplF">🔄</span><span data-page-node-id="SHIS9RAfXDrDuDBrBy9r7Q">新对话</span></button>
+        </div>
+      </header>
+
+      <section class="controls" data-page-node-id="us1CtFDOGFdW6XXXhHwdfn">
+        <label class="field" data-page-node-id="h9azTBdyTipc5OsBR6Cvvj">
+          <span data-page-node-id="oGB8bxty7cehaYYoo8BDzk">sender_id</span>
+          <div class="field-row" data-page-node-id="BTDv0rMNVcR5Soesgl1X1d">
+            <input id="senderIdInput" value="u1001" data-page-node-id="1RMEOxqDCuKMYn8l9LzZls">
+            <button class="secondary-button" data-page-node-id="ltwrTNAke80SouXJNAD0yr">刷新对象列表</button>
+          </div>
+        </label>
+      </section>
+
+      <section class="messages" id="messagesArea" data-page-node-id="3aAXr7JTLvwdK5vMxdEc5S">
+        <div class="history-divider" data-page-node-id="aV8qokJyxeY3k4bT98gksD"><span data-page-node-id="5ytIEHBTVuUufaYWdvG3Yv">— 历史对话 —</span></div>
+
+        <div class="turn-card" data-page-node-id="elRcW5BubCxCNbqEANII2b">
+          <div class="turn-header" data-page-node-id="RjM2r7XaSGnbP4DM4XCMDw">
+            <span class="turn-badge" data-page-node-id="87MFChfCsLt2n7m5iNFzDB">Turn 12</span>
+            <span class="turn-label" data-page-node-id="aew8fTvFJjRDd2136Z7anm">对话轮次</span>
+          </div>
+          <div class="section-header" data-page-node-id="RXA2mfiInXO6lAhcVPQMix">
+            <div class="avatar-wrapper" data-page-node-id="q9jEV6ITU65k4Suw2nGVxc"></div>
+            <div data-page-node-id="LiDI59dISt4qDimHBsGgFZ">
+              <span class="agent-name" data-page-node-id="yVuKNIfYWyLHAHJ1caAdAc">你</span>
+              <span class="agent-label" data-page-node-id="2JD1B1ZgOkijqQ5f0dH7bA">用户</span>
+            </div>
+          </div>
+          <div class="turn-bubble" data-page-node-id="vweWe0dAvRtN0MMys7kdqC">你好</div>
+        </div>
+
+        <div class="bot-line" data-page-node-id="vETyYXdARhCAdeL7vbjcUt">
+          <span data-page-node-id="LSEVzcEJ3oAnhbNYsgbewe">你好呀！我在呢，有什么想聊的随时说哦~ 😊</span>
+          <span class="mini-actions" data-page-node-id="hL11oqooFABcgQQe0IySqx"><span data-page-node-id="bNxX61xEtXuGROopzO2Hzu">🔊</span><span data-page-node-id="fQ8b3yVGmClWSX0DGAEbQY">📋</span></span>
+        </div>
+
+        <div class="typing" id="typingRow" hidden data-page-node-id="vZsRzYSrskNxU9EVKguMfC">
+          <div class="avatar-wrapper" style="width:26px;height:26px;background:linear-gradient(135deg,#ffe3ba,#ffb877);" data-page-node-id="Y5rPFF2y4Pikk0GSLOm4zm"></div>
+          <div class="typing-bubble" data-page-node-id="Ul3CUY2avOKF20nVQMYz50">
+            <span class="dot" data-page-node-id="FSevyVYyxvGto8xbNPfWQB"></span><span class="dot" data-page-node-id="5n2piLuG0yYqtEy27WzAlu"></span><span class="dot" data-page-node-id="2am6zsjn3NCVmFsBWfr59O"></span>
+            小宝正在输入...
+          </div>
+        </div>
+
+        <p class="error-message" id="errorLine" hidden data-page-node-id="UKOr2RIupTQ2MCoquSkuLv"></p>
+
+      </section>
+
+      <footer class="chat-footer" id="composer" data-page-node-id="Z3LchqP4PkynGKoQWjZxls">
+        <input id="draftInput" placeholder="请输入咨询内容..." autocomplete="off" data-page-node-id="YkmsDsJBGNj07eC5G9pGuV">
+        <button class="send-button" id="sendBtn" data-page-node-id="LCxKA53ijPBOEOeo6Smr20">发送</button>
+      </footer>
+
+      <!-- ============ 数字人悬浮窗 ============ -->
+      <div class="dh-widget" id="dhWidget" data-page-node-id="uKpFZWvy94aQR5OUvEWmoY">
+        <div class="dh-widget-bar" id="dhHandle" title="按住这里拖动数字人" data-page-node-id="WxbfxJc7V9Fj5dA1f3WON5">
+          <span class="dh-status-dot" id="dhDot" data-page-node-id="ry5bxCkrZf9mutqe55c6bB"></span>
+          <span class="dh-widget-title" id="dhTitle" data-page-node-id="RBPIvOvGB3NE7EnAejxnZy">数字人 · 未连接</span>
+          <span class="dh-grip" data-page-node-id="5ZjYLZ2E9PkkMuly9hZspq">⠿</span>
+          <button class="dh-collapse-btn" id="dhCollapse" title="收起为小圆圈" data-page-node-id="qiF0GMBHVcxgAGEEfXkv6V">➖</button>
+        </div>
+
+        <div class="dh-widget-stage" data-page-node-id="BQpwOvb1QVvb86JBnoJVY1">
+          <div id="digital-human-sdk" class="dh-canvas" data-page-node-id="NF6I8sHFVd736ex5U8H6Mm"></div>
+
+          <div class="dh-overlay dh-placeholder" id="dhPIdle" data-page-node-id="F0qAZcPb91PLdoG4OWuyPO">
+            <div class="dh-placeholder-icon" data-page-node-id="Aj9SxFJ68y1sTsclVUGvfb">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" data-page-node-id="QXwym6y9kzTah3Aoh4MFNF">
+                <circle cx="12" cy="8" r="3.4" data-page-node-id="br2Sy06H5ROamB7YjO1rE2" />
+                <path d="M4.6 20c0-3.6 3.3-6.2 7.4-6.2s7.4 2.6 7.4 6.2" data-page-node-id="O02BFKsrHINfAUcazFR2N8" />
+              </svg>
+            </div>
+            <p class="dh-placeholder-title" data-page-node-id="8hP752vPNCqsHGnlrj1xWc">数字人待连接</p>
+            <p class="dh-placeholder-sub" data-page-node-id="pkayj3Rb3xARJZQUbvMOs0">点下方按钮加载 3D 形象</p>
+          </div>
+
+          <div class="dh-overlay dh-placeholder" id="dhPLoading" hidden data-page-node-id="jC1Ub1S5YMIhybGXaG6k4D">
+            <div class="dh-spinner" data-page-node-id="aWOEs1OGsNZ6We5eSYjxF8"></div>
+            <p class="dh-placeholder-title" data-page-node-id="xsaW5EOynzyBOVQqZ2jvuG">正在加载数字人…</p>
+            <div class="dh-progress" data-page-node-id="6k6mGDwaHiCV1eclexMMhe"><div class="dh-progress-bar" id="dhProgressBar" data-page-node-id="7b32Qkr7eaH4uBUmh1jShh"></div></div>
+            <p class="dh-placeholder-sub" id="dhProgressText" data-page-node-id="MKRBvargw4eoEFsenAW3Ea">0% · 准备中</p>
+          </div>
+
+          <div class="dh-overlay dh-placeholder" id="dhPError" hidden data-page-node-id="rDaGQWcXeoGo4ctUxecgtc">
+            <div class="dh-placeholder-icon" style="color:var(--color-danger);background:rgba(220,38,38,.10)" data-page-node-id="ZwcB8ddWkkrmKkhDCOXR4J">!</div>
+            <p class="dh-placeholder-title" data-page-node-id="Km5PaiYL1ZPfUrNUIturS6">连接失败</p>
+            <p class="dh-placeholder-sub" id="dhErrorText" data-page-node-id="BOWLUBrLEVcbNwCDJf9Yqk"></p>
+          </div>
+        </div>
+
+        <div class="dh-widget-foot" data-page-node-id="WZLnMGnkn8wFvKEaa5nDSC">
+          <button class="dh-button" id="dhToggle" data-page-node-id="2UgrY1rJOf4AVazZV24PWK">连接数字人</button>
+        </div>
+
+        <div class="dh-resize" id="dhResize" title="拖动可放大/缩小" data-page-node-id="MptTGERLDBNkbosCXliYHT"></div>
+
+        <!-- 收起后的圆圈：可拖、点一下展开 -->
+        <div class="dh-collapsed-face" id="dhCollapsedFace" title="点击展开数字人" data-page-node-id="YQ6vzvfMqIaWVrAaK56CBp">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.6" stroke-linecap="round" data-page-node-id="oyQeye3EnFAkafjMZ2dPL4">
+            <circle cx="12" cy="8" r="3.6" data-page-node-id="EEf2TjSrKgJTHNX1kHOkKQ" />
+            <path d="M4.8 20c0-3.7 3.3-6.5 7.2-6.5s7.2 2.8 7.2 6.5" data-page-node-id="hJkZ0gwRkzR1n2FDz5aAmy" />
+          </svg>
+          <span class="dh-collapsed-dot" id="dhCollapsedDot" data-page-node-id="Th3njOEkti05Mf8vRMZGDO"></span>
+        </div>
+      </div>
+
+      <div class="dh-tip" id="dhTip" data-page-node-id="zARV4BYLLzwbMq56GHijPA">⠿ 拖我 · 我只在客服系统里活动</div>
+    </div>
+
+    <!-- ============ 业务对象 ============ -->
+    <aside class="sidebar-card" id="sidebarCard" data-page-node-id="MQezz3AIErE4ZPoy9bXJ52">
+      <!-- 贴左边中间的收起/展开按钮 -->
+      <button class="biz-edge-btn" id="bizEdgeBtn" title="收起业务对象" aria-label="收起业务对象" data-page-node-id="Y1i0ppGwMa7iGa3rFojBfD">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="m7FGBj2XgKDlrha8y8aH3v">
+          <polyline points="9 5 16 12 9 19" data-page-node-id="C6VaqBiZdV2fEd4AtqqFoh" />
+        </svg>
+      </button>
+
+      <h2 data-page-node-id="MHdfkJZD7AnFrktpCMPG7H">业务对象</h2>
+      <div class="tabs" data-page-node-id="phTCCWqFkh8SVsFbqNGdvF">
+        <button class="tab active" data-page-node-id="nO7IH17X5FTGUECaPHxTDC">订单</button>
+        <button class="tab" data-page-node-id="Wr3CHRXrxQ5QlMCCf5f0U1">商品</button>
+      </div>
+      <div class="biz-card" data-page-node-id="GSeR3E7tbhiWACBgkoRQhN">
+        <div class="biz-img img-blue" data-page-node-id="gbji4x269Owm4CzS4O4WFW">iPhone 15 Pro</div>
+        <div class="biz-title" data-page-node-id="HH1ZI66Trx321onJCLF9Hb">iPhone 15 Pro 256G 远峰蓝</div>
+        <div class="biz-sub" data-page-node-id="fsQPLxcQcgzF4EicjsHChP">订单号：A20260410001</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;" data-page-node-id="EZP39Bwoa6wDBitOQAfs0o">
+          <span class="biz-tag" data-page-node-id="QkBsdMkDjBvPqs3OXcPlPk">待发货</span>
+          <span class="biz-price" data-page-node-id="p9hbeRuuj1wIq4gcwcwpC8">¥ 8999.00</span>
+        </div>
+        <button class="biz-btn" data-page-node-id="KFItalYaNlhYKLDmfrOz2K">发送订单</button>
+      </div>
+      <div class="biz-card" data-page-node-id="gonCmsM4gYJBHuMjS0OAyB">
+        <div class="biz-img img-orange" data-page-node-id="AybFS5WF3jsq8WMS8qxsSp">Xiaomi Kettle</div>
+        <div class="biz-title" data-page-node-id="HBnGypVFvD7RsBQsIZsWyV">小米恒温电热水壶 3</div>
+        <div style="text-align:right;" data-page-node-id="HcOgzgw3TtJ99Cmf64w1Vs"><span class="biz-price" data-page-node-id="y3M85jHmNhUqnbzwfenO0k">¥ 149.00</span></div>
+        <button class="biz-btn" data-page-node-id="wnPQEyqUGX4yRxhWbwwf6C">发送订单</button>
+      </div>
+
+      <!-- 收起后的窄竖条：点它展开 -->
+      <div class="biz-collapsed-face" id="bizCollapsedFace" title="点击展开业务对象" data-page-node-id="v97crVvVegQo9Zu3XrFqDU">
+        <span class="biz-vertical-text" data-page-node-id="nSNM7lWkTCxqpJFZkUoP1j">业务对象</span>
+      </div>
+    </aside>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  const card     = document.getElementById('chatCard');
+  const widget   = document.getElementById('dhWidget');
+  const handle   = document.getElementById('dhHandle');
+  const resizeEl = document.getElementById('dhResize');
+  const tip      = document.getElementById('dhTip');
+
+  const collapseBtn   = document.getElementById('dhCollapse');
+  const collapsedFace = document.getElementById('dhCollapsedFace');
+  const collapsedDot  = document.getElementById('dhCollapsedDot');
+
+  const sidebarCard      = document.getElementById('sidebarCard');
+  const bizEdgeBtn       = document.getElementById('bizEdgeBtn');
+  const bizCollapsedFace = document.getElementById('bizCollapsedFace');
+
+  const MIN_W = 130, MIN_H = 210;
+  const MAX_W = 340, MAX_H = 560;
+
+  let rafId = null;
+  function bump() {
+    card.classList.add('boundary-hit');
+    clearTimeout(rafId);
+    rafId = setTimeout(() => card.classList.remove('boundary-hit'), 260);
+  }
+
+  function clampToCard(left, top) {
+    const c = card.getBoundingClientRect();
+    const w = widget.offsetWidth, h = widget.offsetHeight;
+    const maxX = Math.max(6, c.width - w - 6);
+    const maxY = Math.max(6, c.height - h - 6);
+    const nx = Math.min(Math.max(left, 6), maxX);
+    const ny = Math.min(Math.max(top, 6), maxY);
+    if (nx !== left || ny !== top) bump();
+    widget.style.left = nx + 'px';
+    widget.style.top = ny + 'px';
+    widget.style.bottom = 'auto';
+    return [nx, ny];
+  }
+
+  /* ---------- 拖动：把手条 / 收起后的圆圈，都能拖 ---------- */
+  let dragging = false, moved = false, startX = 0, startY = 0, originLeft = 0, originTop = 0;
+
+  function dragStart(e, src) {
+    dragging = true; moved = false;
+    widget.classList.add('dragging');
+    const r = widget.getBoundingClientRect();
+    const c = card.getBoundingClientRect();
+    originLeft = r.left - c.left;
+    originTop  = r.top  - c.top;
+    startX = e.clientX; startY = e.clientY;
+    try { src.setPointerCapture(e.pointerId); } catch (_) {}
+    tip.style.opacity = '0';
+    e.preventDefault();
+  }
+
+  window.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+    clampToCard(originLeft + dx, originTop + dy);
+  });
+  window.addEventListener('pointerup', () => {
+    if (!dragging) return;
+    dragging = false;
+    widget.classList.remove('dragging');
+    applyLayout();
+  });
+
+  handle.addEventListener('pointerdown', (e) => dragStart(e, handle));
+  collapsedFace.addEventListener('pointerdown', (e) => dragStart(e, collapsedFace));
+  // 圆圈上「没拖动」的抬手 = 展开
+  collapsedFace.addEventListener('pointerup', () => { if (!moved) expandWidget(); });
+
+  /* ---------- 缩放：拖动右下角 ---------- */
+  let resizing = false, rsX = 0, rsY = 0, rsW = 0, rsH = 0;
+  resizeEl.addEventListener('pointerdown', (e) => {
+    resizing = true;
+    rsX = e.clientX; rsY = e.clientY;
+    rsW = widget.offsetWidth; rsH = widget.offsetHeight;
+    resizeEl.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  resizeEl.addEventListener('pointermove', (e) => {
+    if (!resizing) return;
+    const w = Math.min(Math.max(rsW + (e.clientX - rsX), MIN_W), MAX_W);
+    const h = Math.min(Math.max(rsH + (e.clientY - rsY), MIN_H), MAX_H);
+    widget.style.width = w + 'px';
+    widget.style.height = h + 'px';
+    clampToCard(parseFloat(widget.style.left) || 0, parseFloat(widget.style.top) || 0);
+  });
+  resizeEl.addEventListener('pointerup', (e) => {
+    resizing = false;
+    resizeEl.releasePointerCapture(e.pointerId);
+    applyLayout();
+  });
+
+  /* ===================================================================
+     ➖ 收起 / 展开：收起后变成卡片右侧的一个小圆圈
+     =================================================================== */
+  const CIRCLE = 56;      // 收起后的圆圈直径
+  const RIGHT_GAP = 18;   // 距卡片右边距
+  let saved = { left: 24, top: 120, width: 176, height: 292 };
+
+  function collapseWidget() {
+    if (widget.classList.contains('collapsed')) return;
+
+    const r = widget.getBoundingClientRect();
+    const c = card.getBoundingClientRect();
+    saved.width  = widget.offsetWidth;
+    saved.height = widget.offsetHeight;
+    saved.left   = r.left - c.left;
+    saved.top    = r.top  - c.top;
+
+    widget.classList.add('dh-anim');
+    void widget.offsetWidth;
+
+    widget.classList.add('collapsed');
+    widget.style.width  = CIRCLE + 'px';
+    widget.style.height = CIRCLE + 'px';
+
+    const nx = Math.max(6, card.clientWidth - CIRCLE - RIGHT_GAP);
+    const ny = Math.min(Math.max(saved.top, 6), card.clientHeight - CIRCLE - 6);
+    widget.style.left = nx + 'px';
+    widget.style.top  = ny + 'px';
+    widget.style.bottom = 'auto';
+
+    setTimeout(() => widget.classList.remove('dh-anim'), 320);
+  }
+
+  function expandWidget() {
+    if (!widget.classList.contains('collapsed')) return;
+
+    widget.classList.add('dh-anim');
+    void widget.offsetWidth;
+
+    widget.classList.remove('collapsed');
+    widget.style.width  = saved.width + 'px';
+    widget.style.height = saved.height + 'px';
+    clampToCard(saved.left, saved.top);
+
+    requestAnimationFrame(() => requestAnimationFrame(() => applyLayout()));
+    setTimeout(() => { applyLayout(); widget.classList.remove('dh-anim'); }, 320);
+  }
+
+  // 收起按钮在把手条里，别让它触发拖动
+  collapseBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+  collapseBtn.addEventListener('click', (e) => { e.stopPropagation(); collapseWidget(); });
+
+  /* ===================================================================
+     业务对象面板：左边中间的箭头按钮 → 收起成贴右的窄竖条
+     =================================================================== */
+  let bizTimer = null;
+
+  // 面板宽度变了 → 聊天卡片跟着变宽/变窄，数字人要重新夹边 + 重排
+  function reflowAfterSidebar() {
+    clearTimeout(bizTimer);
+    bizTimer = setTimeout(() => {
+      clampToCard(parseFloat(widget.style.left) || 0, parseFloat(widget.style.top) || 0);
+      applyLayout();
+    }, 320);
+  }
+
+  bizEdgeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const collapsed = sidebarCard.classList.toggle('collapsed');
+    bizEdgeBtn.title = collapsed ? '展开业务对象' : '收起业务对象';
+    reflowAfterSidebar();
+  });
+
+  bizCollapsedFace.addEventListener('click', () => {
+    sidebarCard.classList.remove('collapsed');
+    bizEdgeBtn.title = '收起业务对象';
+    reflowAfterSidebar();
+  });
+
+  window.addEventListener('resize', () => {
+    clampToCard(parseFloat(widget.style.left) || 0, parseFloat(widget.style.top) || 0);
+    applyLayout();
+  });
+
+  /* ===================================================================
+     数字人真实接入逻辑（与项目 App.vue 一致）
+     =================================================================== */
+  const dot = document.getElementById('dhDot');
+  const title = document.getElementById('dhTitle');
+  const btn = document.getElementById('dhToggle');
+  const pIdle = document.getElementById('dhPIdle');
+  const pLoading = document.getElementById('dhPLoading');
+  const pError = document.getElementById('dhPError');
+  const progressBar = document.getElementById('dhProgressBar');
+  const progressText = document.getElementById('dhProgressText');
+  const errorText = document.getElementById('dhErrorText');
+
+  const DH_STATUS_TEXT = {
+    idle: '数字人 · 未连接',
+    loading: '数字人 · 加载中',
+    ready: '数字人 · 已连接',
+    error: '数字人 · 连接失败',
+  };
+
+  let status = 'idle';
+  let liteSDK = null;
+
+  function setStatus(next, msg) {
+    status = next;
+    const dotState = { ready: 'dh-dot-ready', loading: 'dh-dot-loading', error: 'dh-dot-error' }[next] || '';
+    dot.className = 'dh-status-dot ' + dotState;
+    collapsedDot.className = 'dh-collapsed-dot ' + dotState;
+    title.textContent = DH_STATUS_TEXT[next];
+    pIdle.hidden = next !== 'idle';
+    pLoading.hidden = next !== 'loading';
+    pError.hidden = next !== 'error';
+    if (msg) errorText.textContent = msg;
+    btn.disabled = next === 'loading';
+    btn.classList.toggle('dh-button-danger', next === 'ready');
+    btn.textContent = next === 'loading' ? '连接中…'
+                    : next === 'ready'   ? '断开连接'
+                    : next === 'error'   ? '重试连接' : '连接数字人';
+  }
+
+  function applyLayout() {
+    if (!liteSDK) return;
+    try {
+      liteSDK.changeLayout({
+        container: { size: [widget.querySelector('.dh-widget-stage').clientWidth,
+                            widget.querySelector('.dh-widget-stage').clientHeight] },
+        avatar: { v_align: 'bottom', h_align: 'center', scale: '95vh', offset_x: 0, offset_y: 0 },
+      });
+    } catch (e) { console.warn('[数字人] 布局适配失败:', e); }
+  }
+
+  async function connect() {
+    if (status === 'loading' || status === 'ready') return;
+    setStatus('loading');
+    progressBar.style.width = '0%';
+    progressText.textContent = '0% · 正在获取数字人凭证…';
+
+    const CRED_URLS = [
+      '/api/digital-human/credentials',
+      'http://127.0.0.1:18777/api/digital-human/credentials',
+      'http://127.0.0.1:5173/api/digital-human/credentials',
+      'http://127.0.0.1:18082/api/digital-human/credentials',
+    ];
+    const CRED_LABELS = ['同源/api', '本地代理18777', 'vite代理5173', '后端直连18082'];
+
+    let cred;
+    try {
+      const attempts = [];
+      for (let i = 0; i < CRED_URLS.length; i++) {
+        progressText.textContent = '正在获取数字人凭证…（' + CRED_LABELS[i] + '）';
+        try {
+          const resp = await fetch(CRED_URLS[i]);
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          cred = await resp.json();
+          break;
+        } catch (e) {
+          attempts.push(CRED_LABELS[i] + ':' + e.message);
+          console.warn('[数字人] 凭证获取失败 -', CRED_LABELS[i], e);
+        }
+      }
+      if (!cred) {
+        setStatus('error',
+          '四个入口都取不到凭证。页面Origin=' + location.origin + '。' +
+          '明细：' + attempts.join('；')
+        );
+        return;
+      }
+    } catch (e) {
+      setStatus('error', '获取数字人凭证异常：' + e.message);
+      return;
+    }
+    if (!cred || !cred.app_id || !cred.app_secret) {
+      setStatus('error', '后端未配置数字人凭证，请检查 .env。');
+      return;
+    }
+    if (typeof XmovAvatar !== 'function') {
+      setStatus('error', 'SDK 未加载（预览页可能无法访问 CDN）。');
+      return;
+    }
+
+    try {
+      liteSDK = new XmovAvatar({
+        containerId: '#digital-human-sdk',
+        appId: cred.app_id,
+        appSecret: cred.app_secret,
+        gatewayServer: cred.gateway_server,
+        hardwareAcceleration: 'prefer-hardware',
+        enableLogger: true,
+        onMessage(m) {
+          if (m && m.code && m.code !== 50001 && m.code !== 50002) {
+            setStatus('error', '数字人错误 code=' + m.code + ' ' + (m.message || ''));
+          }
+        },
+        onStateChange(s) {
+          if (s === 'speak') progressText.textContent = '数字人正在朗读…';
+          else if (s === 'interactive_idle') progressText.textContent = '已就绪，等待提问';
+        },
+      });
+
+      await liteSDK.init({
+        initModel: 'normal',
+        onDownloadProgress(p) {
+          const v = Math.max(0, Math.min(100, Math.round(p)));
+          progressBar.style.width = v + '%';
+          progressText.textContent = v + '% · ' + (v < 100 ? '正在下载 3D 模型与表情资源…' : '资源就绪');
+        },
+      });
+
+      setStatus('ready');
+      requestAnimationFrame(applyLayout);
+    } catch (e) {
+      const detail = (e && e.message) || String(e);
+      setStatus('error', '数字人初始化失败：' + detail);
+      try { await liteSDK?.destroy(); } catch (_) {}
+      liteSDK = null;
+    }
+  }
+
+  async function disconnect() {
+    const inst = liteSDK;
+    liteSDK = null;
+    setStatus('idle');
+    progressBar.style.width = '0%';
+    try { await inst?.destroy(); } catch (_) {}
+  }
+
+  btn.addEventListener('click', () => (status === 'ready' ? disconnect() : connect()));
+
+  /* ===================================================================
+     聊天发送：接真实后端（三路降级）+ 数字人朗读
+     =================================================================== */
+  const CHAT_URLS = [
+    '/api/chat',
+    'http://127.0.0.1:18777/api/chat',
+    'http://127.0.0.1:5173/api/chat',
+  ];
+  const CHAT_LABELS = ['同源/api', '本地代理18777', 'vite代理5173'];
+
+  const senderIdInput = document.getElementById('senderIdInput');
+  const draftInput = document.getElementById('draftInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const messagesArea = document.getElementById('messagesArea');
+  const typingRow = document.getElementById('typingRow');
+  const errorLine = document.getElementById('errorLine');
+  let sending = false;
+
+  function refreshSendBtn() {
+    sendBtn.disabled = sending || !draftInput.value.trim();
+    sendBtn.textContent = sending ? '发送中...' : '发送';
+  }
+  draftInput.addEventListener('input', refreshSendBtn);
+  refreshSendBtn();
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function appendUserTurn(text) {
+    const el = document.createElement('div');
+    el.className = 'turn-card is-new';
+    el.innerHTML =
+      '<div class="turn-header"><span class="turn-badge">Turn —</span><span class="turn-label">对话轮次</span></div>' +
+      '<div class="section-header"><div class="avatar-wrapper"></div>' +
+      '<div><span class="agent-name">你</span><span class="agent-label">用户</span></div></div>' +
+      '<div class="turn-bubble">' + esc(text) + '</div>';
+    messagesArea.appendChild(el);
+  }
+
+  function appendBotTurn(text) {
+    const el = document.createElement('div');
+    el.className = 'bot-line is-new';
+    el.innerHTML = '<span>' + esc(text) + '</span>' +
+      '<span class="mini-actions"><span>🔊</span><span>📋</span></span>';
+    messagesArea.appendChild(el);
+  }
+
+  function scrollBottom() { messagesArea.scrollTop = messagesArea.scrollHeight; }
+
+  async function doSend() {
+    if (sending) return;
+    const text = draftInput.value.trim();
+    const sid = senderIdInput.value.trim();
+    if (!sid) { errorLine.hidden = false; errorLine.textContent = '请先输入 sender_id。'; return; }
+    if (!text) return;
+
+    draftInput.value = '';
+    sending = true;
+    refreshSendBtn();
+    errorLine.hidden = true;
+    appendUserTurn(text);
+    typingRow.hidden = false;
+    scrollBottom();
+
+    try {
+      const attempts = [];
+      let data = null;
+      for (let i = 0; i < CHAT_URLS.length; i++) {
+        try {
+          const resp = await fetch(CHAT_URLS[i], {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sender_id: sid, text: text }),
+          });
+          const body = await resp.json().catch(() => null);
+          if (!resp.ok) throw new Error((body && body.detail) || ('HTTP ' + resp.status));
+          data = body;
+          break;
+        } catch (e) {
+          attempts.push(CHAT_LABELS[i] + ':' + e.message);
+        }
+      }
+      if (!data) throw new Error(attempts.join('；'));
+
+      const msgs = data.messages || [];
+      if (!msgs.length) appendBotTurn('（后端返回了空消息）');
+      msgs.forEach((m) => {
+        if (m.text) appendBotTurn(m.text);
+        else if (m.object) appendBotTurn('（业务对象：' + (m.object.title || m.object.type) + '）');
+      });
+
+      const speakText = msgs.map((m) => m.text).filter(Boolean).join(' ');
+      if (speakText && liteSDK) {
+        try { liteSDK.speak(speakText, true, true); } catch (e) { console.warn('[数字人] 朗读失败:', e); }
+      }
+    } catch (e) {
+      errorLine.hidden = false;
+      errorLine.textContent = '发送失败：' + e.message + '（页面Origin=' + location.origin + '）';
+    } finally {
+      sending = false;
+      typingRow.hidden = true;
+      refreshSendBtn();
+      scrollBottom();
+    }
+  }
+
+  sendBtn.addEventListener('click', doSend);
+  document.getElementById('composer').addEventListener('submit', (e) => { e.preventDefault(); doSend(); });
+  draftInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); doSend(); }
+  });
+
+  window.addEventListener('load', () => {
+    clampToCard(24, card.getBoundingClientRect().height - widget.offsetHeight - 96);
+    setStatus('idle');
+    const t = tip;
+    t.style.left = (widget.offsetLeft + widget.offsetWidth / 2) + 'px';
+    t.style.top = (widget.offsetTop - 20) + 'px';
+    t.style.transform = 'translateX(-50%)';
+    setTimeout(() => { t.style.transition = 'opacity .4s'; t.style.opacity = '0'; }, 4200);
+  });
+})();
+</script>
+</body>
+</html>
