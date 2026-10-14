@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数字人 → 悬浮在客服系统内 · UI 预览（不改项目代码）</title>
+<!-- 真实 SDK：与项目里用的同一个 -->
+<script src="https://media.xingyun3d.com/xingyun3d/general/litesdk/xmovAvatar@latest.js"></script>
+<style>
+  :root {
+    --color-bg-deep: #070a14;
+    --color-bg-mid: #0c1024;
+    --color-bg-surface: #11162b;
+    --color-surface: rgba(14, 16, 30, 0.78);
+    --color-surface-raised: rgba(24, 26, 44, 0.70);
+    --color-surface-field: rgba(10, 12, 22, 0.62);
+    --color-text-primary: #e6e3dc;
+    --color-text-secondary: #9b9790;
+    --color-text-muted: #726f68;
+    --color-accent: #2dd4bf;
+    --color-accent-strong: #14b8a6;
+    --color-accent-soft: rgba(45, 212, 191, 0.10);
+    --color-accent-soft-bg: rgba(45, 212, 191, 0.06);
+    --color-warm: #f59e0b;
+    --color-success: #34d399;
+    --color-info: #38bdf8;
+    --color-danger: #fb7185;
+    --color-border: rgba(255, 255, 255, 0.08);
+    --color-border-light: rgba(255, 255, 255, 0.05);
+    --color-border-strong: rgba(255, 255, 255, 0.13);
+    --radius-sm: 10px;
+    --radius-md: 16px;
+    --radius-lg: 24px;
+    --shadow-lg: 0 20px 56px rgba(0, 0, 0, 0.35);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 18px 22px 26px;
+    min-height: 100vh;
+    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    color: var(--color-text-primary);
+    background:
+      radial-gradient(1200px 600px at 12% -10%, rgba(45,212,191,.10), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, rgba(245,158,11,.07), transparent 55%),
+      var(--color-bg-deep);
+  }
+
+  /* ===== 页面骨架：与项目 .app-layout / .workspace 一致（左侧数字人面板已去掉）===== */
+  .app-layout { max-width: 1500px; margin: 0 auto; display: flex; gap: 22px; align-items: stretch; }
+  .workspace {
+    flex: 1; min-width: 0;
+    display: grid; grid-template-columns: minmax(0, 1fr) 370px; gap: 22px;
+  }
+
+  /* ===== 电商客服系统（数字人唯一可活动区域）===== */
+  .chat-card {
+    position: relative;                 /* 数字人的定位父级 = 活动边界 */
+    overflow: hidden;                   /* 出界会被裁掉，双保险 */
+    display: flex; flex-direction: column;
+    min-height: 660px;
+    background: var(--color-surface);
+    backdrop-filter: blur(32px) saturate(1.2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    transition: box-shadow 250ms ease;
+  }
+  .chat-card.boundary-hit { box-shadow: var(--shadow-lg), inset 0 0 0 2px rgba(45,212,191,.55); }
+
+  .chat-header { padding: 18px 22px 12px; border-bottom: 1px solid var(--color-border-light); }
+  .chat-header h1 {
+    margin: 0 0 12px; font-size: 21px; font-weight: 700;
+    background: linear-gradient(90deg, #2dd4bf, #38bdf8);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .service-info { display: flex; align-items: center; justify-content: space-between; }
+  .service-left { display: flex; align-items: center; gap: 10px; }
+  .service-avatar {
+    width: 42px; height: 42px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 21px;
+    background: radial-gradient(circle at 35% 30%, #ffd28a, #ff8c5a);
+    position: relative;
+  }
+  .status-indicator {
+    position: absolute; right: 0; bottom: 0; width: 11px; height: 11px;
+    border-radius: 50%; background: var(--color-success);
+    border: 2px solid #12141c;
+  }
+  .service-name { font-size: 15px; font-weight: 700; }
+  .service-status { font-size: 12px; color: var(--color-accent); }
+  .clear-button {
+    background: var(--color-surface-raised); border: 1px solid var(--color-border);
+    color: var(--color-text-secondary); font-size: 12px; padding: 8px 14px;
+    border-radius: var(--radius-sm); cursor: pointer; display: flex; gap: 6px; align-items: center;
+  }
+
+  .controls { padding: 14px 22px 0; }
+  .field > span { font-size: 11px; color: var(--color-text-muted); display: block; margin-bottom: 6px; }
+  .field-row { display: flex; gap: 10px; }
+  .field-row input {
+    flex: 1; background: var(--color-surface-field); border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm); padding: 11px 13px; color: var(--color-text-primary);
+    font-size: 14px; outline: none;
+  }
+  .secondary-button {
+    background: var(--color-surface-raised); border: 1px solid var(--color-border);
+    color: var(--color-text-secondary); border-radius: var(--radius-sm);
+    padding: 11px 14px; font-size: 12px; cursor: pointer; white-space: nowrap;
+  }
+
+  .messages { flex: 1; padding: 16px 22px 20px; overflow-y: auto; overflow-x: hidden; position: relative; }
+  .error-message { color: var(--color-danger); font-size: 12px; margin: 8px 0 0; line-height: 1.6; }
+  .is-new { animation: fadeUp .26s ease; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(7px) } to { opacity: 1; transform: none } }
+  .history-divider {
+    text-align: center; font-size: 12px; color: var(--color-text-muted); margin: 6px 0 14px;
+    position: relative;
+  }
+  .turn-card {
+    background: var(--color-surface); border: 1px solid var(--color-border);
+    border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 14px;
+  }
+  .turn-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .turn-badge {
+    background: var(--color-accent); color: #04231f; font-weight: 700;
+    font-size: 12px; padding: 3px 12px; border-radius: 9999px;
+  }
+  .turn-label { font-size: 12px; color: var(--color-text-muted); }
+  .section-header { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; }
+  .avatar-wrapper {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #ff9ad5, #c026d3);
+  }
+  .agent-name { font-size: 14px; font-weight: 600; color: var(--color-info); }
+  .agent-label { display: block; font-size: 11px; color: var(--color-text-muted); }
+  .turn-bubble {
+    background: var(--color-accent); color: #04231f; font-weight: 600;
+    padding: 10px 18px; border-radius: var(--radius-md); font-size: 14px;
+    margin-left: auto; width: fit-content;
+  }
+  .bot-line {
+    background: var(--color-surface-raised); border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm); padding: 10px 14px; font-size: 14px;
+    color: var(--color-text-primary); margin-bottom: 12px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .bot-line .mini-actions span { margin-left: 8px; color: var(--color-text-muted); font-size: 13px; }
+  .typing { display: flex; align-items: center; gap: 9px; }
+  .typing-bubble {
+    background: var(--color-surface-raised); border: 1px solid var(--color-border);
+    border-radius: 9999px; padding: 8px 16px; display: flex; align-items: center;
+    gap: 6px; font-size: 12px; color: var(--color-text-muted);
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent); animation: blink 1.2s infinite; }
+  .dot:nth-child(2) { animation-delay: .2s; } .dot:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 0%,80%,100% { opacity: .25 } 40% { opacity: 1 } }
+
+  .chat-footer {
+    padding: 12px 22px 18px; border-top: 1px solid var(--color-border-light);
+    display: flex; gap: 10px;
+  }
+  .chat-footer input {
+    flex: 1; background: var(--color-surface-field); border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm); padding: 14px; color: var(--color-text-primary);
+    font-size: 14px; outline: none;
+  }
+  .send-button {
+    background: var(--color-accent); color: #04231f; font-weight: 700; border: none;
+    border-radius: var(--radius-sm); padding: 0 22px; font-size: 13px; cursor: pointer;
+    line-height: 1.35; white-space: nowrap;
+  }
+  .send-button:disabled { opacity: .45; cursor: not-allowed; }
+
+  /* ===== 右侧业务对象 ===== */
+  .sidebar-card {
+    background: var(--color-surface); border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg); padding: 18px; box-shadow: var(--shadow-lg);
+    display: flex; flex-direction: column; min-height: 660px;
+  }
+  .sidebar-card h2 { margin: 0 0 14px; font-size: 17px; }
+  .tabs { display: flex; gap: 10px; margin-bottom: 14px; }
+  .tab {
+    padding: 8px 24px; border-radius: 9999px; font-size: 14px; cursor: pointer;
+    background: var(--color-surface-raised); color: var(--color-text-secondary);
+    border: 1px solid var(--color-border);
+  }
+  .tab.active { background: var(--color-accent); color: #04231f; font-weight: 700; border-color: var(--color-accent); }
+  .biz-card {
+    background: var(--color-surface-raised); border: 1px solid var(--color-border);
+    border-radius: var(--radius-md); padding: 14px; margin-bottom: 14px;
+  }
+  .biz-img {
+    height: 118px; border-radius: var(--radius-sm); display: flex;
+    align-items: center; justify-content: center; color: #fff;
+    font-size: 21px; font-weight: 700; margin-bottom: 12px;
+  }
+  .img-blue { background: linear-gradient(135deg, #3b2ce0, #241aa8); }
+  .img-orange { background: linear-gradient(135deg, #ff8c1a, #f26b0f); }
+  .biz-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .biz-sub { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 8px; }
+  .biz-price { color: #ff9f43; font-weight: 700; font-size: 15px; }
+  .biz-tag {
+    display: inline-block; font-size: 11px; color: #ff9f43;
+    background: rgba(255,159,67,.12); border-radius: 6px; padding: 2px 8px;
+  }
+  .biz-btn {
+    width: 100%; margin-top: 12px; background: var(--color-surface-field);
+    border: 1px solid var(--color-border); color: var(--color-text-secondary);
+    border-radius: var(--radius-sm); padding: 10px; font-size: 13px; cursor: pointer;
+  }
+
+  /* ===================================================================
+     数字人悬浮窗（核心）
+     - 位置：绝对定位在 .chat-card 内，JS 强制夹在卡片边界里
+     - 拖动：只有顶部把手条可拖（画布不吃事件）
+     - 缩放：右下角小三角，改容器尺寸即可让 SDK 里的人等比变小
+     =================================================================== */
+  .dh-widget {
+    position: absolute;
+    left: 24px; bottom: 96px;
+    width: 176px; height: 292px;      /* 默认“变小”后的尺寸 */
+    z-index: 60;
+    display: flex; flex-direction: column;
+    border-radius: var(--radius-md);
+    background: rgba(10, 14, 24, .82);
+    border: 1px solid var(--color-border-strong);
+    box-shadow: 0 14px 38px rgba(0,0,0,.45), 0 0 0 1px rgba(45,212,191,.10);
+    overflow: hidden;
+    transition: box-shadow 200ms ease;
+  }
+  .dh-widget:hover { box-shadow: 0 14px 38px rgba(0,0,0,.5), 0 0 0 1px rgba(45,212,191,.35); }
+  .dh-widget.dragging { transition: none; cursor: grabbing; }
+
+  /* 把手条 —— 唯一能拖动的区域 */
+  .dh-widget-bar {
+    height: 30px; flex-shrink: 0;
+    display: flex; align-items: center; gap: 7px;
+    padding: 0 8px 0 10px;
+    background: linear-gradient(180deg, rgba(45,212,191,.14), rgba(45,212,191,.04));
+    border-bottom: 1px solid var(--color-border-light);
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+  }
+  .dh-widget-bar:active { cursor: grabbing; }
+  .dh-status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-text-muted); flex-shrink: 0; }
+  .dh-dot-ready { background: var(--color-success); }
+  .dh-dot-loading { background: var(--color-warm); animation: dhPulse 1.2s ease-in-out infinite; }
+  .dh-dot-error { background: var(--color-danger); }
+  @keyframes dhPulse { 0%,100% { opacity: 1; transform: scale(1) } 50% { opacity: .45; transform: scale(.82) } }
+  .dh-widget-title {
+    font-size: 11px; color: var(--color-text-secondary); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; flex: 1;
+  }
+  .dh-grip {
+    font-size: 12px; color: var(--color-accent); letter-spacing: 1px;
+    padding: 2px 4px; border-radius: 6px;
+  }
+  .dh-widget-bar:hover .dh-grip { background: rgba(45,212,191,.15); }
+
+  .dh-widget-stage { position: relative; flex: 1; min-height: 0; }
+  .dh-canvas {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    background: #05070d; overflow: hidden;
+  }
+  .dh-overlay { position: absolute; inset: 0; z-index: 2; }
+  .dh-placeholder {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 7px; padding: 12px; text-align: center;
+    background: var(--color-accent-soft-bg);
+    border: 1px dashed var(--color-border-strong);
+  }
+  .dh-placeholder[hidden] { display: none; }
+  .dh-placeholder-icon {
+    width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--color-accent-soft); color: var(--color-accent); font-size: 15px;
+  }
+  .dh-placeholder-title { margin: 0; font-size: 12px; color: var(--color-text-secondary); }
+  .dh-placeholder-sub { margin: 0; font-size: 10px; color: var(--color-text-muted); line-height: 1.5; }
+  .dh-progress { width: 78%; height: 4px; border-radius: 3px; background: rgba(255,255,255,.10); overflow: hidden; }
+  .dh-progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--color-accent), var(--color-info)); transition: width .3s; }
+  .dh-spinner {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid rgba(45,212,191,.25); border-top-color: var(--color-accent);
+    animation: dhSpin .8s linear infinite;
+  }
+  @keyframes dhSpin { to { transform: rotate(360deg) } }
+
+  .dh-widget-foot {
+    flex-shrink: 0; padding: 7px 8px 8px;
+    border-top: 1px solid var(--color-border-light);
+    background: rgba(6, 9, 18, .55);
+  }
+  .dh-button {
+    width: 100%; border: 1px solid rgba(45,212,191,.35);
+    background: var(--color-accent-soft); color: var(--color-accent);
+    border-radius: 8px; padding: 7px 6px; font-size: 11px; font-weight: 600; cursor: pointer;
+  }
+  .dh-button:disabled { opacity: .6; cursor: not-allowed; }
+  .dh-button-danger { border-color: rgba(251,113,133,.4); background: rgba(251,113,133,.10); color: var(--color-danger); }
+
+  /* 右下角缩放手柄 */
+  .dh-resize {
+    position: absolute; right: 0; bottom: 0;
+    width: 16px; height: 16px; cursor: nwse-resize; z-index: 4;
+    background: linear-gradient(135deg, transparent 45%, rgba(45,212,191,.55) 45%, rgba(45,212,191,.55) 60%, transparent 60%,
+                                        transparent 72%, rgba(45,212,191,.55) 72%, rgba(45,212,191,.55) 87%, transparent 87%);
+    touch-action: none;
+  }
+  .dh-tip {
+    position: absolute; z-index: 61; pointer-events: none;
+    font-size: 11px; color: #9be9de; white-space: nowrap;
+    background: rgba(6, 14, 20, .85); border: 1px solid rgba(45,212,191,.35);
+    padding: 3px 10px; border-radius: 9999px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app-layout">
+  <div class="workspace">
+
+    <!-- ============ 电商客服系统 ============ -->
+    <div class="chat-card" id="chatCard">
+      <header class="chat-header">
+        <h1>电商客服系统</h1>
+        <div class="service-info">
+          <div class="service-left">
+            <div class="service-avatar">🍊<span class="status-indicator"></span></div>
+            <div>
+              <div class="service-name">小宝</div>
+              <div class="service-status">● 在线</div>
+            </div>
+          </div>
+          <button class="clear-button"><span>🔄</span><span>新对话</span></button>
+        </div>
+      </header>
+
+      <section class="controls">
+        <label class="field">
+          <span>sender_id</span>
+          <div class="field-row">
+            <input id="senderIdInput" value="u1001">
+            <button class="secondary-button">刷新对象列表</button>
+          </div>
+        </label>
+      </section>
+
+      <section class="messages" id="messagesArea">
+        <div class="history-divider"><span>— 历史对话 —</span></div>
+
+        <div class="turn-card">
+          <div class="turn-header">
+            <span class="turn-badge">Turn 12</span>
+            <span class="turn-label">对话轮次</span>
+          </div>
+          <div class="section-header">
+            <div class="avatar-wrapper"></div>
+            <div>
+              <span class="agent-name">你</span>
+              <span class="agent-label">用户</span>
+            </div>
+          </div>
+          <div class="turn-bubble">你好</div>
+        </div>
+
+        <div class="bot-line">
+          <span>你好呀！我在呢，有什么想聊的随时说哦~ 😊</span>
+          <span class="mini-actions"><span>🔊</span><span>📋</span></span>
+        </div>
+
+        <div class="typing" id="typingRow" hidden>
+          <div class="avatar-wrapper" style="width:26px;height:26px;background:radial-gradient(circle at 40% 35%, #ffd28a, #ff8c5a);"></div>
+          <div class="typing-bubble">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            小宝正在输入...
+          </div>
+        </div>
+
+        <p class="error-message" id="errorLine" hidden></p>
+
+      </section>
+
+      <footer class="chat-footer" id="composer">
+        <input id="draftInput" placeholder="请输入咨询内容..." autocomplete="off">
+        <button class="send-button" id="sendBtn">发送</button>
+      </footer>
+
+      <!-- ============ 数字人悬浮窗（挂在卡片上，不随消息滚动）============ -->
+      <div class="dh-widget" id="dhWidget">
+        <div class="dh-widget-bar" id="dhHandle" title="按住这里拖动数字人">
+          <span class="dh-status-dot" id="dhDot"></span>
+          <span class="dh-widget-title" id="dhTitle">数字人 · 未连接</span>
+          <span class="dh-grip">⠿</span>
+        </div>
+
+        <div class="dh-widget-stage">
+          <!-- 真实 SDK 的渲染容器，常驻 DOM -->
+          <div id="digital-human-sdk" class="dh-canvas"></div>
+
+          <div class="dh-overlay dh-placeholder" id="dhPIdle">
+            <div class="dh-placeholder-icon">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="8" r="3.4" />
+                <path d="M4.6 20c0-3.6 3.3-6.2 7.4-6.2s7.4 2.6 7.4 6.2" />
+              </svg>
+            </div>
+            <p class="dh-placeholder-title">数字人待连接</p>
+            <p class="dh-placeholder-sub">点下方按钮加载 3D 形象</p>
+          </div>
+
+          <div class="dh-overlay dh-placeholder" id="dhPLoading" hidden>
+            <div class="dh-spinner"></div>
+            <p class="dh-placeholder-title">正在加载数字人…</p>
+            <div class="dh-progress"><div class="dh-progress-bar" id="dhProgressBar"></div></div>
+            <p class="dh-placeholder-sub" id="dhProgressText">0% · 准备中</p>
+          </div>
+
+          <div class="dh-overlay dh-placeholder" id="dhPError" hidden>
+            <div class="dh-placeholder-icon" style="color:var(--color-danger);background:rgba(251,113,133,.10)">!</div>
+            <p class="dh-placeholder-title">连接失败</p>
+            <p class="dh-placeholder-sub" id="dhErrorText"></p>
+          </div>
+        </div>
+
+        <div class="dh-widget-foot">
+          <button class="dh-button" id="dhToggle">连接数字人</button>
+        </div>
+
+        <div class="dh-resize" id="dhResize" title="拖动可放大/缩小"></div>
+      </div>
+
+      <div class="dh-tip" id="dhTip">⠿ 拖我 · 我只在客服系统里活动</div>
+    </div>
+
+    <!-- ============ 业务对象 ============ -->
+    <aside class="sidebar-card">
+      <h2>业务对象</h2>
+      <div class="tabs">
+        <button class="tab active">订单</button>
+        <button class="tab">商品</button>
+      </div>
+      <div class="biz-card">
+        <div class="biz-img img-blue">iPhone 15 Pro</div>
+        <div class="biz-title">iPhone 15 Pro 256G 远峰蓝</div>
+        <div class="biz-sub">订单号：A20260410001</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span class="biz-tag">待发货</span>
+          <span class="biz-price">¥ 8999.00</span>
+        </div>
+        <button class="biz-btn">发送订单</button>
+      </div>
+      <div class="biz-card">
+        <div class="biz-img img-orange">Xiaomi Kettle</div>
+        <div class="biz-title">小米恒温电热水壶 3</div>
+        <div style="text-align:right;"><span class="biz-price">¥ 149.00</span></div>
+        <button class="biz-btn">发送订单</button>
+      </div>
+    </aside>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  const card     = document.getElementById('chatCard');
+  const widget   = document.getElementById('dhWidget');
+  const handle   = document.getElementById('dhHandle');
+  const resizeEl = document.getElementById('dhResize');
+  const tip      = document.getElementById('dhTip');
+
+  const MIN_W = 130, MIN_H = 210;   // 缩放下限
+  const MAX_W = 340, MAX_H = 560;   // 缩放上限
+
+  let rafId = null;
+  function bump() {
+    card.classList.add('boundary-hit');
+    clearTimeout(rafId);
+    rafId = setTimeout(() => card.classList.remove('boundary-hit'), 260);
+  }
+
+  function clampToCard(left, top) {
+    const c = card.getBoundingClientRect();
+    const w = widget.offsetWidth, h = widget.offsetHeight;
+    const nx = Math.min(Math.max(left, 6), c.width - w - 6);
+    const ny = Math.min(Math.max(top, 6), c.height - h - 6);
+    if (nx !== left || ny !== top) bump();
+    widget.style.left = nx + 'px';
+    widget.style.top = ny + 'px';
+    widget.style.bottom = 'auto';
+    return [nx, ny];
+  }
+
+  /* ---------- 拖动：只认把手条 ---------- */
+  let dragging = false, startX = 0, startY = 0, originLeft = 0, originTop = 0;
+  handle.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    widget.classList.add('dragging');
+    const r = widget.getBoundingClientRect();
+    const c = card.getBoundingClientRect();
+    originLeft = r.left - c.left;
+    originTop  = r.top  - c.top;
+    startX = e.clientX; startY = e.clientY;
+    handle.setPointerCapture(e.pointerId);
+    tip.style.opacity = '0';
+    e.preventDefault();
+  });
+  handle.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    clampToCard(originLeft + (e.clientX - startX), originTop + (e.clientY - startY));
+  });
+  handle.addEventListener('pointerup', (e) => {
+    dragging = false;
+    widget.classList.remove('dragging');
+    handle.releasePointerCapture(e.pointerId);
+    applyLayout();
+  });
+
+  /* ---------- 缩放：拖动右下角 ---------- */
+  let resizing = false, rsX = 0, rsY = 0, rsW = 0, rsH = 0;
+  resizeEl.addEventListener('pointerdown', (e) => {
+    resizing = true;
+    rsX = e.clientX; rsY = e.clientY;
+    rsW = widget.offsetWidth; rsH = widget.offsetHeight;
+    resizeEl.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  resizeEl.addEventListener('pointermove', (e) => {
+    if (!resizing) return;
+    const w = Math.min(Math.max(rsW + (e.clientX - rsX), MIN_W), MAX_W);
+    const h = Math.min(Math.max(rsH + (e.clientY - rsY), MIN_H), MAX_H);
+    widget.style.width = w + 'px';
+    widget.style.height = h + 'px';
+    const c = card.getBoundingClientRect();
+    clampToCard(parseFloat(widget.style.left) || 0, parseFloat(widget.style.top) || 0);
+  });
+  resizeEl.addEventListener('pointerup', (e) => {
+    resizing = false;
+    resizeEl.releasePointerCapture(e.pointerId);
+    applyLayout();
+  });
+
+  /* ---------- 窗口变化时重新夹回卡片内 ---------- */
+  window.addEventListener('resize', () => {
+    clampToCard(parseFloat(widget.style.left) || 0, parseFloat(widget.style.top) || 0);
+    applyLayout();
+  });
+
+  /* ===================================================================
+     以下为数字人真实接入逻辑（从项目 App.vue 移植，逻辑一致，可直接抄）
+     =================================================================== */
+  const dot = document.getElementById('dhDot');
+  const title = document.getElementById('dhTitle');
+  const btn = document.getElementById('dhToggle');
+  const pIdle = document.getElementById('dhPIdle');
+  const pLoading = document.getElementById('dhPLoading');
+  const pError = document.getElementById('dhPError');
+  const progressBar = document.getElementById('dhProgressBar');
+  const progressText = document.getElementById('dhProgressText');
+  const errorText = document.getElementById('dhErrorText');
+
+  const DH_STATUS_TEXT = {
+    idle: '数字人 · 未连接',
+    loading: '数字人 · 加载中',
+    ready: '数字人 · 已连接',
+    error: '数字人 · 连接失败',
+  };
+
+  let status = 'idle';
+  let liteSDK = null;
+
+  function setStatus(next, msg) {
+    status = next;
+    dot.className = 'dh-status-dot ' + ({ ready: 'dh-dot-ready', loading: 'dh-dot-loading', error: 'dh-dot-error' }[next] || '');
+    title.textContent = DH_STATUS_TEXT[next];
+    pIdle.hidden = next !== 'idle';
+    pLoading.hidden = next !== 'loading';
+    pError.hidden = next !== 'error';
+    if (msg) errorText.textContent = msg;
+    btn.disabled = next === 'loading';
+    btn.classList.toggle('dh-button-danger', next === 'ready');
+    btn.textContent = next === 'loading' ? '连接中…'
+                    : next === 'ready'   ? '断开连接'
+                    : next === 'error'   ? '重试连接' : '连接数字人';
+  }
+
+  // 容器尺寸变化时，让 SDK 里的人等比适配（'95vh' = 人物高度占容器 95%，底部对齐）
+  function applyLayout() {
+    if (!liteSDK) return;
+    try {
+      liteSDK.changeLayout({
+        container: { size: [widget.querySelector('.dh-widget-stage').clientWidth,
+                            widget.querySelector('.dh-widget-stage').clientHeight] },
+        avatar: { v_align: 'bottom', h_align: 'center', scale: '95vh', offset_x: 0, offset_y: 0 },
+      });
+    } catch (e) { console.warn('[数字人] 布局适配失败:', e); }
+  }
+
+  async function connect() {
+    if (status === 'loading' || status === 'ready') return;
+    setStatus('loading');
+    progressBar.style.width = '0%';
+    progressText.textContent = '0% · 正在获取数字人凭证…';
+
+    // 依次尝试：同源 → 本地代理(18777，允许沙箱跨域) → vite 代理(5173) → 后端直连(18082)
+    const CRED_URLS = [
+      '/api/digital-human/credentials',
+      'http://127.0.0.1:18777/api/digital-human/credentials',
+      'http://127.0.0.1:5173/api/digital-human/credentials',
+      'http://127.0.0.1:18082/api/digital-human/credentials',
+    ];
+    const CRED_LABELS = ['同源/api', '本地代理18777', 'vite代理5173', '后端直连18082'];
+
+    let cred;
+    try {
+      const attempts = [];
+      for (let i = 0; i < CRED_URLS.length; i++) {
+        progressText.textContent = '正在获取数字人凭证…（' + CRED_LABELS[i] + '）';
+        try {
+          const resp = await fetch(CRED_URLS[i]);
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          cred = await resp.json();
+          break;
+        } catch (e) {
+          attempts.push(CRED_LABELS[i] + ':' + e.message);
+          console.warn('[数字人] 凭证获取失败 -', CRED_LABELS[i], e);
+        }
+      }
+      if (!cred) {
+        setStatus('error',
+          '四个入口都取不到凭证。页面Origin=' + location.origin + '。' +
+          '明细：' + attempts.join('；')
+        );
+        return;
+      }
+    } catch (e) {
+      setStatus('error', '获取数字人凭证异常：' + e.message);
+      return;
+    }
+    if (!cred || !cred.app_id || !cred.app_secret) {
+      setStatus('error', '后端未配置数字人凭证，请检查 .env。');
+      return;
+    }
+    if (typeof XmovAvatar !== 'function') {
+      setStatus('error', 'SDK 未加载（预览页可能无法访问 CDN）。');
+      return;
+    }
+
+    try {
+      liteSDK = new XmovAvatar({
+        containerId: '#digital-human-sdk',
+        appId: cred.app_id,
+        appSecret: cred.app_secret,
+        gatewayServer: cred.gateway_server,
+        hardwareAcceleration: 'prefer-hardware',
+        enableLogger: true,
+        onMessage(m) {
+          if (m && m.code && m.code !== 50001 && m.code !== 50002) {
+            setStatus('error', '数字人错误 code=' + m.code + ' ' + (m.message || ''));
+          }
+        },
+        onStateChange(s) {
+          if (s === 'speak') progressText.textContent = '数字人正在朗读…';
+          else if (s === 'interactive_idle') progressText.textContent = '已就绪，等待提问';
+        },
+      });
+
+      await liteSDK.init({
+        initModel: 'normal',
+        onDownloadProgress(p) {
+          const v = Math.max(0, Math.min(100, Math.round(p)));
+          progressBar.style.width = v + '%';
+          progressText.textContent = v + '% · ' + (v < 100 ? '正在下载 3D 模型与表情资源…' : '资源就绪');
+        },
+      });
+
+      setStatus('ready');
+      requestAnimationFrame(applyLayout);
+    } catch (e) {
+      const detail = (e && e.message) || String(e);
+      setStatus('error', '数字人初始化失败：' + detail);
+      try { await liteSDK?.destroy(); } catch (_) {}
+      liteSDK = null;
+    }
+  }
+
+  async function disconnect() {
+    const inst = liteSDK;
+    liteSDK = null;
+    setStatus('idle');
+    progressBar.style.width = '0%';
+    try { await inst?.destroy(); } catch (_) {}
+  }
+
+  btn.addEventListener('click', () => (status === 'ready' ? disconnect() : connect()));
+
+  /* ===================================================================
+     聊天发送：接真实后端（三路降级）+ 数字人朗读
+     =================================================================== */
+  const CHAT_URLS = [
+    '/api/chat',
+    'http://127.0.0.1:18777/api/chat',
+    'http://127.0.0.1:5173/api/chat',
+  ];
+  const CHAT_LABELS = ['同源/api', '本地代理18777', 'vite代理5173'];
+
+  const senderIdInput = document.getElementById('senderIdInput');
+  const draftInput = document.getElementById('draftInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const messagesArea = document.getElementById('messagesArea');
+  const typingRow = document.getElementById('typingRow');
+  const errorLine = document.getElementById('errorLine');
+  let sending = false;
+
+  function refreshSendBtn() {
+    sendBtn.disabled = sending || !draftInput.value.trim();
+    sendBtn.textContent = sending ? '发送中...' : '发送';
+    if (!sending) sendBtn.classList.remove('is-busy');
+    else sendBtn.classList.add('is-busy');
+  }
+  draftInput.addEventListener('input', refreshSendBtn);
+  refreshSendBtn();
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function appendUserTurn(text) {
+    const el = document.createElement('div');
+    el.className = 'turn-card is-new';
+    el.innerHTML =
+      '<div class="turn-header"><span class="turn-badge">Turn —</span><span class="turn-label">对话轮次</span></div>' +
+      '<div class="section-header"><div class="avatar-wrapper"></div>' +
+      '<div><span class="agent-name">你</span><span class="agent-label">用户</span></div></div>' +
+      '<div class="turn-bubble">' + esc(text) + '</div>';
+    messagesArea.appendChild(el);
+  }
+
+  function appendBotTurn(text) {
+    const el = document.createElement('div');
+    el.className = 'bot-line is-new';
+    el.innerHTML = '<span>' + esc(text) + '</span>' +
+      '<span class="mini-actions"><span>🔊</span><span>📋</span></span>';
+    messagesArea.appendChild(el);
+  }
+
+  function scrollBottom() { messagesArea.scrollTop = messagesArea.scrollHeight; }
+
+  async function doSend() {
+    if (sending) return;
+    const text = draftInput.value.trim();
+    const sid = senderIdInput.value.trim();
+    if (!sid) { errorLine.hidden = false; errorLine.textContent = '请先输入 sender_id。'; return; }
+    if (!text) return;
+
+    draftInput.value = '';
+    sending = true;
+    refreshSendBtn();
+    errorLine.hidden = true;
+    appendUserTurn(text);
+    typingRow.hidden = false;
+    scrollBottom();
+
+    try {
+      const attempts = [];
+      let data = null;
+      for (let i = 0; i < CHAT_URLS.length; i++) {
+        try {
+          const resp = await fetch(CHAT_URLS[i], {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sender_id: sid, text: text }),
+          });
+          const body = await resp.json().catch(() => null);
+          if (!resp.ok) throw new Error((body && body.detail) || ('HTTP ' + resp.status));
+          data = body;
+          break;
+        } catch (e) {
+          attempts.push(CHAT_LABELS[i] + ':' + e.message);
+        }
+      }
+      if (!data) throw new Error(attempts.join('；'));
+
+      const msgs = data.messages || [];
+      if (!msgs.length) appendBotTurn('（后端返回了空消息）');
+      msgs.forEach((m) => {
+        if (m.text) appendBotTurn(m.text);
+        else if (m.object) appendBotTurn('（业务对象：' + (m.object.title || m.object.type) + '）');
+      });
+
+      // 数字人已连接 → 朗读本次回复
+      const speakText = msgs.map((m) => m.text).filter(Boolean).join(' ');
+      if (speakText && liteSDK) {
+        try { liteSDK.speak(speakText, true, true); } catch (e) { console.warn('[数字人] 朗读失败:', e); }
+      }
+    } catch (e) {
+      errorLine.hidden = false;
+      errorLine.textContent = '发送失败：' + e.message + '（页面Origin=' + location.origin + '）';
+    } finally {
+      sending = false;
+      typingRow.hidden = true;
+      refreshSendBtn();
+      scrollBottom();
+    }
+  }
+
+  sendBtn.addEventListener('click', doSend);
+  document.getElementById('composer').addEventListener('submit', (e) => { e.preventDefault(); doSend(); });
+  draftInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); doSend(); }
+  });
+
+  /* ---------- 初始摆放：贴卡片左下角 ---------- */
+  window.addEventListener('load', () => {
+    clampToCard(24, card.getBoundingClientRect().height - widget.offsetHeight - 96);
+    setStatus('idle');
+    const t = tip;
+    t.style.left = (widget.offsetLeft + widget.offsetWidth / 2) + 'px';
+    t.style.top = (widget.offsetTop - 20) + 'px';
+    t.style.transform = 'translateX(-50%)';
+    setTimeout(() => { t.style.transition = 'opacity .4s'; t.style.opacity = '0'; }, 4200);
+  });
+})();
+</script>
+</body>
+</html>

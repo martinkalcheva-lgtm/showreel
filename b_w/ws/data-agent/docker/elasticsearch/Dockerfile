@@ -1,0 +1,26 @@
+FROM elasticsearch:8.19.10
+
+USER root
+
+COPY plugins/elasticsearch-analysis-ik-8.19.10.zip /tmp/
+
+RUN /usr/share/elasticsearch/bin/elasticsearch-plugin install --batch \
+    file:///tmp/elasticsearch-analysis-ik-8.19.10.zip
+
+RUN chown -R elasticsearch:elasticsearch /usr/share/elasticsearch/plugins
+
+USER elasticsearch
+
+##  把原来的 FROM elasticsearch:8.19.10 改成下面这行
+#FROM docker.elastic.co/elasticsearch/elasticsearch:8.19.10
+#
+#USER root
+#
+#COPY plugins/elasticsearch-analysis-ik-8.19.10.zip /tmp/
+#
+#RUN /usr/share/elasticsearch/bin/elasticsearch-plugin install --batch \
+#    file:///tmp/elasticsearch-analysis-ik-8.19.10.zip
+#
+#RUN chown -R elasticsearch:elasticsearch /usr/share/elasticsearch/plugins
+#
+#USER elasticsearch

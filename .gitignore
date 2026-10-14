@@ -1,0 +1,29 @@
+# ===== 本地工作数据 =====
+.workbuddy/
+
+# ===== 密钥与真实配置(不上传!) =====
+.env
+.env.*
+!.env.example
+
+# ===== 依赖与构建缓存 =====
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.next/
+dist/
+build/
+
+# ===== 备份与临时文件 =====
+_backup/
+temp/
+
+# ===== IDE 配置 =====
+.idea/
+
+# ===== 系统垃圾 =====
+Thumbs.db
+Desktop.ini
+.DS_Store

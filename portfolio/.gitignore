@@ -1,0 +1,7 @@
+# WorkBuddy 本地工作数据不上传
+.workbuddy/
+
+# 系统垃圾文件
+Thumbs.db
+Desktop.ini
+.DS_Store

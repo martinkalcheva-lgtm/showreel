@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>G 的作品集</title>
+<style>
+  :root {
+    --bg: #F2F2F7;
+    --surface: #FFFFFF;
+    --text: #1C1C1E;
+    --text-2: #6E6E73;
+    --border: rgba(60, 60, 67, 0.12);
+    --accent: #007AFF;
+    --tile-blue: rgba(0, 122, 255, 0.12);
+    --tile-green: rgba(52, 199, 89, 0.14);
+    --tile-orange: rgba(255, 149, 0, 0.14);
+    --gh-bg: #1C1C1E;
+    --gh-fg: #FFFFFF;
+    --seg-bg: rgba(118, 118, 128, 0.12);
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  }
+  [data-theme="dark"] {
+    --bg: #000000;
+    --surface: #1C1C1E;
+    --text: #F5F5F7;
+    --text-2: #98989D;
+    --border: rgba(84, 84, 88, 0.55);
+    --accent: #0A84FF;
+    --tile-blue: rgba(10, 132, 255, 0.20);
+    --tile-green: rgba(48, 209, 88, 0.20);
+    --tile-orange: rgba(255, 159, 10, 0.20);
+    --gh-bg: #F5F5F7;
+    --gh-fg: #000000;
+    --seg-bg: rgba(118, 118, 128, 0.24);
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
+                 "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+
+  /* ===== 顶栏 ===== */
+  .topbar {
+    border-bottom: 0.5px solid var(--border);
+    background: var(--bg);
+    transition: background-color 0.3s ease;
+  }
+  .topbar-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 0;
+  }
+  .logo { font-size: 20px; font-weight: 500; letter-spacing: 0.5px; text-decoration: none; color: inherit; }
+  .logo em { font-style: normal; color: var(--accent); }
+  .topbar-actions { display: flex; align-items: center; gap: 12px; }
+
+  /* 浅色/深色切换（iOS 分段控件） */
+  .seg {
+    display: flex; background: var(--seg-bg);
+    border-radius: 999px; padding: 2px;
+    transition: background-color 0.3s ease;
+  }
+  .seg button {
+    appearance: none; border: 0; cursor: pointer;
+    font: inherit; font-size: 13px;
+    padding: 4px 12px; border-radius: 999px;
+    color: var(--text-2); background: transparent;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+  .seg button.active {
+    background: var(--surface); color: var(--text);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  }
+
+  /* GitHub | 源代码 按钮 */
+  .gh-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--gh-bg); color: var(--gh-fg);
+    border-radius: 999px; padding: 8px 16px;
+    font-size: 13px; font-weight: 500; text-decoration: none;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+  .gh-btn:hover { transform: scale(1.03); opacity: 0.9; }
+  .gh-btn:active { transform: scale(0.97); }
+  .gh-btn .sep { opacity: 0.55; }
+
+  /* ===== 项目作品 ===== */
+  .section { padding: 32px 0 48px; }
+  .section-title { font-size: 17px; font-weight: 500; margin-bottom: 16px; }
+  .cards {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;
+  }
+  @media (max-width: 640px) { .cards { grid-template-columns: 1fr; } }
+  .card {
+    display: block; text-decoration: none; color: inherit;
+    background: var(--surface); border-radius: 16px;
+    padding: 24px 16px;
+    border: 0.5px solid var(--border);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.3s ease;
+  }
+  .card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+  .card:active { transform: translateY(-1px); }
+  .tile {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 500; margin-bottom: 16px;
+  }
+  .tile.blue  { background: var(--tile-blue);   color: var(--accent); }
+  .tile.green { background: var(--tile-green);  color: #248A3D; }
+  .tile.orange{ background: var(--tile-orange); color: #C93400; }
+  [data-theme="dark"] .tile.green  { color: #30D158; }
+  [data-theme="dark"] .tile.orange { color: #FF9F0A; }
+  .card h3 { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
+  .card p {
+    font-size: 13px; line-height: 1.6; color: var(--text-2); margin-bottom: 16px;
+  }
+  .card .more { font-size: 13px; font-weight: 500; color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="logo" href="index.html">G<em>.</em></a>
+    <div class="topbar-actions">
+      <div class="seg" role="group" aria-label="外观切换">
+        <button type="button" class="active" data-theme="light">浅色</button>
+        <button type="button" data-theme="dark">深色</button>
+      </div>
+      <!-- TODO(G): 把下面的 href 换成你的 GitHub 主页地址 -->
+      <a class="gh-btn" href="https://github.com/你的用户名" target="_blank" rel="noopener">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        <span>GitHub</span><span class="sep">|</span><span>源代码</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap section">
+  <h2 class="section-title">项目作品</h2>
+  <div class="cards">
+
+    <a class="card" href="http://localhost:5173" target="_blank" rel="noopener">
+      <div class="tile blue">BOSS</div>
+      <h3>问数与智库</h3>
+      <p>项目简介占位，一句话说清它是干嘛的</p>
+      <span class="more">查看项目 →</span>
+    </a>
+
+    <a class="card" href="http://localhost:3000" target="_blank" rel="noopener">
+      <div class="tile green">EC</div>
+      <h3>电商运营助手</h3>
+      <p>项目简介占位，一句话说清它是干嘛的</p>
+      <span class="more">查看项目 →</span>
+    </a>
+
+    <a class="card" href="../szr_kfhd/light-theme-ui-preview/index.html">
+      <div class="tile orange">SK</div>
+      <h3>智能客服系统</h3>
+      <p>项目简介占位，一句话说清它是干嘛的</p>
+      <span class="more">查看项目 →</span>
+    </a>
+
+  </div>
+</main>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var btns = document.querySelectorAll('.seg button');
+    function setTheme(t) {
+      root.setAttribute('data-theme', t);
+      try { localStorage.setItem('portfolio-theme', t); } catch (e) {}
+      btns.forEach(function (b) {
+        b.classList.toggle('active', b.getAttribute('data-theme') === t);
+      });
+    }
+    var saved = 'light';
+    try { saved = localStorage.getItem('portfolio-theme') || 'light'; } catch (e) {}
+    setTheme(saved);
+    btns.forEach(function (b) {
+      b.addEventListener('click', function () { setTheme(b.getAttribute('data-theme')); });
+    });
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,157 @@
+/* ===== 设计 token（iOS 商务风） ===== */
+:root {
+  --bg-page: #f5f5f7;
+  --bg-card: #fff;
+  --blue: #007aff;
+  --blue-hover: #0a84ff;
+  --blue-active: #0062cc;
+  --green: #34c759;
+  --orange: #ff9500;
+  --red: #ff3b30;
+  --text-1: #1d1d1f;
+  --text-2: #6e6e73;
+  --text-3: #aeaeb2;
+  --border: #e5e5ea;
+  --bg-input: #f5f5f7;
+
+  --radius-card: 16px;
+  --radius-btn: 12px;
+  --radius-bubble: 18px;
+  --radius-input: 12px;
+  --radius-badge: 8px;
+
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.04);
+  --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* ===== 基础重置 ===== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC',
+    'Helvetica Neue', 'Microsoft YaHei', sans-serif;
+  font-size: 15px;
+  color: var(--text-1);
+  background: var(--bg-page);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+/* 滚动条 8px #c7c7cc 圆角 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #c7c7cc;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ===== 通用按钮 ===== */
+.btn-primary {
+  background: var(--blue);
+  color: #fff;
+  border-radius: var(--radius-btn);
+  padding: 8px 20px;
+  font-size: 15px;
+  font-weight: 500;
+  transition: background 160ms var(--ease), transform 100ms var(--ease);
+}
+.btn-primary:hover {
+  background: var(--blue-hover);
+}
+.btn-primary:active {
+  background: var(--blue-active);
+  transform: scale(0.97);
+}
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: default;
+  transform: none;
+}
+
+.btn-ghost {
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 999px;
+  transition: background 160ms var(--ease), transform 100ms var(--ease);
+}
+.btn-ghost:hover {
+  background: rgba(0, 122, 255, 0.08);
+}
+.btn-ghost:active {
+  transform: scale(0.97);
+}
+
+/* ===== 模块头部 / 连接状态 ===== */
+.mod-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  min-height: 48px;
+}
+.mod-title {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.conn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.conn .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-3);
+  flex: none;
+}
+.conn.ok .dot {
+  background: var(--green);
+  animation: breathe 2s var(--ease) infinite;
+}
+.conn.fail .dot {
+  background: var(--red);
+}
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
