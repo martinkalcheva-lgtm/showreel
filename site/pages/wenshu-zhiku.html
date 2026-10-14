@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>问数与智库 · G 的作品集</title>
+<style>
+  :root {
+    --bg: #F2F2F7; --surface: #FFFFFF; --text: #1C1C1E; --text-2: #6E6E73;
+    --border: rgba(60, 60, 67, 0.12); --accent: #007AFF;
+    --tile-blue: rgba(0, 122, 255, 0.12);
+    --gh-bg: #1C1C1E; --gh-fg: #FFFFFF;
+    --seg-bg: rgba(118, 118, 128, 0.12);
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  }
+  [data-theme="dark"] {
+    --bg: #000000; --surface: #1C1C1E; --text: #F5F5F7; --text-2: #98989D;
+    --border: rgba(84, 84, 88, 0.55); --accent: #0A84FF;
+    --tile-blue: rgba(10, 132, 255, 0.20);
+    --gh-bg: #F5F5F7; --gh-fg: #000000;
+    --seg-bg: rgba(118, 118, 128, 0.24);
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
+                 "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100vh;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+  .topbar { border-bottom: 0.5px solid var(--border); background: var(--bg); transition: background-color 0.3s ease; }
+  .topbar-inner { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; }
+  .back {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 14px; color: var(--accent); text-decoration: none; font-weight: 500;
+    transition: opacity 0.15s ease;
+  }
+  .back:hover { opacity: 0.7; }
+  .seg { display: flex; background: var(--seg-bg); border-radius: 999px; padding: 2px; transition: background-color 0.3s ease; }
+  .seg button {
+    appearance: none; border: 0; cursor: pointer; font: inherit; font-size: 13px;
+    padding: 4px 12px; border-radius: 999px; color: var(--text-2); background: transparent;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+  .seg button.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+  .hero { padding: 40px 0 24px; display: flex; align-items: center; gap: 16px; }
+  .tile {
+    width: 64px; height: 64px; border-radius: 16px; flex: none;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 500;
+    background: var(--tile-blue); color: var(--accent);
+  }
+  .hero h1 { font-size: 24px; font-weight: 500; margin-bottom: 4px; }
+  .hero .sub { font-size: 14px; color: var(--text-2); }
+  .card {
+    background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: 16px; padding: 24px; margin-bottom: 16px;
+    transition: background-color 0.3s ease;
+  }
+  .card h2 { font-size: 16px; font-weight: 500; margin-bottom: 8px; }
+  .card p { font-size: 14px; line-height: 1.7; color: var(--text-2); }
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tag {
+    font-size: 12px; font-weight: 500; color: var(--accent);
+    background: var(--tile-blue); border-radius: 999px; padding: 4px 12px;
+  }
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; padding: 8px 0 48px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    border-radius: 999px; padding: 10px 20px;
+    font-size: 14px; font-weight: 500; text-decoration: none;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+  .btn:hover { transform: scale(1.03); opacity: 0.9; }
+  .btn:active { transform: scale(0.97); }
+  .btn.primary { background: var(--gh-bg); color: var(--gh-fg); }
+  .btn.ghost { background: var(--surface); color: var(--text); border: 0.5px solid var(--border); }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="back" href="../index.html">← 返回作品集</a>
+    <div class="seg" role="group" aria-label="外观切换">
+      <button type="button" class="active" data-theme="light">浅色</button>
+      <button type="button" data-theme="dark">深色</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="hero">
+    <div class="tile">BOSS</div>
+    <div>
+      <h1>问数与智库</h1>
+      <p class="sub">智能知识库 / 数据问答系统</p>
+    </div>
+  </div>
+
+  <!-- TODO(G): 下面简介是草稿，定稿后替换 -->
+  <div class="card">
+    <h2>项目简介</h2>
+    <p>基于 LangGraph + FastAPI + SSE 的智能知识库系统：构建 meta 知识库，问答流程按节点流转，进度通过 SSE 实时流式推送到前端；底层接入 MySQL、Qdrant、Elasticsearch，统一以异步 repository 模式封装数据访问。</p>
+  </div>
+
+  <div class="card">
+    <h2>技术栈</h2>
+    <div class="tags">
+      <span class="tag">Python</span><span class="tag">LangGraph</span><span class="tag">FastAPI</span>
+      <span class="tag">SSE</span><span class="tag">Qdrant</span><span class="tag">Elasticsearch</span><span class="tag">MySQL</span>
+    </div>
+  </div>
+
+    <div class="actions">
+    <a class="btn primary" href="https://github.com/martinkalcheva-lgtm/showreel" target="_blank" rel="noopener">GitHub | 源代码</a>
+    <a class="btn ghost" href="../index.html">返回作品集</a>
+  </div>
+</main>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var btns = document.querySelectorAll('.seg button');
+    function setTheme(t) {
+      root.setAttribute('data-theme', t);
+      try { localStorage.setItem('portfolio-theme', t); } catch (e) {}
+      btns.forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-theme') === t); });
+    }
+    var saved = 'light';
+    try { saved = localStorage.getItem('portfolio-theme') || 'light'; } catch (e) {}
+    setTheme(saved);
+    btns.forEach(function (b) { b.addEventListener('click', function () { setTheme(b.getAttribute('data-theme')); }); });
+  })();
+</script>
+
+</body>
+</html>
