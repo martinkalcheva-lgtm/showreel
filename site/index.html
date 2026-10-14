@@ -1,174 +1,239 @@
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>G 的作品集</title>
-<style>
-  :root {
-    --bg: #F2F2F7;
-    --surface: #FFFFFF;
-    --text: #1C1C1E;
-    --text-2: #6E6E73;
-    --border: rgba(60, 60, 67, 0.12);
-    --accent: #007AFF;
-    --tile-blue: rgba(0, 122, 255, 0.12);
-    --tile-green: rgba(52, 199, 89, 0.14);
-    --tile-orange: rgba(255, 149, 0, 0.14);
-    --gh-bg: #1C1C1E;
-    --gh-fg: #FFFFFF;
-    --seg-bg: rgba(118, 118, 128, 0.12);
-    --shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  }
-  [data-theme="dark"] {
-    --bg: #000000;
-    --surface: #1C1C1E;
-    --text: #F5F5F7;
-    --text-2: #98989D;
-    --border: rgba(84, 84, 88, 0.55);
-    --accent: #0A84FF;
-    --tile-blue: rgba(10, 132, 255, 0.20);
-    --tile-green: rgba(48, 209, 88, 0.20);
-    --tile-orange: rgba(255, 159, 10, 0.20);
-    --gh-bg: #F5F5F7;
-    --gh-fg: #000000;
-    --seg-bg: rgba(118, 118, 128, 0.24);
-    --shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html { -webkit-text-size-adjust: 100%; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
-                 "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    transition: background-color 0.3s ease, color 0.3s ease;
-  }
-  .wrap { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>G 的作品集</title>
+  <style>
+    :root {
+      --paper: #FAF9F6;
+      --paper-2: #F3F1EB;
+      --ink: #262521;
+      --ink-soft: #6E6A61;
+      --ink-faint: #9A958A;
+      --accent: #D83A12;
+      --line: rgba(38,37,33,0.10);
+      --card-bg: #FFFFFF;
+      --shadow-sm: 0 1px 2px rgba(38,37,33,0.04), 0 4px 14px rgba(38,37,33,0.04);
+      --shadow-md: 0 12px 32px rgba(38,37,33,0.09);
+      --seg-bg: rgba(118,118,128,0.12);
+      --gh-bg: #1C1C1E;
+      --gh-fg: #FFFFFF;
+      --logo-accent: #007AFF;
+    }
+    [data-theme="dark"] {
+      --paper: #171512;
+      --paper-2: #201D18;
+      --ink: #EDE9E0;
+      --ink-soft: #A39E93;
+      --ink-faint: #5A5650;
+      --accent: #F0552C;
+      --line: rgba(237,233,224,0.12);
+      --card-bg: #201D18;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.3), 0 4px 14px rgba(0,0,0,0.25);
+      --shadow-md: 0 12px 32px rgba(0,0,0,0.45);
+      --seg-bg: rgba(118,118,128,0.24);
+      --gh-bg: #F5F5F7;
+      --gh-fg: #000000;
+      --logo-accent: #0A84FF;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
+                   "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.65;
+      min-height: 100vh;
+      background-image:
+        radial-gradient(rgba(38,37,33,0.015) 1px, transparent 1px),
+        radial-gradient(rgba(216,58,18,0.012) 1px, transparent 1px);
+      background-size: 4px 4px, 4px 4px;
+      background-position: 0 0, 2px 2px;
+    }
+    [data-theme="dark"] body {
+      background-image:
+        radial-gradient(rgba(237,233,224,0.018) 1px, transparent 1px),
+        radial-gradient(rgba(240,85,44,0.018) 1px, transparent 1px);
+    }
+    .shell { max-width: 1080px; margin: 0 auto; padding: 0 32px; }
+    ::selection { background: rgba(216,58,18,0.18); }
 
-  /* ===== 顶栏 ===== */
-  .topbar {
-    border-bottom: 0.5px solid var(--border);
-    background: var(--bg);
-    transition: background-color 0.3s ease;
-  }
-  .topbar-inner {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 16px 0;
-  }
-  .logo { font-size: 20px; font-weight: 500; letter-spacing: 0.5px; text-decoration: none; color: inherit; }
-  .logo em { font-style: normal; color: var(--accent); }
-  .topbar-actions { display: flex; align-items: center; gap: 12px; }
+    /* ===== 顶栏（原版元素：G. + 主题胶囊 + GitHub|源代码） ===== */
+    .topbar {
+      border-bottom: 0.5px solid var(--line);
+      background: var(--paper);
+      transition: background-color 0.3s ease;
+    }
+    .topbar-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 0;
+    }
+    .logo { font-size: 20px; font-weight: 500; letter-spacing: 0.5px; text-decoration: none; color: inherit; }
+    .logo em { font-style: normal; color: var(--logo-accent); }
+    .topbar-actions { display: flex; align-items: center; gap: 12px; }
+    .seg {
+      display: flex; background: var(--seg-bg);
+      border-radius: 999px; padding: 2px;
+      transition: background-color 0.3s ease;
+    }
+    .seg button {
+      appearance: none; border: 0; cursor: pointer;
+      font: inherit; font-size: 13px;
+      padding: 4px 12px; border-radius: 999px;
+      color: var(--ink-soft); background: transparent;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+    .seg button.active {
+      background: var(--card-bg); color: var(--ink);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+    .gh-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--gh-bg); color: var(--gh-fg);
+      border-radius: 999px; padding: 8px 16px;
+      font-size: 13px; font-weight: 500; text-decoration: none;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+    .gh-btn:hover { transform: scale(1.03); opacity: 0.9; }
+    .gh-btn:active { transform: scale(0.97); }
+    .gh-btn .sep { opacity: 0.55; }
 
-  /* 浅色/深色切换（iOS 分段控件） */
-  .seg {
-    display: flex; background: var(--seg-bg);
-    border-radius: 999px; padding: 2px;
-    transition: background-color 0.3s ease;
-  }
-  .seg button {
-    appearance: none; border: 0; cursor: pointer;
-    font: inherit; font-size: 13px;
-    padding: 4px 12px; border-radius: 999px;
-    color: var(--text-2); background: transparent;
-    transition: background-color 0.2s ease, color 0.2s ease;
-  }
-  .seg button.active {
-    background: var(--surface); color: var(--text);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-  }
+    /* ===== Editorial 版式 ===== */
+    .lead { padding: 72px 0 40px; max-width: 760px; }
+    .lead-kicker { font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); font-weight: 600; margin-bottom: 20px; }
+    .lead h1 {
+      font-family: Georgia, "Times New Roman", "Songti SC", "SimSun", serif;
+      font-weight: 400; font-size: clamp(34px, 5.4vw, 58px);
+      line-height: 1.12; letter-spacing: -0.02em; margin-bottom: 24px;
+    }
+    .lead h1 .thin { color: var(--ink-faint); }
+    .lead p { font-size: 16px; color: var(--ink-soft); max-width: 60ch; border-left: 3px solid var(--accent); padding-left: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 28px 24px; padding: 8px 0 72px; }
+    .card {
+      position: relative; display: flex; flex-direction: column;
+      background: var(--card-bg); border-radius: 6px;
+      padding: 28px 30px 32px; text-decoration: none; color: inherit;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.28s cubic-bezier(.22,.61,.36,1),
+                  box-shadow 0.28s ease, background-color 0.3s ease;
+      overflow: hidden;
+    }
+    .card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+    .card:active { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+    .card .num {
+      position: absolute; top: 18px; right: 22px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 54px; line-height: 1;
+      color: var(--ink-faint); opacity: 0.55;
+      transition: color 0.3s ease, opacity 0.3s ease;
+    }
+    .card:hover .num { opacity: 0.9; color: var(--accent); }
+    .card-kicker { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin-bottom: 14px; }
+    .card h3 {
+      font-family: Georgia, "Times New Roman", "Songti SC", "SimSun", serif;
+      font-weight: 400; font-size: 23px; line-height: 1.25; letter-spacing: -0.01em;
+      margin-bottom: 10px; padding-right: 52px;
+    }
+    .card p { font-size: 13.5px; color: var(--ink-soft); line-height: 1.7; flex: 1; margin-bottom: 22px; }
+    .card .meta { display: flex; align-items: center; justify-content: space-between; margin-top: auto; font-size: 12px; }
+    .card .tags { display: flex; gap: 8px; flex-wrap: wrap; }
+    .card .tag { font-size: 11px; letter-spacing: 0.02em; color: var(--ink-soft); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; }
+    .card .more { font-size: 12px; font-weight: 500; color: var(--accent); white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; transition: gap 0.2s ease; }
+    .card:hover .more { gap: 8px; }
+    .card--01 { grid-column: span 7; }
+    .card--02 { grid-column: span 5; }
+    .card--03 { grid-column: span 5; }
+    .pullquote { grid-column: span 7; display: flex; flex-direction: column; justify-content: flex-end; padding: 8px 0 4px; }
+    .pullquote blockquote {
+      font-family: Georgia, "Times New Roman", "Songti SC", "SimSun", serif;
+      font-size: 21px; line-height: 1.5; color: var(--ink); margin-bottom: 12px;
+    }
+    .pullquote blockquote::before { content: "「"; color: var(--accent); }
+    .pullquote blockquote::after  { content: "」"; color: var(--accent); }
+    .pullquote cite { font-style: normal; font-size: 12px; color: var(--ink-soft); letter-spacing: 0.08em; }
 
-  /* GitHub | 源代码 按钮 */
-  .gh-btn {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: var(--gh-bg); color: var(--gh-fg);
-    border-radius: 999px; padding: 8px 16px;
-    font-size: 13px; font-weight: 500; text-decoration: none;
-    transition: transform 0.15s ease, opacity 0.15s ease;
-  }
-  .gh-btn:hover { transform: scale(1.03); opacity: 0.9; }
-  .gh-btn:active { transform: scale(0.97); }
-  .gh-btn .sep { opacity: 0.55; }
-
-  /* ===== 项目作品 ===== */
-  .section { padding: 32px 0 48px; }
-  .section-title { font-size: 17px; font-weight: 500; margin-bottom: 16px; }
-  .cards {
-    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;
-  }
-  @media (max-width: 640px) { .cards { grid-template-columns: 1fr; } }
-  .card {
-    display: block; text-decoration: none; color: inherit;
-    background: var(--surface); border-radius: 16px;
-    padding: 24px 16px;
-    border: 0.5px solid var(--border);
-    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.3s ease;
-  }
-  .card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
-  .card:active { transform: translateY(-1px); }
-  .tile {
-    width: 44px; height: 44px; border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 13px; font-weight: 500; margin-bottom: 16px;
-  }
-  .tile.blue  { background: var(--tile-blue);   color: var(--accent); }
-  .tile.green { background: var(--tile-green);  color: #248A3D; }
-  .tile.orange{ background: var(--tile-orange); color: #C93400; }
-  [data-theme="dark"] .tile.green  { color: #30D158; }
-  [data-theme="dark"] .tile.orange { color: #FF9F0A; }
-  .card h3 { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
-  .card p {
-    font-size: 13px; line-height: 1.6; color: var(--text-2); margin-bottom: 16px;
-  }
-  .card .more { font-size: 13px; font-weight: 500; color: var(--accent); }
-</style>
+    @media (max-width: 820px) {
+      .shell { padding: 0 24px; }
+      .card--01, .card--02, .card--03 { grid-column: span 12; }
+      .pullquote { grid-column: span 12; }
+      .lead h1 { font-size: clamp(32px, 8vw, 44px); }
+    }
+    @media (max-width: 520px) {
+      body { background-size: 3px 3px, 3px 3px; }
+      .card { padding: 24px 22px 26px; }
+      .card .num { font-size: 44px; top: 16px; right: 18px; }
+    }
+  </style>
 </head>
 <body>
+<div class="shell">
 
-<header class="topbar">
-  <div class="wrap topbar-inner">
-    <a class="logo" href="index.html">G<em>.</em></a>
-    <div class="topbar-actions">
-      <div class="seg" role="group" aria-label="外观切换">
-        <button type="button" class="active" data-theme="light">浅色</button>
-        <button type="button" data-theme="dark">深色</button>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="logo" href="index.html">G<em>.</em></a>
+      <div class="topbar-actions">
+        <div class="seg" role="group" aria-label="外观切换">
+          <button type="button" class="active" data-theme="light">浅色</button>
+          <button type="button" data-theme="dark">深色</button>
+        </div>
+        <a class="gh-btn" href="https://github.com/martinkalcheva-lgtm/showreel" target="_blank" rel="noopener">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          <span>GitHub</span><span class="sep">|</span><span>源代码</span>
+        </a>
       </div>
-            <a class="gh-btn" href="https://github.com/martinkalcheva-lgtm/showreel" target="_blank" rel="noopener">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
-        <span>GitHub</span><span class="sep">|</span><span>源代码</span>
-      </a>
     </div>
-  </div>
-</header>
+  </header>
 
-<main class="wrap section">
-  <h2 class="section-title">项目作品</h2>
-  <div class="cards">
+  <section class="lead">
+    <div class="lead-kicker">Index — 目录</div>
+    <h1>以纸为界，<span class="thin">以数为翼</span></h1>
+  </section>
 
-    <a class="card" href="pages/wenshu-zhiku.html" target="_blank" rel="noopener">
-      <div class="tile blue">BOSS</div>
+  <section class="grid" aria-label="项目作品">
+
+    <a class="card card--01" href="pages/wenshu-zhiku.html" target="_blank" rel="noopener">
+      <span class="num">01</span>
+      <div class="card-kicker">Featured · 头版</div>
       <h3>问数与智库</h3>
       <p>项目简介占位，一句话说清它是干嘛的</p>
-      <span class="more">查看项目 →</span>
+      <div class="meta">
+        <div class="tags"><span class="tag">知识库</span><span class="tag">数据问答</span></div>
+        <span class="more">查看项目 <span aria-hidden="true">→</span></span>
+      </div>
     </a>
 
-    <a class="card" href="pages/ecommerce.html" target="_blank" rel="noopener">
-      <div class="tile green">EC</div>
+    <div class="pullquote">
+      <blockquote>好的界面不多言，它只是恰好让路。</blockquote>
+      <cite>—— 编者按</cite>
+    </div>
+
+    <a class="card card--02" href="pages/ecommerce.html" target="_blank" rel="noopener">
+      <span class="num">02</span>
+      <div class="card-kicker">Commerce · 副刊</div>
       <h3>电商运营助手</h3>
       <p>项目简介占位，一句话说清它是干嘛的</p>
-      <span class="more">查看项目 →</span>
+      <div class="meta">
+        <div class="tags"><span class="tag">AI 助手</span><span class="tag">电商</span></div>
+        <span class="more">查看项目 <span aria-hidden="true">→</span></span>
+      </div>
     </a>
 
-    <a class="card" href="pages/kefu.html">
-      <div class="tile orange">SK</div>
+    <a class="card card--03" href="pages/kefu.html">
+      <span class="num">03</span>
+      <div class="card-kicker">Service · 专栏</div>
       <h3>智能客服系统</h3>
       <p>项目简介占位，一句话说清它是干嘛的</p>
-      <span class="more">查看项目 →</span>
+      <div class="meta">
+        <div class="tags"><span class="tag">数字人</span><span class="tag">客服</span></div>
+        <span class="more">查看项目 <span aria-hidden="true">→</span></span>
+      </div>
     </a>
 
-  </div>
-</main>
+  </section>
+
+</div>
 
 <script>
   (function () {
@@ -189,6 +254,5 @@
     });
   })();
 </script>
-
 </body>
 </html>
