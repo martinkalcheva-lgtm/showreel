@@ -1,215 +1,328 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="light">
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>G 的作品集</title>
-  <style>
-    :root {
-      --bg: #ffffff;
-      --bg-secondary: #f8f9fa;
-      --primary: #2d3748;
-      --primary-light: #4a5568;
-      --text: #4a5568;
-      --text-secondary: #718096;
-      --accent: #42b983;
-      --accent-hover: #38a16f;
-      --border: #e2e8f0;
-      --radius: 6px;
-    }
-    [data-theme="dark"] {
-      --bg: #2d3748;
-      --bg-secondary: #4a5568;
-      --primary: #f7fafc;
-      --primary-light: #edf2f7;
-      --text: #edf2f7;
-      --text-secondary: #a0aec0;
-      --accent: #48bb78;
-      --accent-hover: #38a16f;
-      --border: #313e51;
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html { -webkit-text-size-adjust: 100%; }
-    body {
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.5;
-      min-height: 100vh;
-    }
-    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
-    a { text-decoration: none; color: inherit; }
-    .wrapper { padding: 48px 0; }
-    .header { padding: 24px 0 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-    .logo { font-size: 22px; font-weight: 600; color: var(--primary); letter-spacing: -0.3px; }
-    .logo span { color: var(--accent); }
-    .nav { display: flex; gap: 32px; margin-top: 12px; font-size: 14px; color: var(--text-secondary); }
-    .nav a:hover { color: var(--accent); }
-    /* 头部右侧操作区 */
-    .header-actions { display: flex; align-items: center; gap: 14px; }
-    /* 浅色/深色 切换 —— 分段控件 */
-    .seg {
-      display: flex; background: var(--bg-secondary);
-      border-radius: 999px; padding: 2px;
-      transition: background-color 0.3s ease;
-    }
-    .seg button {
-      appearance: none; border: 0; cursor: pointer;
-      font: inherit; font-size: 13px;
-      padding: 5px 14px; border-radius: 999px;
-      color: var(--text-secondary); background: transparent;
-      transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
-    }
-    .seg button.active {
-      background: var(--bg); color: var(--primary);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-    }
-    /* GitHub 按钮 */
-    .gh-btn {
-      display: inline-flex; align-items: center; gap: 6px;
-      background: #1a1a1a; color: #ffffff;
-      border-radius: 999px; padding: 7px 16px;
-      font-size: 13px; font-weight: 500; text-decoration: none;
-      transition: transform 0.15s ease, opacity 0.15s ease;
-    }
-    .gh-btn .sep { opacity: 0.5; }
-    .gh-btn:hover { transform: scale(1.03); opacity: 0.9; }
-    .gh-btn:active { transform: scale(0.97); }
-    .hero { padding: 64px 0; text-align: center; border-bottom: 1px solid var(--border); }
-    .hero h1 { font-size: 36px; font-weight: 300; line-height: 1.3; margin-bottom: 20px; letter-spacing: -0.5px; }
-    .hero p { font-size: 15px; color: var(--text-secondary); max-width: 600px; margin: 0 auto 40px; line-height: 1.6; }
-    /* CTA 按钮 —— 背景参考 GitHub 按钮风格（深色胶囊） */
-    .cta {
-      display: inline-flex; align-items: center; gap: 6px;
-      background: #191817; color: #ffffff;
-      border-radius: 999px; padding: 9px 24px;
-      font-weight: 500; font-size: 14px;
-      transition: transform 0.15s ease, opacity 0.15s ease;
-      cursor: pointer;
-    }
-    .cta:hover { transform: scale(1.03); opacity: 0.9; }
-    .cta:active { transform: scale(0.97); }
-    /* 深色模式：按钮用品牌绿 */
-    [data-theme="dark"] .cta {
-      background: #48bb78; color: #ffffff;
-    }
-    .section { padding: 40px 0; }
-    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 32px; }
-    .card { display: flex; align-items: center; min-height: 200px; text-decoration: none; color: inherit; background: var(--bg-secondary); border-radius: var(--radius); box-shadow: 0 1px 2px rgba(0,0,0,0.04); transition: transform 0.2s, box-shadow 0.2s; }
-    .card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-    .card-content { padding: 40px 48px; width: 100%; }
-    .meta-left { font-size: 13px; color: var(--accent); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; }
-    .card-title { font-size: 26px; font-weight: 500; line-height: 1.3; color: var(--primary); }
-    .card-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.4; }
-    .meta { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-    .meta-left { font-size: 12px; color: var(--text-secondary); }
-    .meta-right { display: flex; gap: 12px; }
-    .tag { font-size: 10px; background: var(--bg-secondary); color: var(--accent); padding: 2px 6px; border-radius: var(--radius); font-weight: 500; text-transform: uppercase; }
-    .footer { padding: 24px 0; color: var(--text-secondary); font-size: 12px; text-align: center; border-top: 1px solid var(--border); }
-    @media (max-width: 768px) {
-      .grid { grid-template-columns: 1fr; }
-      .header-actions .gh-btn span:not(.sep) { display: inline; }
-    }
-    /* 隐藏卡片的样式 */
-    .card-hidden { opacity: 0; visibility: hidden; transform: translateY(20px); transition: opacity 0.4s ease, visibility 0.4s ease, transform 0.4s ease; }
-    .card-show { opacity: 1; visibility: visible; transform: translateY(0); }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>郭怡彤 · 把业务问题变成一句话</title>
+<meta name="description" content="郭怡彤的个人作品集：知识库问答、电商运营助手、数字人客服，三个上线项目。">
+<style>
+  :root {
+    /* 强调色唯一来源 */
+    --accent: #42b983;
+    --accent-ink: #0F6E56;        /* 小号绿色文字用，对白底 6.2:1 */
+    --accent-deep: #0B5140;       /* 主按钮底，白字 7:1 */
+    --accent-wash: #E6F4EE;
+    --ink: #1a202c;
+    --ink-2: #4a5568;
+    --ink-3: #718096;
+    --surface: #ffffff;
+    --surface-2: #f8f9fa;
+    --line: #e2e8f0;
+    --radius: 8px;
+    --font-display: system-ui, -apple-system, "Segoe UI", Roboto,
+      "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+    --font-body: var(--font-display);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    font-family: var(--font-body);
+    color: var(--ink-2);
+    background: var(--surface);
+    font-size: 16px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+  a { color: inherit; text-decoration: none; }
+  :focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; border-radius: 4px; }
+  .skip {
+    position: absolute; left: -9999px; top: 12px;
+    background: var(--ink); color: #fff; padding: 10px 18px; border-radius: var(--radius); z-index: 99;
+  }
+  .skip:focus { left: 12px; }
+
+  /* 导航：64px 单行 */
+  .nav { border-bottom: 1px solid var(--line); background: var(--surface); }
+  .nav-inner { height: 64px; display: flex; align-items: center; gap: 28px; }
+  .brand { font-family: var(--font-display); font-weight: 600; font-size: 16px; color: var(--ink); }
+  .brand em { font-style: normal; color: var(--accent); }
+  .nav-links { display: flex; gap: 24px; margin-inline-start: auto; }
+  .nav-links a { font-size: 14px; color: var(--ink-2); padding: 10px 2px; transition: color 150ms ease-out; }
+  .nav-links a:hover { color: var(--accent-ink); }
+  .nav-gh { font-size: 14px; color: var(--ink-3); padding: 10px 2px; transition: color 150ms ease-out; }
+  .nav-gh:hover { color: var(--ink); }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 44px; padding: 11px 26px;
+    background: var(--accent-deep); color: #ffffff;
+    border-radius: 999px; font-size: 16px; font-weight: 500; white-space: nowrap;
+    transition: opacity 150ms ease-out, transform 150ms ease-out;
+  }
+  .btn:hover { opacity: 0.9; }
+  .btn:active { transform: scale(0.98); }
+  @media (max-width: 720px) { .nav-links, .nav-gh { display: none; } .nav-inner { justify-content: space-between; } }
+
+  /* Hero：整屏落地 */
+  .hero {
+    min-height: calc(100dvh - 64px);
+    display: flex; flex-direction: column; justify-content: center;
+    padding-top: 48px; padding-bottom: 48px;
+  }
+  .kicker {
+    font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--accent-ink); font-weight: 500; margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-family: var(--font-display);
+    font-size: clamp(40px, 7vw, 64px);
+    line-height: 1.3;               /* 中文标题行高下限 */
+    letter-spacing: 0;              /* 中文禁负字距 */
+    font-weight: 600; color: var(--ink);
+    max-width: 16em; margin-bottom: 20px;
+  }
+  .hero p { font-size: 16px; line-height: 1.7; max-width: 38em; color: var(--ink-2); margin-bottom: 32px; }
+  .hero p strong { font-weight: 500; color: var(--ink); }
+
+  /* 区块通用 */
+  section { padding: 88px 0; }
+  .sec-head { margin-bottom: 40px; }
+  .sec-head h2 { font-family: var(--font-display); font-size: 28px; line-height: 1.3; letter-spacing: 0; font-weight: 600; color: var(--ink); }
+  .sec-head p { margin-top: 10px; max-width: 65ch; }
+  .sec-head.center { text-align: center; }
+  .sec-head.center p { margin-inline: auto; }
+
+  /* 内嵌演示：记忆点 */
+  .demo-band { background: var(--surface-2); border-block: 1px solid var(--line); }
+  .demo {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 28px; max-width: 720px; margin: 0 auto;
+    display: flex; flex-direction: column; gap: 14px; min-height: 320px;
+  }
+  .demo-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .demo-title { font-size: 13px; color: var(--ink-3); }
+  .sample-tag {
+    font-size: 12px; color: var(--accent-ink); background: var(--accent-wash);
+    border-radius: 999px; padding: 3px 12px;
+  }
+  .replay {
+    min-height: 36px; padding: 6px 16px; font-size: 13px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 999px;
+    color: var(--ink-2); cursor: pointer; font-family: inherit;
+    transition: border-color 150ms ease-out, color 150ms ease-out;
+  }
+  .replay:hover { border-color: var(--accent); color: var(--accent-ink); }
+  .bubble-q {
+    align-self: flex-end; max-width: 80%;
+    background: var(--accent); color: #0B3B26; font-weight: 500;
+    padding: 10px 18px; border-radius: 12px; font-size: 15px;
+    opacity: 0; transform: translateY(10px);
+    transition: opacity 200ms ease-out, transform 200ms ease-out;
+  }
+  .bubble-q.show { opacity: 1; transform: none; }
+  .bubble-a {
+    align-self: flex-start; max-width: 88%; min-width: 0;
+    background: var(--surface-2); border: 1px solid var(--line);
+    padding: 14px 18px; border-radius: 12px; font-size: 15px;
+    opacity: 0; transform: translateY(10px);
+    transition: opacity 200ms ease-out, transform 200ms ease-out;
+  }
+  .bubble-a.show { opacity: 1; transform: none; }
+  .bubble-a ol { padding-inline-start: 20px; display: grid; gap: 6px; }
+  .bubble-a li { opacity: 0; transition: opacity 180ms ease-out; }
+  .bubble-a li.show { opacity: 1; }
+  .bubble-a .concl { margin-top: 10px; color: var(--ink); }
+  .dots { align-self: flex-start; display: none; gap: 5px; padding: 12px 4px; }
+  .dots.on { display: inline-flex; }
+  .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: blink 1.1s infinite; }
+  .dots i:nth-child(2) { animation-delay: 0.18s; }
+  .dots i:nth-child(3) { animation-delay: 0.36s; }
+  @keyframes blink { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    .bubble-q, .bubble-a, .bubble-a li { transition: opacity 200ms ease-out; transform: none; }
+    .dots i { animation: none; opacity: 0.5; }
+  }
+
+  /* 方法：编辑式两栏（第二种布局族） */
+  .about { display: grid; grid-template-columns: 280px 1fr; gap: 48px; }
+  .about h2 { font-family: var(--font-display); font-size: 28px; line-height: 1.3; font-weight: 600; color: var(--ink); }
+  .about-body { max-width: 65ch; display: grid; gap: 18px; font-size: 16px; }
+  .about-body strong { font-weight: 500; color: var(--ink); }
+  .stack { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  @media (max-width: 720px) { .about { grid-template-columns: 1fr; gap: 24px; } }
+
+  /* 结尾 CTA 带 */
+  .end { text-align: center; padding: 96px 0; }
+  .end h2 { font-family: var(--font-display); font-size: clamp(28px, 4.5vw, 40px); line-height: 1.3; font-weight: 600; color: var(--ink); margin-bottom: 28px; }
+
+  footer { border-top: 1px solid var(--line); padding: 28px 0; }
+  .foot-inner { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; font-size: 13px; color: var(--ink-3); }
+  .foot-inner a { padding: 8px 0; }
+  .foot-inner a:hover { color: var(--accent-ink); }
+
+  /* 进场动效：只动 transform 与 opacity */
+  .reveal { opacity: 0; transform: translateY(14px); transition: opacity 200ms ease-out, transform 200ms ease-out; }
+  .reveal.in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { transform: none; transition: opacity 200ms ease-out; }
+  }
+</style>
 </head>
 <body>
-  <div class="container">
-    <header class="header">
-      <div class="logo">郭怡彤<span>.</span></div>
-      <div class="header-actions">
-        <div class="seg" role="group" aria-label="外观切换">
-          <button type="button" class="active" data-theme="light">浅色</button>
-          <button type="button" data-theme="dark">深色</button>
-        </div>
-        <a class="gh-btn" href="https://github.com/martinkalcheva-lgtm/showreel" target="_blank" rel="noopener">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
-          <span>GitHub</span><span class="sep">|</span><span>源代码</span>
-        </a>
-      </div>
-    </header>
+<a class="skip" href="#main">跳到主要内容</a>
 
-    <section class="hero">
-      <h1>作品集</h1>
-      <p>三个核心业务项目，帮助团队提效、降本、聚焦核心价值。</p>
-      <a href="#" class="cta" id="viewBtn">查看</a>
-    </section>
-
-    <section class="section" id="projectsSection">
-      <div class="grid" id="gridElement">
-        <a class="card card-hidden" href="pages/wenshu-zhiku.html" target="_blank" rel="noopener">
-          <div class="card-content">
-            <div class="meta-left">智库</div>
-            <h3 class="card-title">问数与智库</h3>
-          </div>
-        </a>
-
-        <a class="card card-hidden" href="pages/ecommerce.html" target="_blank" rel="noopener">
-          <div class="card-content">
-            <div class="meta-left">电商</div>
-            <h3 class="card-title">电商运营助手</h3>
-          </div>
-        </a>
-
-        <a class="card card-hidden" href="pages/kefu.html" target="_blank" rel="noopener">
-          <div class="card-content">
-            <div class="meta-left">客服</div><h3 class="card-title">智能客服系统</h3>
-          </div>
-        </a>
-      </div>
-    </section>
-
-    <footer class="footer">
-      <span>G · 作品集 · 2026</span>
-    </footer>
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top">郭怡彤<em>.</em></a>
+    <nav class="nav-links" aria-label="页面导航">
+      <a href="#projects">项目</a>
+      <a href="#demo">演示</a>
+      <a href="#about">方法</a>
+    </nav>
+    <a class="nav-gh" href="https://github.com/martinkalcheva-lgtm/showreel" target="_blank" rel="noopener">GitHub 源代码</a>
+    <a class="btn" href="portfolio.html">参观作品集</a>
   </div>
+</header>
 
-  <script>
-    // 浅色/深色 切换
-    (function () {
-      var root = document.documentElement;
-      var btns = document.querySelectorAll('.seg button');
-      function setTheme(t) {
-        root.setAttribute('data-theme', t);
-        try { localStorage.setItem('page-theme', t); } catch (e) {}
-        btns.forEach(function (b) {
-          b.classList.toggle('active', b.getAttribute('data-theme') === t);
-        });
-      }
-      var saved = 'light';
-      try { saved = localStorage.getItem('page-theme') || 'light'; } catch (e) {}
-      setTheme(saved);
-      btns.forEach(function (b) {
-        b.addEventListener('click', function () { setTheme(b.getAttribute('data-theme')); });
+<main id="main">
+  <!-- Hero：整屏落地 -->
+  <section class="hero wrap" id="top" aria-labelledby="hero-h">
+    <p class="kicker">Portfolio 2026</p>
+    <h1 id="hero-h">把业务问题，<br>变成一句话。</h1>
+    <p>我是郭怡彤，独立开发者。已上线三个项目：<strong>知识库问答、电商运营助手、数字人客服</strong>，全部可在本页查看源码与演示。</p>
+    <div><a class="btn" href="portfolio.html">参观作品集</a></div>
+  </section>
+
+  <!-- 内嵌演示：记忆点 -->
+  <section class="demo-band" id="demo" aria-labelledby="demo-h">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <h2 id="demo-h">先看 30 秒演示</h2>
+        <p>问数与智库的真实交互形态：业务数据用一句话提问，直接返回结论。以下为示例数据（sample）。</p>
+      </div>
+      <div class="demo reveal" id="demoBox">
+        <div class="demo-top">
+          <span class="demo-title">问数与智库 · 对话演示</span>
+          <span class="sample-tag">示例数据 sample</span>
+          <button type="button" class="replay" id="replayBtn" aria-label="重播示例对话">重播</button>
+        </div>
+        <div class="bubble-q" id="qBubble">上个季度华东区卖得最好的三个商品是？</div>
+        <div class="dots" id="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div class="bubble-a" id="aBubble">
+          <ol id="aList">
+            <li>保温杯 Pro：销售额 ¥86,400</li>
+            <li>空气炸锅 mini：销售额 ¥61,200</li>
+            <li>轻薄羽绒服：销售额 ¥52,980</li>
+          </ol>
+          <p class="concl">结论：Top3 合计占华东区当季销售额的四成以上，建议补货向这三款倾斜。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 项目：参观作品集引导 -->
+  <section id="projects" aria-labelledby="pj-h">
+    <div class="wrap">
+      <div class="sec-head center reveal">
+        <h2 id="pj-h">三个上线项目</h2>
+        <p>参观作品集，源码都在 GitHub。</p>
+        <div style="margin-top: 28px;"><a class="btn" href="portfolio.html">参观作品集</a></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 方法：编辑式两栏 -->
+  <section class="demo-band" id="about" aria-labelledby="ab-h">
+    <div class="wrap about">
+      <h2 id="ab-h" class="reveal">怎么做东西</h2>
+      <div class="about-body reveal">
+        <p><strong>先跑通，再打磨。</strong>每个项目都从最短路径开始：一周内让真实流程走起来，用真实数据验证，界面只留必要的东西。</p>
+        <p><strong>后端不将就。</strong>存储按场景选型，访问层统一封装；前端只做一件事：把能力说人话。</p>
+        <p>日常在用的东西：</p>
+        <div class="stack">
+          <span class="tag">LangGraph</span><span class="tag">FastAPI</span><span class="tag">Next.js</span><span class="tag">MySQL</span><span class="tag">Milvus</span><span class="tag">Elasticsearch</span><span class="tag">Docker</span><span class="tag">Python</span><span class="tag">TypeScript</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 结尾 CTA -->
+  <section class="end" aria-labelledby="end-h">
+    <div class="wrap reveal">
+      <h2 id="end-h">细节都在仓库里，</h2>
+      <a class="btn" href="portfolio.html">参观作品集</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot-inner">
+    <span>© 2026 郭怡彤</span>
+    <a href="https://github.com/martinkalcheva-lgtm/showreel" target="_blank" rel="noopener">GitHub：martinkalcheva-lgtm/showreel</a>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var reduced = false;
+  try { reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+
+  /* 进场显示：IntersectionObserver，不用 scroll 事件 */
+  var items = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
       });
-    })();
+    }, { threshold: 0.15 });
+    items.forEach(function (el) { io.observe(el); });
+  } else {
+    items.forEach(function (el) { el.classList.add('in'); });
+  }
 
-    // 点击 "查看" 切换项目卡片显示/隐藏
-    document.getElementById('viewBtn').addEventListener('click', function(e) {
-      e.preventDefault();
-      var cards = document.querySelectorAll('.card');
-      var isShowing = this.getAttribute('data-show') === 'true';
-
-      if (isShowing) {
-        // 隐藏项目卡片
-        cards.forEach(function(card) {
-          card.classList.remove('card-show');
-          card.classList.add('card-hidden');
-        });
-        this.setAttribute('data-show', 'false');
-        this.textContent = '查看';
-      } else {
-        // 显示项目卡片
-        cards.forEach(function(card) {
-          card.classList.remove('card-hidden');
-          card.classList.add('card-show');
-        });
-        this.setAttribute('data-show', 'true');
-        this.textContent = '收回';
-      }
+  /* 示例对话：序列播放，带重播与即时模式 */
+  var qBubble = document.getElementById('qBubble');
+  var aBubble = document.getElementById('aBubble');
+  var dots = document.getElementById('dots');
+  var list = document.getElementById('aList');
+  var rows = list.querySelectorAll('li');
+  var timers = [];
+  function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+  function at(ms, fn) { timers.push(setTimeout(fn, ms)); }
+  function reset() {
+    clearTimers();
+    qBubble.classList.remove('show');
+    aBubble.classList.remove('show');
+    dots.classList.remove('on');
+    rows.forEach(function (li) { li.classList.remove('show'); });
+  }
+  function play() {
+    reset();
+    if (reduced) {
+      qBubble.classList.add('show');
+      aBubble.classList.add('show');
+      rows.forEach(function (li) { li.classList.add('show'); });
+      return;
+    }
+    at(300, function () { qBubble.classList.add('show'); });
+    at(900, function () { dots.classList.add('on'); });
+    at(2100, function () { dots.classList.remove('on'); aBubble.classList.add('show'); });
+    rows.forEach(function (li, i) {
+      at(2500 + i * 450, function () { li.classList.add('show'); });
     });
-  </script>
+  }
+  var played = false;
+  if ('IntersectionObserver' in window) {
+    var dio = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting && !played) { played = true; play(); dio.unobserve(en.target); }
+      });
+    }, { threshold: 0.4 });
+    dio.observe(document.getElementById('demoBox'));
+  } else { played = true; play(); }
+  document.getElementById('replayBtn').addEventListener('click', play);
+})();
+</script>
 </body>
 </html>
