@@ -1,164 +1,215 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="light" class="js">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>文件导入服务</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7fa;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-        }
-        .container {
-            width: 100%;
-            max-width: 800px;
-            background-color: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #2c3e50;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .upload-area {
-            border: 2px dashed #3498db;
-            border-radius: 8px;
-            padding: 40px;
-            text-align: center;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            margin-bottom: 20px;
-        }
-        .upload-area:hover {
-            background-color: #ecf6fd;
-        }
-        .upload-icon {
-            font-size: 48px;
-            color: #3498db;
-            margin-bottom: 10px;
-        }
-        .file-input {
-            display: none;
-        }
-        .btn {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s;
-        }
-        .btn:hover {
-            background-color: #2980b9;
-        }
-        .btn:disabled {
-            background-color: #bdc3c7;
-            cursor: not-allowed;
-        }
-        .file-list {
-            margin-top: 30px;
-        }
-        .file-item {
-            background-color: #fff;
-            border: 1px solid #e0e0e0;
-            border-radius: 6px;
-            padding: 15px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .file-info {
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-            margin-right: 20px;
-        }
-        .file-name {
-            font-weight: 600;
-            color: #333;
-        }
-        .file-size {
-            font-size: 12px;
-            color: #7f8c8d;
-            margin-top: 4px;
-        }
-        .status-badge {
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 12px;
-            font-weight: bold;
-            color: white;
-            min-width: 80px;
-            text-align: center;
-        }
-        .status-uploading { background-color: #f39c12; }
-        .status-processing { background-color: #3498db; }
-        .status-completed { background-color: #2ecc71; }
-        .status-error { background-color: #e74c3c; }
-        
-        /* 简单的进度条 */
-        .progress-bar-container {
-            width: 100%;
-            height: 4px;
-            background-color: #f0f0f0;
-            margin-top: 8px;
-            border-radius: 2px;
-            overflow: hidden;
-            display: none;
-        }
-        .progress-bar {
-            height: 100%;
-            background-color: #f39c12;
-            width: 0%;
-            transition: width 0.3s, background-color 0.3s;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>知识库文件导入</title>
+  <link rel="stylesheet" href="design-system.css">
+  <style>
+    /* ====================================================================
+       页面级布局规则（kb-import 落地）
+       硬约束：只消费 design-system.css 的 token 与组件类。
+       本文件不新增任何颜色 / 圆角 / 阴影 / 字体族，只做栅格与流式布局。
+       .file-item / .file-info / .file-name / .file-size / .progress-bar* /
+       .status-badge* / .log-* 是页面脚本逐字保留的旧模板类名
+       （上传 / 轮询逻辑一行不改），这里用 token 把它们桥接到设计系统外观。
+       ==================================================================== */
+    .app-top nav a { min-height: 44px; display: inline-flex; align-items: center; }
+    .app-top .top-actions { display: flex; align-items: center; gap: var(--sp-2); }
 
-        /* 任务日志（可展开/收起） */
-        .log-details {
-            margin-top: 8px;
-            font-size: 12px;
-            color: #7f8c8d;
-        }
-        .log-details summary {
-            cursor: pointer;
-            user-select: none;
-            color: #6c7a89;
-        }
-        .log-list {
-            margin: 6px 0 0 16px;
-            padding: 0;
-        }
-        .log-list li {
-            margin: 2px 0;
-            line-height: 1.4;
-        }
-    </style>
+    .panel-head h2 { font-size: var(--fs-h3); }
+    .empty h3 { font-size: var(--fs-h3); margin-bottom: .375rem; }
+
+    .stack { display: flex; flex-direction: column; gap: var(--sp-6); }
+    .stack-2 { display: flex; flex-direction: column; gap: var(--sp-2); }
+    .row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
+
+    /* 页头 */
+    .page-hd { display: flex; flex-direction: column; gap: var(--sp-3); }
+    .page-hd .t-lead { max-width: 52em; }
+    .page-hd .eyebrow { text-wrap: balance; }
+
+    /* 拖拽上传区：复用 .empty 的虚线框语义 */
+    .drop { display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); text-align: center; }
+    .drop-mark { font-size: 2.25rem; color: var(--muted); line-height: 1; }
+    .drop .t-meta { max-width: 44em; }
+    .file-input { display: none; }
+
+    /* 文件清单（脚本模板类名桥接） */
+    #fileList { display: flex; flex-direction: column; gap: var(--sp-2); }
+    #fileList:empty::before {
+      content: "还没有文件 — 上传后每个文件会在这里显示状态与解析日志";
+      font-size: var(--fs-mini); color: var(--muted); line-height: 1.75;
+    }
+    .file-item {
+      display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      background: var(--surface);
+      padding: var(--sp-3) var(--sp-4);
+    }
+    .file-info { display: flex; flex-direction: column; flex: 1; min-width: 0; margin-right: var(--sp-3); }
+    .file-name { font-weight: 600; color: var(--fg); overflow-wrap: anywhere; }
+    .file-size {
+      font-family: var(--font-mono); font-size: var(--fs-mini);
+      color: var(--muted); margin-top: .25rem;
+    }
+    .status-badge {
+      padding: .2em .55em;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      font-family: var(--font-mono); font-size: var(--fs-mini); font-weight: 600;
+      color: var(--muted); background: var(--surface-subtle);
+      white-space: nowrap;
+    }
+    .status-uploading { color: var(--warn); border-color: var(--border-warn); background: var(--warn-tint); }
+    .status-processing { color: var(--info); border-color: var(--border-info); background: var(--info-tint); }
+    .status-completed { color: var(--success); border-color: var(--border-success); background: var(--success-tint); }
+    .status-error { color: var(--accent); border-color: var(--border-accent); background: var(--accent-tint); }
+
+    /* 进度条：4px 发丝条（宽度与终态色由脚本逐字保留的旧逻辑驱动） */
+    .progress-bar-container {
+      width: 100%; height: 4px;
+      background: var(--border); border-radius: var(--radius);
+      margin-top: var(--sp-2);
+      overflow: hidden; display: none;
+    }
+    .progress-bar {
+      height: 100%; width: 0;
+      background: var(--warn);
+      transition: width var(--t-3) var(--ease-state);
+    }
+
+    /* 任务日志（可展开/收起） */
+    .log-details { margin-top: var(--sp-2); font-size: var(--fs-mini); color: var(--muted); }
+    .log-details summary { cursor: pointer; user-select: none; color: var(--muted); }
+    .log-list { margin: .375rem 0 0 1.25rem; padding: 0; }
+    .log-list li { margin: .125rem 0; line-height: 1.6; color: var(--fg-secondary); overflow-wrap: anywhere; }
+
+    /* 页眉眉标/说明在窄屏的配平 */
+    .t-lead { text-wrap: pretty; }
+
+    @media (max-width: 767px) {
+      .app-top .brand .sub { display: none; }
+      .file-item { flex-direction: column; align-items: stretch; }
+      .file-info { margin-right: 0; }
+      .status-badge { align-self: flex-start; }
+      .stack { gap: var(--sp-5); }
+    }
+  </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>📄 知识库文件导入</h1>
-    
-    <div class="upload-area" id="dropZone" onclick="document.getElementById('fileInput').click()">
-        <div class="upload-icon">☁️</div>
-        <p>点击或拖拽文件到此处 (PDF/MD)</p>
-        <input type="file" id="fileInput" class="file-input" multiple accept=".pdf,.md">
-    </div>
+<div class="app">
+  <!-- ================================================================
+       应用顶栏
+       ================================================================ -->
+  <header class="app-top">
+    <a class="brand" href="chat.html">
+      <svg class="mark ic-lg" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <rect x="12" y="12" width="8" height="8" rx="2"/>
+        <rect x="4" y="4" width="4" height="4" rx="1"/>
+        <rect x="24" y="4" width="4" height="4" rx="1"/>
+        <rect x="4" y="24" width="4" height="4" rx="1"/>
+        <rect x="24" y="24" width="4" height="4" rx="1"/>
+      </svg>
+      <span>知识库文件导入</span>
+      <span class="sub">KB AGENT · IMPORT</span>
+    </a>
 
-    <div id="fileList" class="file-list">
-        <!-- 文件列表将在这里生成 -->
+    <nav aria-label="页面导航">
+      <a href="chat.html">知识库问答</a>
+      <a href="import.html" aria-current="page">文件导入</a>
+    </nav>
+
+    <div class="top-actions">
+      <button type="button" class="btn btn-sm btn-ghost" id="themeBtn" aria-label="切换明暗主题">
+        <span id="themeLabel">DARK</span>
+      </button>
     </div>
+  </header>
+
+  <div class="app-body">
+    <!-- ============================================================
+         主栏
+         ============================================================ -->
+    <main class="pane">
+      <div class="stack">
+
+        <!-- 页头 -->
+        <header class="page-hd">
+          <h1 class="t-h1">知识库文件导入</h1>
+          <p class="t-lead">
+            选择或拖入文件后，服务端会逐个解析并入库；每个文件的阶段日志实时展开，
+            单个文件失败不影响同批其他文件。
+          </p>
+          <div class="row">
+            <span class="tag">PDF</span>
+            <span class="tag">MD</span>
+            <span class="tag">MULTI-FILE</span>
+          </div>
+        </header>
+
+        <!-- 上传区 -->
+        <section class="panel" aria-labelledby="h-upload">
+          <div class="panel-head">
+            <h2 id="h-upload">上传文件</h2>
+            <span class="badge">01 / 01</span>
+          </div>
+          <div class="panel-body">
+            <div class="empty drop" id="dropZone" onclick="document.getElementById('fileInput').click()">
+              <span class="drop-mark" aria-hidden="true">
+                <svg class="ic" aria-hidden="true" focusable="false"><use href="#i-doc"></use></svg>
+              </span>
+              <h3>把文件拖到这里，或点击选择</h3>
+              <p class="t-meta">
+                支持 PDF / MD，可一次选择多个文件。上传后服务端逐个处理，
+                状态与日志会显示在下方「文件队列」。
+              </p>
+              <div class="row">
+                <button type="button" class="btn btn-primary">
+                  <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-doc"></use></svg>
+                  <span>选择文件</span>
+                </button>
+              </div>
+              <div class="tag-row">
+                <span class="tag">PDF</span>
+                <span class="tag">MD</span>
+                <span class="tag">DRAG &amp; DROP</span>
+              </div>
+              <input type="file" id="fileInput" class="file-input" multiple accept=".pdf,.md">
+            </div>
+          </div>
+        </section>
+
+        <!-- 文件队列 -->
+        <section class="panel" aria-labelledby="h-queue">
+          <div class="panel-head">
+            <h2 id="h-queue">文件队列</h2>
+            <span class="badge mono">UPLOAD QUEUE</span>
+          </div>
+          <div class="panel-body">
+            <div id="fileList"></div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
 </div>
 
+<script src="icons.js"></script>
+<script>
+  (function () {
+    function sync() {
+      var el = document.getElementById('themeLabel');
+      if (!el) return;
+      el.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? 'LIGHT' : 'DARK';
+    }
+    document.addEventListener('click', function (e) {
+      if (e.target && e.target.closest && e.target.closest('#themeBtn')) setTimeout(sync, 0);
+    });
+    sync();
+  })();
+</script>
 <script>
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
