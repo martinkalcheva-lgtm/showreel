@@ -149,9 +149,9 @@ const onImgError = (u) => {
   word-break: break-word;
 }
 .msg.user .bubble {
-  background: var(--blue);
+  background: var(--accent);
   color: #fff;
-  border-bottom-right-radius: 6px;
+  border-bottom-right-radius: 4px;
 }
 .msg.ai .bubble {
   background: var(--bg-card);
@@ -221,7 +221,7 @@ const onImgError = (u) => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--blue);
+  background: var(--accent);
   flex: none;
 }
 .stages.dim .stage-dot {
@@ -229,7 +229,7 @@ const onImgError = (u) => {
 }
 .stage.current {
   font-size: 13px;
-  color: var(--blue);
+  color: var(--accent);
   margin-bottom: 8px;
 }
 .stage-dot.pulse {
@@ -246,7 +246,7 @@ const onImgError = (u) => {
 }
 
 .error {
-  color: var(--red);
+  color: #e53e3e;
   font-size: 13px;
   margin-top: 8px;
 }
@@ -270,7 +270,7 @@ const onImgError = (u) => {
   max-height: 600px;
   width: auto;
   height: auto;
-  border-radius: 12px;
+  border-radius: var(--radius-card);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-card);
   background: #fff;
@@ -282,7 +282,7 @@ const onImgError = (u) => {
   text-decoration: none;
 }
 .img-fallback:hover {
-  color: var(--blue);
+  color: var(--accent);
 }
 
 /* 流式输出三点跳动 */

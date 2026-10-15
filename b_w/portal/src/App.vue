@@ -51,12 +51,13 @@ const activeTab = ref('wenshu')
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 24px;
 }
 
 .topbar-title {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 600;
+  color: var(--text-1);
 }
 
 .topbar-tabs {
@@ -72,14 +73,14 @@ const activeTab = ref('wenshu')
   position: relative;
   padding: 0 16px;
   font-size: 15px;
-  color: var(--text-2);
+  color: var(--text-3);
   transition: color 160ms var(--ease);
 }
 .tab:hover {
   color: var(--text-1);
 }
 .tab.active {
-  color: var(--blue);
+  color: var(--accent);
   font-weight: 600;
 }
 .tab.active::after {
@@ -89,7 +90,7 @@ const activeTab = ref('wenshu')
   right: 12px;
   bottom: 0;
   height: 2px;
-  background: var(--blue);
+  background: var(--accent);
   border-radius: 2px;
 }
 

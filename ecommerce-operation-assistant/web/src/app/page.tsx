@@ -42,11 +42,11 @@ const platformFilters: Array<{ value: "all" | Platform; label: string }> = [
 ];
 
 const workflow = [
-  { title: "建店建档", icon: Building2, tone: "bg-sky-100 text-sky-700", href: "/" },
-  { title: "导入数据", icon: ClipboardList, tone: "bg-cyan-100 text-cyan-700", href: "/imports" },
-  { title: "补商品信息", icon: ImageIcon, tone: "bg-emerald-100 text-emerald-700", href: "/?workflow=product" },
-  { title: "投放建议", icon: Megaphone, tone: "bg-amber-100 text-amber-700", href: "/?workflow=ads" },
-  { title: "周期复盘", icon: FileText, tone: "bg-rose-100 text-rose-700", href: "/?workflow=review" },
+  { title: "建店建档", icon: Building2, tone: "bg-[#e8f5ee] text-[#38a16f]", href: "/" },
+  { title: "导入数据", icon: ClipboardList, tone: "bg-[#f0f4f8] text-[#4a5568]", href: "/imports" },
+  { title: "补商品信息", icon: ImageIcon, tone: "bg-[#e8f5ee] text-[#38a16f]", href: "/?workflow=product" },
+  { title: "投放建议", icon: Megaphone, tone: "bg-[#f0f4f8] text-[#4a5568]", href: "/?workflow=ads" },
+  { title: "周期复盘", icon: FileText, tone: "bg-[#e8f5ee] text-[#38a16f]", href: "/?workflow=review" },
 ];
 
 type HomeProps = {
@@ -80,24 +80,24 @@ export default async function Home({ searchParams }: HomeProps) {
   });
 
   return (
-    <main className="min-h-screen bg-[#f7f8fb] px-5 py-6 text-slate-950 lg:px-8">
+    <main className="min-h-screen bg-white px-5 py-6 text-[#2d3748] lg:px-8">
       <div className="mx-auto flex max-w-7xl flex-col gap-6">
         <div className="flex justify-end gap-2">
           <Link
             href="/agent"
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-cyan-700 px-3 text-sm font-medium text-white hover:bg-cyan-800"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-[#42b983] px-4 text-sm font-medium text-white hover:bg-[#38a16f]"
           >
             <Bot className="h-4 w-4" aria-hidden="true" />
             Agent 中心
           </Link>
           {currentUser ? (
             <form action="/logout" method="post" className="inline-flex items-center gap-2">
-              <span className="inline-flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-600">
+              <span className="inline-flex h-9 items-center rounded-full border border-[#e2e8f0] bg-white px-4 text-sm text-[#4a5568]">
                 {currentUser.display_name}
               </span>
               <button
                 type="submit"
-                className="inline-flex h-9 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="inline-flex h-9 items-center justify-center rounded-full border border-[#e2e8f0] bg-white px-4 text-sm font-medium text-[#2d3748] hover:bg-[#f8f9fa]"
               >
                 退出
               </button>
@@ -105,24 +105,24 @@ export default async function Home({ searchParams }: HomeProps) {
           ) : (
             <Link
               href="/login"
-              className="inline-flex h-9 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="inline-flex h-9 items-center justify-center rounded-full border border-[#e2e8f0] bg-white px-4 text-sm font-medium text-[#2d3748] hover:bg-[#f8f9fa]"
             >
               登录
             </Link>
           )}
           <Link
             href="/settings"
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-[#e2e8f0] bg-white px-4 text-sm font-medium text-[#2d3748] hover:bg-[#f8f9fa]"
           >
             <Settings className="h-4 w-4" aria-hidden="true" />
             模型配置
           </Link>
         </div>
 
-        <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 lg:flex-row lg:items-end lg:justify-between">
+        <header className="flex flex-col gap-4 border-b border-[#e2e8f0] pb-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-medium text-cyan-700">Ecommerce Operation Assistant</p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-normal text-slate-950 sm:text-3xl">
+            <p className="text-sm font-medium text-[#42b983]">Ecommerce Operation Assistant</p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-normal text-[#2d3748] sm:text-3xl">
               多平台店铺运营工作台
             </h1>
           </div>
@@ -134,20 +134,20 @@ export default async function Home({ searchParams }: HomeProps) {
           </div>
         </header>
 
-        <section className="flex flex-col gap-3 rounded-md border border-slate-200 bg-white p-4 lg:flex-row lg:items-center lg:justify-between">
+        <section className="flex flex-col gap-3 rounded-lg border border-[#e2e8f0] bg-white p-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-slate-950">演示和导入</h2>
-            <p className="mt-1 text-sm text-slate-500">
+            <h2 className="text-sm font-semibold text-[#2d3748]">演示和导入</h2>
+            <p className="mt-1 text-sm text-[#718096]">
               用演示数据快速跑通店铺、库存、投放实验和复盘链路，或下载绩效数据导入模板。
             </p>
             {query.demo === "created" ? (
-              <p className="mt-2 text-xs font-medium text-emerald-700">演示数据已准备好。</p>
+              <p className="mt-2 text-xs font-medium text-[#38a16f]">演示数据已准备好。</p>
             ) : null}
             {query.demo === "failed" ? (
-              <p className="mt-2 text-xs font-medium text-rose-700">演示数据创建失败，请确认当前账号有编辑权限。</p>
+              <p className="mt-2 text-xs font-medium text-[#e53e3e]">演示数据创建失败，请确认当前账号有编辑权限。</p>
             ) : null}
             {!canEdit ? (
-              <p className="mt-2 text-xs font-medium text-amber-700">当前账号为只读权限，只能查看数据，不能创建或导入。</p>
+              <p className="mt-2 text-xs font-medium text-[#d69e2e]">当前账号为只读权限，只能查看数据，不能创建或导入。</p>
             ) : null}
           </div>
           <div className="flex flex-wrap gap-2">
@@ -155,7 +155,7 @@ export default async function Home({ searchParams }: HomeProps) {
               <form action="/workspace/demo-data" method="post">
                 <button
                   type="submit"
-                  className="inline-flex h-9 items-center gap-2 rounded-md bg-slate-950 px-3 text-sm font-medium text-white hover:bg-slate-800"
+                  className="inline-flex h-9 items-center gap-2 rounded-full bg-[#2d3748] px-4 text-sm font-medium text-white hover:bg-[#1a202c]"
                 >
                   <Database className="h-4 w-4" aria-hidden="true" />
                   生成演示数据
@@ -164,7 +164,7 @@ export default async function Home({ searchParams }: HomeProps) {
             ) : null}
             <Link
               href="/workspace/templates/performance-records"
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="inline-flex h-9 items-center gap-2 rounded-full border border-[#e2e8f0] bg-white px-4 text-sm font-medium text-[#2d3748] hover:bg-[#f8f9fa]"
             >
               <Download className="h-4 w-4" aria-hidden="true" />
               下载导入模板
@@ -172,7 +172,7 @@ export default async function Home({ searchParams }: HomeProps) {
             {canEdit ? (
               <Link
                 href="/imports"
-                className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="inline-flex h-9 items-center gap-2 rounded-full border border-[#e2e8f0] bg-white px-4 text-sm font-medium text-[#2d3748] hover:bg-[#f8f9fa]"
               >
                 <Package className="h-4 w-4" aria-hidden="true" />
                 导入中心
@@ -184,31 +184,31 @@ export default async function Home({ searchParams }: HomeProps) {
         <section className={`grid gap-6 ${canEdit ? "xl:grid-cols-[360px_1fr]" : ""}`}>
           {canEdit ? (
             <div className="flex flex-col gap-6">
-              <div className="rounded-md border border-slate-200 bg-white p-5">
+              <div className="rounded-lg border border-[#e2e8f0] bg-white p-5">
                 <StoreCreateForm />
               </div>
-              <div className="rounded-md border border-slate-200 bg-white p-5">
+              <div className="rounded-lg border border-[#e2e8f0] bg-white p-5">
                 <ProductCreateForm stores={stores} />
               </div>
             </div>
           ) : null}
 
           <div className="flex flex-col gap-6">
-            <section className="rounded-md border border-slate-200 bg-white p-5">
+            <section className="rounded-lg border border-[#e2e8f0] bg-white p-5">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold">店铺视图</h2>
-                  <p className="mt-1 text-sm text-slate-500">按平台和店铺归拢商品，先把多平台运营入口铺出来</p>
+                  <h2 className="text-lg font-semibold text-[#2d3748]">店铺视图</h2>
+                  <p className="mt-1 text-sm text-[#718096]">按平台和店铺归拢商品，先把多平台运营入口铺出来</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {platformFilters.map((platform) => (
                     <Link
                       key={platform.value}
                       href={platform.value === "all" ? "/" : `/?platform=${platform.value}`}
-                      className={`inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium ${
+                      className={`inline-flex h-9 items-center rounded-full border px-4 text-sm font-medium ${
                         selectedPlatform === platform.value
-                          ? "border-cyan-700 bg-cyan-700 text-white"
-                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                          ? "border-[#42b983] bg-[#42b983] text-white"
+                          : "border-[#e2e8f0] bg-white text-[#2d3748] hover:bg-[#f8f9fa]"
                       }`}
                     >
                       {platform.label}
@@ -219,7 +219,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
               <div className="mt-5 grid gap-3 lg:grid-cols-2">
                 {stores.length === 0 ? (
-                  <div className="rounded-md border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500">
+                  <div className="rounded-lg border border-dashed border-[#cbd5e0] px-4 py-8 text-center text-sm text-[#718096]">
                     还没有店铺，先在左侧创建一个平台店铺。
                   </div>
                 ) : (
@@ -233,12 +233,12 @@ export default async function Home({ searchParams }: HomeProps) {
                   ))
                 )}
                 {unboundProducts > 0 ? (
-                  <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-4">
+                  <div className="rounded-lg border border-[#d69e2e] bg-[#fffbeb] px-4 py-4">
                     <div className="flex items-center gap-3">
-                      <Package className="h-5 w-5 text-amber-700" aria-hidden="true" />
+                      <Package className="h-5 w-5 text-[#d69e2e]" aria-hidden="true" />
                       <div>
-                        <p className="text-sm font-semibold text-slate-950">未绑定店铺商品</p>
-                        <p className="mt-1 text-xs text-amber-800">{unboundProducts} 个商品需要补店铺归属</p>
+                        <p className="text-sm font-semibold text-[#2d3748]">未绑定店铺商品</p>
+                        <p className="mt-1 text-xs text-[#975a16]">{unboundProducts} 个商品需要补店铺归属</p>
                       </div>
                     </div>
                   </div>
@@ -246,20 +246,20 @@ export default async function Home({ searchParams }: HomeProps) {
               </div>
             </section>
 
-            <section className="rounded-md border border-slate-200 bg-white p-5">
+            <section className="rounded-lg border border-[#e2e8f0] bg-white p-5">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-lg font-semibold">商品池</h2>
-                  <p className="mt-1 text-sm text-slate-500">围绕每个商品补竞品、出素材、做投放实验和复盘</p>
+                  <h2 className="text-lg font-semibold text-[#2d3748]">商品池</h2>
+                  <p className="mt-1 text-sm text-[#718096]">围绕每个商品补竞品、出素材、做投放实验和复盘</p>
                 </div>
-                <span className="inline-flex h-8 items-center gap-1.5 rounded-md bg-slate-100 px-3 text-xs font-medium text-slate-600">
+                <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#f8f9fa] px-3 text-xs font-medium text-[#4a5568]">
                   <Boxes className="h-3.5 w-3.5" aria-hidden="true" />
                   {filteredProducts.length} / {products.length}
                 </span>
               </div>
 
-              <div className="mt-5 overflow-hidden rounded-md border border-slate-200">
-                <div className="hidden grid-cols-[1.3fr_0.9fr_0.8fr_0.7fr_1fr_96px] bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-500 lg:grid">
+              <div className="mt-5 overflow-hidden rounded-lg border border-[#e2e8f0]">
+                <div className="hidden grid-cols-[1.3fr_0.9fr_0.8fr_0.7fr_1fr_96px] bg-[#f8f9fa] px-4 py-3 text-xs font-semibold text-[#718096] lg:grid">
                   <span>商品</span>
                   <span>店铺</span>
                   <span>平台</span>
@@ -269,11 +269,11 @@ export default async function Home({ searchParams }: HomeProps) {
                 </div>
 
                 {filteredProducts.length === 0 ? (
-                  <div className="px-4 py-12 text-center text-sm text-slate-500">
+                  <div className="px-4 py-12 text-center text-sm text-[#718096]">
                     当前筛选下没有商品，可以新建商品或切换平台。
                   </div>
                 ) : (
-                  <div className="divide-y divide-slate-200">
+                  <div className="divide-y divide-[#e2e8f0]">
                     {filteredProducts.map((product) => (
                       <ProductRow key={product.id} product={product} store={product.store_id ? storeById.get(product.store_id) : null} />
                     ))}
@@ -292,18 +292,18 @@ export default async function Home({ searchParams }: HomeProps) {
               <Link
                 key={item.title}
                 href={workflowItem?.href ?? item.href}
-                className="rounded-md border border-slate-200 bg-white p-4 transition hover:border-cyan-200 hover:bg-cyan-50"
+                className="rounded-lg border border-[#e2e8f0] bg-white p-4 transition hover:border-[#42b983]/30 hover:bg-[#f8f9fa]"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div className={`flex h-9 w-9 items-center justify-center rounded-md ${item.tone}`}>
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${item.tone}`}>
                     <Icon className="h-4 w-4" aria-hidden="true" />
                   </div>
-                  <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
+                  <span className="rounded-full bg-[#f8f9fa] px-2 py-1 text-xs font-medium text-[#4a5568]">
                     {workflowItem?.count ?? 0}
                   </span>
                 </div>
-                <h3 className="mt-4 text-sm font-semibold text-slate-950">{item.title}</h3>
-                <p className="mt-1 text-xs leading-5 text-slate-500">{workflowItem?.hint ?? "查看下一步"}</p>
+                <h3 className="mt-4 text-sm font-semibold text-[#2d3748]">{item.title}</h3>
+                <p className="mt-1 text-xs leading-5 text-[#718096]">{workflowItem?.hint ?? "查看下一步"}</p>
               </Link>
             );
           })}
@@ -372,9 +372,9 @@ function firstProductHref(products: Product[], tab: string): string {
 /** 渲染 MetricCard 组件，集中展示指标卡片所需的数据、状态和操作入口。 */
 function MetricCard({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className="mt-1 text-xl font-semibold">{value}</p>
+    <div className="rounded-lg border border-[#e2e8f0] bg-white px-4 py-3">
+      <p className="text-xs text-[#718096]">{label}</p>
+      <p className="mt-1 text-xl font-semibold text-[#2d3748]">{value}</p>
     </div>
   );
 }
@@ -391,44 +391,44 @@ function StoreSummaryCard({
 }) {
   return (
     <div
-      className={`rounded-md border px-4 py-4 transition ${
-        selected ? "border-cyan-700 bg-cyan-50" : "border-slate-200 bg-white hover:bg-slate-50"
+      className={`rounded-lg border px-4 py-4 transition ${
+        selected ? "border-[#42b983] bg-[#f0fdf6]" : "border-[#e2e8f0] bg-white hover:bg-[#f8f9fa]"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-700">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#f8f9fa] text-[#4a5568]">
             <StoreIcon className="h-5 w-5" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-slate-950">{store.name}</p>
-            <p className="mt-1 text-xs text-slate-500">{platformLabels[store.platform]}</p>
+            <p className="truncate text-sm font-semibold text-[#2d3748]">{store.name}</p>
+            <p className="mt-1 text-xs text-[#718096]">{platformLabels[store.platform]}</p>
           </div>
         </div>
-        <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
+        <span className="rounded-full bg-[#f8f9fa] px-2 py-1 text-xs font-medium text-[#4a5568]">
           {store.status === "active" ? "启用" : store.status === "paused" ? "暂停" : "关闭"}
         </span>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
         <div>
-          <p className="text-xs text-slate-500">商品数</p>
-          <p className="mt-1 font-semibold text-slate-950">{productCount}</p>
+          <p className="text-xs text-[#718096]">商品数</p>
+          <p className="mt-1 font-semibold text-[#2d3748]">{productCount}</p>
         </div>
         <div>
-          <p className="text-xs text-slate-500">负责人</p>
-          <p className="mt-1 truncate font-semibold text-slate-950">{store.owner_name ?? "-"}</p>
+          <p className="text-xs text-[#718096]">负责人</p>
+          <p className="mt-1 truncate font-semibold text-[#2d3748]">{store.owner_name ?? "-"}</p>
         </div>
       </div>
       <div className="mt-4 flex gap-2">
         <Link
           href={`/?store=${store.id}`}
-          className="inline-flex h-8 items-center rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50"
+          className="inline-flex h-8 items-center rounded-full border border-[#e2e8f0] bg-white px-3 text-xs font-medium text-[#2d3748] hover:bg-[#f8f9fa]"
         >
           筛选商品
         </Link>
         <Link
           href={`/stores/${store.id}`}
-          className="inline-flex h-8 items-center rounded-md bg-slate-950 px-3 text-xs font-medium text-white hover:bg-slate-800"
+          className="inline-flex h-8 items-center rounded-full bg-[#2d3748] px-3 text-xs font-medium text-white hover:bg-[#1a202c]"
         >
           店铺详情
         </Link>
@@ -442,22 +442,22 @@ function ProductRow({ product, store }: { product: Product; store: Store | null 
   return (
     <div className="grid gap-3 px-4 py-4 text-sm lg:min-h-16 lg:grid-cols-[1.3fr_0.9fr_0.8fr_0.7fr_1fr_96px] lg:items-center lg:gap-0 lg:py-3">
       <div>
-        <p className="font-medium text-slate-950">{product.name}</p>
-        <p className="mt-1 text-xs text-slate-500">{product.category ?? "未分类"}</p>
+        <p className="font-medium text-[#2d3748]">{product.name}</p>
+        <p className="mt-1 text-xs text-[#718096]">{product.category ?? "未分类"}</p>
       </div>
-      <span className="text-slate-600">{store?.name ?? "未绑定"}</span>
-      <span className="text-slate-600">{platformLabels[product.platform]}</span>
-      <span className="font-medium text-slate-800">{product.price ? `¥${product.price}` : "-"}</span>
+      <span className="text-[#4a5568]">{store?.name ?? "未绑定"}</span>
+      <span className="text-[#4a5568]">{platformLabels[product.platform]}</span>
+      <span className="font-medium text-[#2d3748]">{product.price ? `¥${product.price}` : "-"}</span>
       <div className="flex flex-wrap gap-1.5">
         {product.selling_points.slice(0, 3).map((point) => (
-          <span key={point} className="rounded-md bg-emerald-50 px-2 py-1 text-xs text-emerald-700">
+          <span key={point} className="rounded-full bg-[#f0fdf6] px-2 py-1 text-xs text-[#38a16f]">
             {point}
           </span>
         ))}
       </div>
       <Link
         href={`/products/${product.id}`}
-        className="inline-flex h-9 w-24 items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50"
+        className="inline-flex h-9 w-24 items-center justify-center gap-1.5 rounded-full border border-[#e2e8f0] bg-white px-3 text-xs font-medium text-[#2d3748] hover:bg-[#f8f9fa]"
       >
         进入
         <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />

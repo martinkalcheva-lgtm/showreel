@@ -172,7 +172,7 @@ function onNewSession() {
 .sidebar {
   width: 340px;
   overflow: hidden;
-  background: var(--bg-page);
+  background: var(--bg-secondary);
   border-right: 1px solid var(--border);
   transition: width 240ms var(--ease);
   flex: none;
@@ -202,6 +202,7 @@ function onNewSession() {
   margin: 0 16px 16px 4px;
   background: var(--bg-card);
   border-radius: var(--radius-card);
+  border: 1px solid var(--border);
   box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
