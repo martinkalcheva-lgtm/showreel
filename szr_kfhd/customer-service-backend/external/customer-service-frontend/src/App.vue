@@ -1,7 +1,6 @@
 ﻿<script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import XmovAvatar from '@xmov/avatar'
-import xiaoerAvatar from './assets/xiaoer.png'
 import userProfileAvatar from './assets/userProfileAvatar.svg'
 
 const senderId = ref('u1001')
@@ -24,132 +23,10 @@ let currentAudio = null
 // Copy state
 const copyState = ref({})
 
-// ── Canvas 粒子背景系统 ──────────────────────────────────────────────
-const bgCanvas = ref(null)
-let animFrameId = null
-let bgParticles = []
-const BG_PARTICLE_COUNT = 80
-const BG_CONNECT_DIST = 150
-const BG_MOUSE_RADIUS = 180
-const bgMouse = { x: null, y: null }
-
-function createBgParticles(w, h) {
-  const palette = [
-    [13, 148, 136], [20, 184, 166], [245, 158, 11],
-    [217, 119, 6], [2, 132, 199], [56, 189, 248],
-  ]
-  bgParticles = Array.from({ length: BG_PARTICLE_COUNT }, () => {
-    const color = palette[Math.floor(Math.random() * palette.length)]
-    return {
-      x: Math.random() * w, y: Math.random() * h,
-      size: Math.random() * 2.5 + 1,
-      vx: (Math.random() - 0.5) * 0.35,
-      vy: (Math.random() - 0.5) * 0.35,
-      color, opacity: Math.random() * 0.45 + 0.12,
-      phase: Math.random() * Math.PI * 2,
-      pulse: Math.random() * 0.015 + 0.005,
-    }
-  })
-}
-
-function animateBg(ctx, w, h, time) {
-  ctx.clearRect(0, 0, w, h)
-
-  for (const p of bgParticles) {
-    p.x += p.vx + Math.sin(time * 0.001 + p.phase) * 0.25
-    p.y += p.vy + Math.cos(time * 0.001 + p.phase + 1) * 0.25
-
-    if (bgMouse.x !== null) {
-      const dx = p.x - bgMouse.x, dy = p.y - bgMouse.y
-      const dist = Math.hypot(dx, dy)
-      if (dist < BG_MOUSE_RADIUS) {
-        const force = (BG_MOUSE_RADIUS - dist) / BG_MOUSE_RADIUS
-        p.x += (dx / dist) * force * 0.7
-        p.y += (dy / dist) * force * 0.7
-      }
-    }
-
-    if (p.x < -20) p.x = w + 20; if (p.x > w + 20) p.x = -20
-    if (p.y < -20) p.y = h + 20; if (p.y > h + 20) p.y = -20
-  }
-
-  // 连线
-  ctx.lineWidth = 0.5
-  for (let i = 0; i < bgParticles.length; i++) {
-    for (let j = i + 1; j < bgParticles.length; j++) {
-      const dx = bgParticles[i].x - bgParticles[j].x
-      const dy = bgParticles[i].y - bgParticles[j].y
-      const dist = Math.hypot(dx, dy)
-      if (dist < BG_CONNECT_DIST) {
-        const alpha = (1 - dist / BG_CONNECT_DIST) * 0.1
-        ctx.strokeStyle = `rgba(13,148,136,${alpha})`
-        ctx.beginPath()
-        ctx.moveTo(bgParticles[i].x, bgParticles[i].y)
-        ctx.lineTo(bgParticles[j].x, bgParticles[j].y)
-        ctx.stroke()
-      }
-    }
-  }
-
-  // 粒子光晕
-  for (const p of bgParticles) {
-    const pulse = 1 + Math.sin(time * p.pulse + p.phase) * 0.25
-    const r = p.size * pulse
-    const [cr, cg, cb] = p.color
-
-    ctx.beginPath()
-    ctx.arc(p.x, p.y, r * 2.5, 0, Math.PI * 2)
-    ctx.fillStyle = `rgba(${cr},${cg},${cb},${p.opacity * 0.08})`
-    ctx.fill()
-
-    ctx.beginPath()
-    ctx.arc(p.x, p.y, r, 0, Math.PI * 2)
-    ctx.fillStyle = `rgba(${cr},${cg},${cb},${p.opacity * 0.7})`
-    ctx.fill()
-  }
-}
-
-function initBg() {
-  const canvas = bgCanvas.value
-  if (!canvas) return
-  // 亮色商务主题下 .bg-canvas 已被 display:none 隐藏，粒子动画不再启动
-  // （想恢复粒子背景：删掉样式里 .bg-canvas 的 display: none 即可）
-  if (window.getComputedStyle(canvas).display === 'none') return
-  const ctx = canvas.getContext('2d')
-
-  const resize = () => {
-    canvas.width = window.innerWidth
-    canvas.height = window.innerHeight
-    createBgParticles(canvas.width, canvas.height)
-  }
-  resize()
-  window.addEventListener('resize', resize)
-
-  const onMouseMove = (e) => { bgMouse.x = e.clientX; bgMouse.y = e.clientY }
-  const onMouseLeave = () => { bgMouse.x = null; bgMouse.y = null }
-  document.addEventListener('mousemove', onMouseMove)
-  document.addEventListener('mouseleave', onMouseLeave)
-
-  const loop = (time) => {
-    animateBg(ctx, canvas.width, canvas.height, time)
-    animFrameId = requestAnimationFrame(loop)
-  }
-  animFrameId = requestAnimationFrame(loop)
-
-  canvas._cleanup = () => {
-    cancelAnimationFrame(animFrameId)
-    window.removeEventListener('resize', resize)
-    document.removeEventListener('mousemove', onMouseMove)
-    document.removeEventListener('mouseleave', onMouseLeave)
-  }
-}
-// ── 粒子背景系统结束 ──────────────────────────────────────────────────
-
 // 客服数字人配置
 const customerService = {
   name: '小宝',
   title: '金牌客服',
-  avatar: xiaoerAvatar,
   status: '在线'
 }
 
@@ -326,19 +203,19 @@ function formatOrderSummary(order) {
 }
 
 const ORDER_STATUS_CLASS = {
-  '待发货': 'status-warning',
-  '待揽收': 'status-warning',
-  '运输中': 'status-info',
-  '派送中': 'status-info',
-  '已完成': 'status-success',
-  '已签收': 'status-success',
-  '已取消': 'status-muted',
-  '退款中': 'status-danger',
-  '已退款': 'status-muted',
+  '待发货': 'badge-warn',
+  '待揽收': 'badge-warn',
+  '运输中': 'badge-info',
+  '派送中': 'badge-info',
+  '已完成': 'badge-online',
+  '已签收': 'badge-online',
+  '已取消': 'badge',
+  '退款中': 'badge-warn',
+  '已退款': 'badge',
 }
 
 function getStatusClass(status) {
-  return ORDER_STATUS_CLASS[status] || 'status-muted'
+  return ORDER_STATUS_CLASS[status] || 'badge'
 }
 
 function formatProductSummary(product) {
@@ -899,7 +776,7 @@ function onDhPointerUp() {
   }
 }
 
-// 收起：缩成 56px 的小圆圈，贴到卡片右侧
+// 收起：缩成 56px 的小方块，贴到卡片右侧
 function collapseDhWidget() {
   const widget = dhWidgetEl.value
   const card = chatCardEl.value
@@ -956,7 +833,6 @@ function toggleSidebarPanel() {
 }
 
 onMounted(async () => {
-  initBg()
   window.addEventListener('resize', handleDhWindowResize)
   window.addEventListener('beforeunload', handleDhBeforeUnload)
   window.addEventListener('pointermove', onDhPointerMove)
@@ -971,7 +847,6 @@ onUnmounted(() => {
   window.removeEventListener('beforeunload', handleDhBeforeUnload)
   window.removeEventListener('pointermove', onDhPointerMove)
   window.removeEventListener('pointerup', onDhPointerUp)
-  if (bgCanvas.value?._cleanup) bgCanvas.value._cleanup()
   // 释放魔珐星云连接，避免占用并发额度（错误码 10005）
   try {
     liteSDK?.destroy()
@@ -1033,321 +908,310 @@ async function copyBotText(botMsg) {
 </script>
 
 <template>
-  <div class="app-shell">
-    <canvas ref="bgCanvas" class="bg-canvas"></canvas>
-    <div class="app-layout">
-      <div class="workspace">
-      <div ref="chatCardEl" class="chat-card">
-        <header class="chat-header">
-          <div class="header-content">
-            <div class="header-info">
-              <h1>电商客服系统</h1>
-              <div class="service-info">
-                <div class="service-avatar-wrapper">
-                  <img :src="customerService.avatar" class="service-avatar" />
-                  <span class="status-indicator"></span>
-                </div>
-                <div class="service-details">
-                  <span class="service-name">{{ customerService.name }}</span>
-                  <span class="service-status">{{ customerService.status }}</span>
-                </div>
-              </div>
-            </div>
-            <button type="button" class="clear-button" title="清空对话" @click="resetConversation">
-              <span>🔄</span>
-              <span>新对话</span>
+  <div class="app">
+    <!-- ================= 顶栏 ================= -->
+    <header class="app-top">
+      <div class="brand">
+        <svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+          <rect x="12" y="12" width="8" height="8" rx="2"/>
+          <rect x="4" y="4" width="4" height="4" rx="1"/>
+          <rect x="24" y="4" width="4" height="4" rx="1"/>
+          <rect x="4" y="24" width="4" height="4" rx="1"/>
+          <rect x="24" y="24" width="4" height="4" rx="1"/>
+        </svg>
+        <h1>智能应答台</h1>
+        <span class="sub">E-COMMERCE SUPPORT CONSOLE</span>
+      </div>
+      <nav aria-label="主导航">
+        <a href="#thread" aria-current="page">对话台</a>
+        <a href="#objects">业务对象</a>
+      </nav>
+      <div class="top-actions">
+        <span class="badge badge-online"><span class="status-led" aria-hidden="true"></span>:18082 ONLINE</span>
+        <button type="button" class="btn btn-ghost" @click="resetConversation">新对话</button>
+        <button type="button" class="btn btn-ghost" id="themeBtn" aria-label="切换明暗主题">
+          <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-chev"></use></svg>主题
+        </button>
+      </div>
+    </header>
+
+    <!-- ================= 主体 ================= -->
+    <div class="app-body has-aside">
+      <!-- ---------- 对话主区 ---------- -->
+      <main ref="chatCardEl" class="pane" id="thread">
+        <div class="thread">
+
+          <!-- 会话声明带：sender_id 控件 -->
+          <div class="ribbon is-inner">
+            <label class="sess-field">
+              <span class="mono-note">会话</span>
+              <input v-model="senderId" type="text" class="input sess-input" placeholder="u1001" />
+            </label>
+            <span class="mono-note">对象 <strong>{{ orders.length }}</strong> 订单 / <strong>{{ products.length }}</strong> 商品</span>
+            <button type="button" class="btn btn-sm" :disabled="isLoadingSidebar" @click="fetchSidebarData">
+              {{ isLoadingSidebar ? '加载中…' : '刷新对象列表' }}
             </button>
           </div>
-        </header>
 
-        <section class="controls">
-          <label class="field">
-            <span>sender_id</span>
-            <div class="field-row">
-              <input v-model="senderId" type="text" placeholder="u1001" />
-              <button
-                type="button"
-                class="secondary-button"
-                :disabled="isLoadingSidebar"
-                @click="fetchSidebarData"
-              >
-                {{ isLoadingSidebar ? '加载中...' : '刷新对象列表' }}
-              </button>
-            </div>
-          </label>
-        </section>
-
-        <section ref="messagesContainer" class="messages">
-          <div v-if="turns.length === 0" class="welcome">
-            <div class="welcome-card">
-              <div class="welcome-glow"></div>
-              <div class="welcome-avatar-wrapper">
-                <img :src="customerService.avatar" class="welcome-avatar" alt="小宝" />
-                <span class="welcome-status-pulse"></span>
-              </div>
-              <h2 class="welcome-greeting">Hi，我是 {{ customerService.name }}</h2>
-              <p class="welcome-subtitle">你的专属电商客服，随时为你服务</p>
-              <div class="welcome-chips">
+          <section ref="messagesContainer" class="messages">
+            <!-- 空态 -->
+            <div v-if="turns.length === 0" class="empty welcome">
+              <h4>Hi，我是 {{ customerService.name }}</h4>
+              <p>你的专属电商客服，随时为你服务。点一个常见问题直接开问：</p>
+              <div class="chip-row welcome-chips">
                 <button
                   v-for="chip in ['我要退款', '查订单状态', '商品推荐', '退换货政策']"
                   :key="chip"
                   type="button"
-                  class="welcome-chip"
+                  class="btn btn-ghost"
                   :disabled="isSending"
                   @click="sendQuickText(chip)"
                 >{{ chip }}</button>
               </div>
-              <p class="welcome-features">
-                <span>💬 文字对话</span>
-                <span>🔊 语音播报</span>
-                <span>📦 订单查询</span>
-                <span>🛍️ 商品咨询</span>
-              </p>
-            </div>
-          </div>
-
-          <!-- Turn 结构展示 -->
-          <template v-for="(item, index) in turns" :key="item.id || index">
-            <!-- 分隔线 -->
-            <div v-if="item.type === 'divider'" class="history-divider">
-              <span>{{ item.text }}</span>
             </div>
 
-            <!-- Turn 卡片 -->
-            <div v-else class="turn-card" :class="{ 'has-user-message': item.userMessage }">
-              <!-- Turn 标识 -->
-              <div class="turn-header">
-                <span class="turn-badge">Turn {{ item.index }}</span>
-                <span class="turn-label">对话轮次</span>
+            <!-- Turn 结构展示 -->
+            <template v-for="(item, index) in turns" :key="item.id || index">
+              <!-- 历史消息分隔线 -->
+              <div v-if="item.type === 'divider'" class="history-divider">
+                <span class="mono-note">{{ item.text }}</span>
               </div>
 
-              <!-- 用户消息区域 -->
-              <div v-if="item.userMessage" class="turn-section user-section">
-                <div class="section-header">
-                  <div class="avatar-wrapper user-avatar">
-                    <img :src="userProfile.avatar" class="avatar" />
-                  </div>
-                  <div class="agent-info">
-                    <span class="agent-name">{{ userProfile.name }}</span>
-                    <span class="agent-label">用户</span>
-                  </div>
+              <article v-else class="turn">
+                <div class="turn-hd">
+                  <span class="turn-idx">TURN {{ String(item.index).padStart(2, '0') }}</span>
+                  <span class="turn-who">买家 → 应答台</span>
+                  <span class="badge">{{ customerService.name }} · {{ customerService.title }}</span>
                 </div>
-                <div class="turn-bubble user-bubble">
-                  <template v-if="item.userMessage.type === 'object'">
-                    <div class="object-card" :class="`object-card-${item.userMessage.objectType}`">
-                      <div class="object-card-badge">
-                        {{ item.userMessage.objectType === 'order' ? '订单对象' : '商品对象' }}
-                      </div>
-                      <img
-                        v-if="item.userMessage.type === 'object' && item.userMessage.payload.cover_url"
-                        :src="item.userMessage.payload.cover_url"
-                        :alt="getObjectTitle(item.userMessage)"
-                        class="object-card-image"
-                        @error="$event.target.style.display='none'"
-                      />
-                      <div class="object-card-title">{{ getObjectTitle(item.userMessage) }}</div>
-                      <div class="object-card-meta">{{ getObjectIdentifier(item.userMessage) }}</div>
-                      <div class="object-card-meta">
-                        <span v-if="item.userMessage.objectType === 'order' && item.userMessage.payload.status" class="status-badge" :class="getStatusClass(item.userMessage.payload.status)">{{ item.userMessage.payload.status }}</span>
-                        <span v-else>{{ getObjectSummary(item.userMessage) }}</span>
-                      </div>
-                      <div class="object-card-price">{{ getObjectAmount(item.userMessage) }}</div>
-                    </div>
-                  </template>
-                  <template v-else>
-                    <p>{{ item.userMessage.text }}</p>
-                  </template>
-                </div>
-              </div>
 
-              <!-- 客服回复区域 -->
-              <div v-if="item.botMessages.length > 0" class="turn-section bot-section">
-                <div class="section-header">
-                  <div class="avatar-wrapper service-avatar">
-                    <img :src="customerService.avatar" class="avatar" />
-                    <span class="status-dot"></span>
+                <!-- 用户消息 -->
+                <div v-if="item.userMessage" class="msg msg-user">
+                  <div class="msg-avatar me" aria-hidden="true">
+                    <img :src="userProfile.avatar" alt="" />
                   </div>
-                  <div class="agent-info">
-                    <span class="agent-name">{{ customerService.name }}</span>
-                    <span class="agent-label">{{ customerService.title }}</span>
+                  <div class="msg-body">
+                    <template v-if="item.userMessage.type === 'object'">
+                      <article class="obj msg-obj">
+                        <div class="obj-cover obj-cover-media">
+                          <img
+                            v-if="item.userMessage.payload.cover_url"
+                            :src="item.userMessage.payload.cover_url"
+                            :alt="getObjectTitle(item.userMessage)"
+                            @error="$event.target.style.display='none'"
+                          />
+                          <template v-else>
+                            <svg class="ic" aria-hidden="true" focusable="false"><use href="#i-doc"></use></svg>
+                            <span>对象封面占位</span>
+                          </template>
+                        </div>
+                        <div class="obj-body">
+                          <div class="obj-title">{{ getObjectTitle(item.userMessage) }}</div>
+                          <div class="obj-price">{{ getObjectAmount(item.userMessage) }}</div>
+                          <div class="obj-meta">
+                            <span class="no">{{ getObjectIdentifier(item.userMessage) }}</span>
+                            <span v-if="item.userMessage.payload.status" class="badge" :class="getStatusClass(item.userMessage.payload.status)">{{ item.userMessage.payload.status }}</span>
+                            <span v-else class="badge">{{ item.userMessage.objectType === 'order' ? '订单对象' : '商品对象' }}</span>
+                          </div>
+                        </div>
+                      </article>
+                    </template>
+                    <template v-else>
+                      <p>{{ item.userMessage.text }}</p>
+                    </template>
                   </div>
                 </div>
-                <div class="bot-messages">
-                  <div
-                    v-for="(botMsg, msgIndex) in item.botMessages"
-                    :key="msgIndex"
-                    class="turn-bubble bot-bubble"
-                  >
+
+                <!-- 客服回复 -->
+                <div
+                  v-for="(botMsg, msgIndex) in item.botMessages"
+                  :key="msgIndex"
+                  class="msg"
+                >
+                  <div class="msg-avatar bot" aria-hidden="true">
+                    <svg class="ic ic-lg" focusable="false"><use href="#i-agent"></use></svg>
+                  </div>
+                  <div class="msg-body">
                     <template v-if="botMsg.type === 'object'">
-                      <div class="object-card" :class="`object-card-${botMsg.objectType}`">
-                        <div class="object-card-badge">
-                          {{ botMsg.objectType === 'order' ? '订单对象' : '商品对象' }}
+                      <article class="obj msg-obj">
+                        <div class="obj-cover obj-cover-media">
+                          <img
+                            v-if="botMsg.payload.cover_url"
+                            :src="botMsg.payload.cover_url"
+                            :alt="getObjectTitle(botMsg)"
+                            @error="$event.target.style.display='none'"
+                          />
+                          <template v-else>
+                            <svg class="ic" aria-hidden="true" focusable="false"><use href="#i-doc"></use></svg>
+                            <span>对象封面占位</span>
+                          </template>
                         </div>
-                        <img
-                          v-if="botMsg.type === 'object' && botMsg.payload.cover_url"
-                          :src="botMsg.payload.cover_url"
-                          :alt="getObjectTitle(botMsg)"
-                          class="object-card-image"
-                          @error="$event.target.style.display='none'"
-                        />
-                        <div class="object-card-title">{{ getObjectTitle(botMsg) }}</div>
-                        <div class="object-card-meta">{{ getObjectIdentifier(botMsg) }}</div>
-                        <div class="object-card-meta">
-                          <span v-if="botMsg.objectType === 'order' && botMsg.payload.status" class="status-badge" :class="getStatusClass(botMsg.payload.status)">{{ botMsg.payload.status }}</span>
-                          <span v-else>{{ getObjectSummary(botMsg) }}</span>
+                        <div class="obj-body">
+                          <div class="obj-title">{{ getObjectTitle(botMsg) }}</div>
+                          <div class="obj-price">{{ getObjectAmount(botMsg) }}</div>
+                          <div class="obj-meta">
+                            <span class="no">{{ getObjectIdentifier(botMsg) }}</span>
+                            <span v-if="botMsg.payload.status" class="badge" :class="getStatusClass(botMsg.payload.status)">{{ botMsg.payload.status }}</span>
+                            <span v-else class="badge">{{ botMsg.objectType === 'order' ? '订单对象' : '商品对象' }}</span>
+                          </div>
                         </div>
-                        <div class="object-card-price">{{ getObjectAmount(botMsg) }}</div>
-                      </div>
+                      </article>
                     </template>
                     <template v-else>
                       <div class="bot-text-row">
                         <p>{{ botMsg.text }}</p>
                         <div class="bot-actions">
-                          <button type="button" class="tts-button"
-                            :class="{ 'tts-loading': ttsState[botMsg.id] === 'loading', 'tts-playing': ttsState[botMsg.id] === 'playing' }"
+                          <button type="button" class="icon-btn"
+                            :class="{ 'is-active': ttsState[botMsg.id] === 'playing' }"
                             :disabled="ttsState[botMsg.id] === 'loading'"
-                            :title="ttsState[botMsg.id] === 'playing' ? '正在播放...' : '语音播报'"
+                            :title="ttsState[botMsg.id] === 'playing' ? '正在播放…' : '语音播报'"
                             @click.stop="playTts(botMsg)">
-                            <span v-if="ttsState[botMsg.id] === 'loading'" class="tts-spinner"></span>
-                            <span v-else-if="ttsState[botMsg.id] === 'playing'" class="tts-bars">
+                            <span v-if="ttsState[botMsg.id] === 'loading'" class="status-led is-busy" aria-hidden="true"></span>
+                            <span v-else-if="ttsState[botMsg.id] === 'playing'" class="tts-bars" aria-hidden="true">
                               <span></span><span></span><span></span>
                             </span>
-                            <span v-else>🔈</span>
+                            <svg v-else class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-agent"></use></svg>
                           </button>
-                          <button type="button" class="copy-button"
+                          <button type="button" class="icon-btn"
                             :class="{ 'copy-done': copyState[botMsg.id] }"
                             :title="copyState[botMsg.id] ? '已复制' : '复制文字'"
                             @click.stop="copyBotText(botMsg)">
-                            <span v-if="copyState[botMsg.id]">✓</span>
-                            <span v-else>📋</span>
+                            <svg v-if="copyState[botMsg.id]" class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-check"></use></svg>
+                            <svg v-else class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-copy"></use></svg>
                           </button>
                         </div>
                       </div>
                     </template>
-                    <div v-if="botMsg.suggestions && botMsg.suggestions.length > 0" class="suggestion-chips">
+                    <div v-if="botMsg.suggestions && botMsg.suggestions.length > 0" class="chip-row">
                       <button
                         v-for="sug in botMsg.suggestions"
                         :key="sug"
                         type="button"
-                        class="suggestion-chip"
+                        class="btn btn-ghost btn-sm"
                         :disabled="isSending"
                         @click.stop="sendSuggestion(sug)"
                       >{{ sug }}</button>
                     </div>
                   </div>
                 </div>
+              </article>
+            </template>
+
+            <!-- 输入中指示 -->
+            <div v-if="isSending" class="msg typing">
+              <div class="msg-avatar bot" aria-hidden="true">
+                <svg class="ic ic-lg" focusable="false"><use href="#i-agent"></use></svg>
+              </div>
+              <div class="msg-body">
+                <div class="typing-bubble">
+                  <span class="typing-dots" aria-hidden="true">
+                    <span></span><span></span><span></span>
+                  </span>
+                  <span class="typing-label">{{ customerService.name }} 正在输入…</span>
+                </div>
               </div>
             </div>
-          </template>
-        </section>
 
-        <div v-if="isSending" class="typing-indicator">
-          <div class="typing-avatar">
-            <img :src="customerService.avatar" class="avatar-small" alt="小宝" />
-          </div>
-          <div class="typing-bubble">
-            <span class="typing-dots">
-              <span></span><span></span><span></span>
-            </span>
-            <span class="typing-label">小宝正在输入...</span>
-          </div>
-        </div>
+            <p v-if="errorMessage" class="error-message" role="alert">{{ errorMessage }}</p>
+          </section>
 
-        <p v-if="errorMessage" class="error-message">
-          {{ errorMessage }}
-        </p>
-
-        <form class="composer" @submit.prevent="sendTextMessage">
-          <input
-            v-model="draftMessage"
-            type="text"
-            placeholder="请输入咨询内容..."
-            :disabled="isSending"
-          />
-          <button type="submit" :disabled="isSending || !draftMessage.trim()">
-            {{ isSending ? '发送中...' : '发送' }}
-          </button>
-        </form>
-
-        <!-- ============ 数字人悬浮窗（只能在这张卡片内活动）============ -->
-        <div ref="dhWidgetEl" class="dh-widget">
-          <div class="dh-widget-bar" title="按住这里拖动数字人" @pointerdown="onDhPointerDown">
-            <span class="dh-status-dot" :class="`dh-dot-${dhStatus}`"></span>
-            <span class="dh-widget-title">{{ DH_STATUS_TEXT[dhStatus] }}</span>
-            <span class="dh-widget-grip">⠿</span>
-            <button
-              type="button"
-              class="dh-widget-collapse"
-              title="收起为小圆圈"
-              @pointerdown="stopPointerEvent"
-              @click.stop="collapseDhWidget"
-            >➖</button>
+          <!-- ---------- 输入区 ---------- -->
+          <div class="composer-bar">
+            <form class="composer" :class="{ 'is-off': isSending }" @submit.prevent="sendTextMessage">
+              <input
+                v-model="draftMessage"
+                type="text"
+                placeholder="请输入咨询内容…"
+                :disabled="isSending"
+              />
+              <button type="submit" class="btn btn-primary" :disabled="isSending || !draftMessage.trim()">
+                {{ isSending ? '发送中…' : '发送' }}
+              </button>
+            </form>
           </div>
 
-          <div class="dh-stage">
-            <div class="dh-stage-inner">
-              <!-- 容器常驻 DOM：SDK init 期间就必须能找到它 -->
-              <div id="digital-human-sdk" ref="dhContainer" class="dh-canvas"></div>
+          <!-- ============ 数字人悬浮窗（只能在对话主区内活动）============ -->
+          <div ref="dhWidgetEl" class="dh-widget">
+            <div class="dh-widget-bar" title="按住这里拖动数字人" @pointerdown="onDhPointerDown">
+              <span class="dh-status-dot" :class="`dh-dot-${dhStatus}`"></span>
+              <span class="dh-widget-title">{{ DH_STATUS_TEXT[dhStatus] }}</span>
+              <span class="dh-widget-grip" aria-hidden="true">⠿</span>
+              <button
+                type="button"
+                class="dh-widget-collapse"
+                title="收起为小方块"
+                @pointerdown="stopPointerEvent"
+                @click.stop="collapseDhWidget"
+              >
+                <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-chev"></use></svg>
+              </button>
+            </div>
 
-              <div v-if="dhStatus === 'loading'" class="dh-overlay dh-placeholder dh-placeholder-loading">
-                <div class="dh-spinner"></div>
-                <p class="dh-placeholder-title">正在加载数字人…</p>
-                <div class="dh-progress">
-                  <div class="dh-progress-bar" :style="{ width: dhProgress + '%' }"></div>
+            <div class="dh-stage">
+              <div class="dh-stage-inner">
+                <!-- 容器常驻 DOM：SDK init 期间就必须能找到它 -->
+                <div id="digital-human-sdk" ref="dhContainer" class="dh-canvas"></div>
+
+                <div v-if="dhStatus === 'loading'" class="dh-overlay dh-placeholder dh-placeholder-loading">
+                  <span class="status-led is-busy" aria-hidden="true"></span>
+                  <p class="dh-placeholder-title">正在加载数字人…</p>
+                  <div class="dh-progress">
+                    <div class="dh-progress-bar" :style="{ width: dhProgress + '%' }"></div>
+                  </div>
+                  <p class="dh-placeholder-sub">{{ dhProgress }}% · {{ dhStageText }}</p>
                 </div>
-                <p class="dh-placeholder-sub">{{ dhProgress }}% · {{ dhStageText }}</p>
-              </div>
 
-              <div v-else-if="dhStatus === 'error'" class="dh-overlay dh-placeholder dh-placeholder-error">
-                <div class="dh-placeholder-icon">!</div>
-                <p class="dh-placeholder-title">连接失败</p>
-                <p class="dh-placeholder-sub">{{ dhError }}</p>
-              </div>
-
-              <div v-else-if="dhStatus === 'idle'" class="dh-overlay dh-placeholder">
-                <div class="dh-placeholder-icon dh-placeholder-icon-idle">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <circle cx="12" cy="8" r="3.4" />
-                    <path d="M4.6 20c0-3.6 3.3-6.2 7.4-6.2s7.4 2.6 7.4 6.2" />
-                  </svg>
+                <div v-else-if="dhStatus === 'error'" class="dh-overlay dh-placeholder dh-placeholder-error">
+                  <div class="dh-placeholder-icon">!</div>
+                  <p class="dh-placeholder-title">连接失败</p>
+                  <p class="dh-placeholder-sub">{{ dhError }}</p>
                 </div>
-                <p class="dh-placeholder-title">数字人待连接</p>
-                <p class="dh-placeholder-sub">点下方按钮加载 3D 形象</p>
+
+                <div v-else-if="dhStatus === 'idle'" class="dh-overlay dh-placeholder">
+                  <div class="dh-placeholder-icon dh-placeholder-icon-idle">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <circle cx="12" cy="8" r="3.4" />
+                      <path d="M4.6 20c0-3.6 3.3-6.2 7.4-6.2s7.4 2.6 7.4 6.2" />
+                    </svg>
+                  </div>
+                  <p class="dh-placeholder-title">数字人待连接</p>
+                  <p class="dh-placeholder-sub">点下方按钮加载 3D 形象</p>
+                </div>
               </div>
+            </div>
+
+            <div class="dh-actions">
+              <button
+                type="button"
+                class="dh-button"
+                :class="{ 'dh-button-danger': dhStatus === 'ready' }"
+                :disabled="dhStatus === 'loading'"
+                @click="toggleDigitalHuman"
+              >
+                <template v-if="dhStatus === 'loading'">连接中… {{ dhProgress }}%</template>
+                <template v-else-if="dhStatus === 'ready'">断开连接</template>
+                <template v-else-if="dhStatus === 'error'">重试连接</template>
+                <template v-else>连接数字人</template>
+              </button>
+            </div>
+
+            <div class="dh-widget-resize" title="拖动可放大/缩小" @pointerdown="onDhResizeDown"></div>
+
+            <!-- 收起后的小方块：可拖、点一下展开 -->
+            <div class="dh-widget-circle" title="点击展开数字人" @pointerdown="onDhPointerDown">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="1.6" stroke-linecap="round">
+                <circle cx="12" cy="8" r="3.6" />
+                <path d="M4.8 20c0-3.7 3.3-6.5 7.2-6.5s7.2 2.8 7.2 6.5" />
+              </svg>
+              <span class="dh-status-dot dh-widget-circle-dot" :class="`dh-dot-${dhStatus}`"></span>
             </div>
           </div>
 
-          <div class="dh-actions">
-            <button
-              type="button"
-              class="dh-button"
-              :class="{ 'dh-button-danger': dhStatus === 'ready' }"
-              :disabled="dhStatus === 'loading'"
-              @click="toggleDigitalHuman"
-            >
-              <template v-if="dhStatus === 'loading'">连接中… {{ dhProgress }}%</template>
-              <template v-else-if="dhStatus === 'ready'">断开连接</template>
-              <template v-else-if="dhStatus === 'error'">重试连接</template>
-              <template v-else>连接数字人</template>
-            </button>
-          </div>
-
-          <div class="dh-widget-resize" title="拖动可放大/缩小" @pointerdown="onDhResizeDown"></div>
-
-          <!-- 收起后的圆圈：可拖、点一下展开 -->
-          <div class="dh-widget-circle" title="点击展开数字人" @pointerdown="onDhPointerDown">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="1.6" stroke-linecap="round">
-              <circle cx="12" cy="8" r="3.6" />
-              <path d="M4.8 20c0-3.7 3.3-6.5 7.2-6.5s7.2 2.8 7.2 6.5" />
-            </svg>
-            <span class="dh-status-dot dh-widget-circle-dot" :class="`dh-dot-${dhStatus}`"></span>
-          </div>
         </div>
+      </main>
 
-      </div>
-
-      <aside ref="sidebarEl" class="sidebar">
+      <!-- ---------- aside：业务对象面板 ---------- -->
+      <aside ref="sidebarEl" class="aside" id="objects">
         <button
           type="button"
           class="biz-edge-btn"
@@ -1361,97 +1225,100 @@ async function copyBotText(botMsg) {
           </svg>
         </button>
 
-        <div class="sidebar-header">
-          <h2>业务对象</h2>
-        </div>
+        <div class="aside-stack">
+          <div class="panel">
+            <div class="panel-head">
+              <h3>业务对象</h3>
+              <span class="badge">{{ orders.length }} 订单 / {{ products.length }} 商品</span>
+            </div>
+            <div class="panel-body">
+              <div class="tabs" role="tablist" aria-label="业务对象分类">
+                <button
+                  type="button"
+                  class="tab"
+                  role="tab"
+                  :aria-selected="activeTab === 'orders'"
+                  @click="activeTab = 'orders'"
+                >订单 <span class="n">{{ orders.length }}</span></button>
+                <button
+                  type="button"
+                  class="tab"
+                  role="tab"
+                  :aria-selected="activeTab === 'products'"
+                  @click="activeTab = 'products'"
+                >商品 <span class="n">{{ products.length }}</span></button>
+              </div>
 
-        <div class="tabs">
-          <button
-            type="button"
-            class="tab-button"
-            :class="{ active: activeTab === 'orders' }"
-            @click="activeTab = 'orders'"
-          >
-            订单
-          </button>
-          <button
-            type="button"
-            class="tab-button"
-            :class="{ active: activeTab === 'products' }"
-            @click="activeTab = 'products'"
-          >
-            商品
-          </button>
-        </div>
+              <p v-if="sidebarError" class="sidebar-error">{{ sidebarError }}</p>
 
-        <p v-if="sidebarError" class="sidebar-error">{{ sidebarError }}</p>
+              <!-- 订单 Tab -->
+              <div v-if="activeTab === 'orders'" class="obj-list">
+                <div v-if="!orders.length && !isLoadingSidebar" class="empty obj-empty">
+                  <p>暂无订单数据</p>
+                </div>
 
-        <div v-if="activeTab === 'orders'" class="sidebar-list">
-          <div v-if="!orders.length && !isLoadingSidebar" class="sidebar-empty">
-            暂无订单数据
+                <article v-for="order in orders" :key="order.order_id" class="obj">
+                  <div class="obj-cover obj-cover-media">
+                    <img
+                      v-if="order.cover_url"
+                      :src="order.cover_url"
+                      :alt="order.title"
+                      @error="$event.target.style.display='none'"
+                    />
+                    <template v-else>
+                      <svg class="ic" aria-hidden="true" focusable="false"><use href="#i-doc"></use></svg>
+                      <span>订单封面占位</span>
+                    </template>
+                  </div>
+                  <div class="obj-body">
+                    <div class="obj-title">{{ order.title }}</div>
+                    <div class="obj-price">{{ formatAmount(order.amount) }}</div>
+                    <div class="obj-meta">
+                      <span class="no">{{ getObjectIdentifier({ objectType: 'order', payload: order }) }}</span>
+                      <span class="badge" :class="getStatusClass(order.status)">{{ order.status }}</span>
+                    </div>
+                  </div>
+                  <div class="obj-foot">
+                    <span class="t-mini mono">订单</span>
+                    <button type="button" class="btn" :disabled="isSending" @click="sendOrder(order)">发送订单</button>
+                  </div>
+                </article>
+              </div>
+
+              <!-- 商品 Tab -->
+              <div v-else class="obj-list">
+                <div v-if="!products.length && !isLoadingSidebar" class="empty obj-empty">
+                  <p>暂无商品数据</p>
+                </div>
+
+                <article v-for="product in products" :key="product.product_id" class="obj">
+                  <div class="obj-cover obj-cover-media">
+                    <img
+                      v-if="product.cover_url"
+                      :src="product.cover_url"
+                      :alt="product.title"
+                      @error="$event.target.style.display='none'"
+                    />
+                    <template v-else>
+                      <svg class="ic" aria-hidden="true" focusable="false"><use href="#i-search"></use></svg>
+                      <span>商品主图占位</span>
+                    </template>
+                  </div>
+                  <div class="obj-body">
+                    <div class="obj-title">{{ product.title }}</div>
+                    <div class="obj-price">{{ formatAmount(product.price) }}</div>
+                    <div class="obj-meta">
+                      <span class="no">{{ getObjectIdentifier({ objectType: 'product', payload: product }) }}</span>
+                    </div>
+                  </div>
+                  <div class="obj-foot">
+                    <span class="t-mini mono">商品</span>
+                    <button type="button" class="btn" :disabled="isSending" @click="sendProduct(product)">发送商品</button>
+                  </div>
+                </article>
+              </div>
+            </div>
           </div>
-
-          <article v-for="order in orders" :key="order.order_id" class="sidebar-card">
-            <div class="card-image-wrapper">
-              <img
-                v-if="order.cover_url"
-                :src="order.cover_url"
-                :alt="order.title"
-                class="card-image"
-                @error="$event.target.style.display='none'"
-              />
-              <div v-else class="card-image-placeholder">📦</div>
-            </div>
-            <div class="card-top">
-              <div class="card-title">{{ order.title }}</div>
-              <div class="card-amount">{{ formatAmount(order.amount) }}</div>
-            </div>
-            <div class="card-meta">订单号：{{ order.order_id }}</div>
-            <div class="card-meta">
-              <span class="status-badge" :class="getStatusClass(order.status)">{{ order.status }}</span>
-            </div>
-            <button
-              type="button"
-              class="secondary-button full-width"
-              :disabled="isSending"
-              @click="sendOrder(order)"
-            >
-              发送订单
-            </button>
-          </article>
-        </div>
-
-        <div v-else class="sidebar-list">
-          <div v-if="!products.length && !isLoadingSidebar" class="sidebar-empty">
-            暂无商品数据
-          </div>
-
-          <article v-for="product in products" :key="product.product_id" class="sidebar-card">
-            <div class="card-image-wrapper">
-              <img
-                v-if="product.cover_url"
-                :src="product.cover_url"
-                :alt="product.title"
-                class="card-image"
-                @error="$event.target.style.display='none'"
-              />
-              <div v-else class="card-image-placeholder">🛍️</div>
-            </div>
-            <div class="card-top">
-              <div class="card-title">{{ product.title }}</div>
-              <div class="card-amount">{{ formatAmount(product.price) }}</div>
-            </div>
-            <div class="card-meta">商品号：{{ product.product_id }}</div>
-            <div class="card-meta">商品信息：最近浏览 / 购买商品</div>
-            <button
-              type="button"
-              class="secondary-button full-width"
-              :disabled="isSending"
-              @click="sendProduct(product)"
-            >
-              发送商品
-            </button>
-          </article>
         </div>
 
         <!-- 收起后的窄竖条：点它展开 -->
@@ -1459,1563 +1326,390 @@ async function copyBotText(botMsg) {
           <span class="sidebar-vertical-text">业务对象</span>
         </div>
       </aside>
-      </div>
     </div>
   </div>
 </template>
+
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300..700&family=Zen+Maru+Gothic:wght@400;500;700&display=swap');
+/* ========================================================================
+   消费 design-system.css 的 token 与组件类，不新增任何颜色/圆角/阴影/字体。
+   页面级类（.turn/.ribbon/.tab/.obj 等）照 support.html 设计稿移植，
+   全部只取 var(--) 值。零阴影（仅 --shadow-card 一级）/ 零渐变 / 零 emoji 图标。
+   ======================================================================== */
 
-:global(*) {
-  box-sizing: border-box;
-}
+/* ---- 结构适配：单屏两栏（左对话 / 右业务对象，右栏可收起） ---- */
+.app-body.has-aside { grid-template-columns: minmax(0, 1fr) auto; }
 
-:global(:root) {
-  color-scheme: light;
-  /* ── Palette ── */
-  --color-bg-deep: #eef2f8;
-  --color-bg-mid: #f5f7fb;
-  --color-bg-surface: #ffffff;
-  /* 亮色卡片表面（纯白）*/
-  --color-surface: #ffffff;
-  --color-surface-hover: #f7f9fc;
-  --color-surface-dim: #f7f9fc;
-  --color-surface-raised: #f7f9fc;
-  --color-surface-field: #ffffff;
-  /* 深色文字压在亮色表面上 */
-  --color-text-primary: #16233a;
-  --color-text-secondary: #5b6b83;
-  --color-text-muted: #8a97ab;
-  --color-text-inverse: #ffffff;
-  /* Accent — 商务蓝 */
-  --color-accent: #1a56db;
-  --color-accent-strong: #1444b8;
-  --color-accent-soft: rgba(26, 86, 219, 0.10);
-  --color-accent-glow: rgba(26, 86, 219, 0.16);
-  --color-accent-soft-bg: rgba(26, 86, 219, 0.05);
-  /* Warm — 暖棕 */
-  --color-warm: #b45309;
-  --color-warm-strong: #92400e;
-  --color-warm-soft: rgba(180, 83, 9, 0.10);
-  --color-warm-glow: rgba(180, 83, 9, 0.12);
-  --color-warm-soft-bg: rgba(180, 83, 9, 0.05);
-  /* Semantic */
-  --color-success: #15803d;
-  --color-success-soft: rgba(21, 128, 61, 0.12);
-  --color-info: #0369a1;
-  --color-info-soft: rgba(3, 105, 161, 0.10);
-  --color-danger: #dc2626;
-  --color-danger-soft: rgba(220, 38, 38, 0.10);
-  /* 边框：浅灰细线 */
-  --color-border: #e2e8f0;
-  --color-border-light: #eef2f7;
-  --color-border-strong: #cbd5e1;
-  /* ── Radii ── */
-  --radius-sm: 10px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
-  --radius-xl: 28px;
-  --radius-full: 9999px;
-  /* ── 阴影（浅色主题：柔和投影）── */
-  --shadow-xs: 0 1px 2px rgba(15, 42, 74, 0.06);
-  --shadow-sm: 0 2px 8px rgba(15, 42, 74, 0.07);
-  --shadow-md: 0 6px 20px rgba(15, 42, 74, 0.08);
-  --shadow-lg: 0 12px 32px rgba(15, 42, 74, 0.08);
-  --shadow-glow-teal: 0 8px 30px rgba(26, 86, 219, 0.10);
-  --shadow-glow-amber: 0 8px 30px rgba(180, 83, 9, 0.08);
-  --shadow-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.60);
-  /* ── Transitions ── */
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-  --duration-fast: 150ms;
-  --duration-base: 250ms;
-  --duration-slow: 400ms;
-}
-
-:global(body) {
-  margin: 0;
-  font-family: "Outfit", "Zen Maru Gothic", "PingFang SC", "Microsoft YaHei", sans-serif;
-  background: var(--color-bg-deep);
-  color: var(--color-text-primary);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-:global(button),
-:global(input) {
-  font: inherit;
-}
-
-:global(#app) {
-  min-height: 100vh;
-}
-
-.app-shell {
-  min-height: 100vh;
-  padding: 24px;
+.pane {
   position: relative;
-  overflow: hidden;
-  background: linear-gradient(180deg, #f8fafd 0%, #eef2f8 100%);
+  display: flex; flex-direction: column;
+  min-height: 0; min-width: 0;
 }
-/* Subtle grain texture overlay */
-.app-shell::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.028;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+.thread {
+  flex: 1; min-height: 0;
+  width: 100%; max-width: 58rem; margin-inline: auto;
+  display: flex; flex-direction: column;
 }
-
-.bg-canvas {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  /* 亮色商务主题下隐藏粒子画布；想恢复删掉这行 */
-  display: none;
+.messages {
+  flex: 1; min-height: 0; overflow-y: auto;
+  padding-block: var(--sp-4) var(--sp-5);
+  display: flex; flex-direction: column;
 }
 
-.app-shell::after {
-  content: "";
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 0;
-}
-/* Teal orb — top left */
-.app-shell::after {
-  width: 820px; height: 820px;
-  background: radial-gradient(circle, rgba(26, 86, 219, 0.10) 0%, rgba(26, 86, 219, 0.04) 38%, transparent 70%);
-  top: -320px; left: -280px;
-  animation: orb1 20s ease-in-out infinite;
-}
-/* Amber orb — bottom right */
-.workspace::before {
-  content: "";
-  position: fixed;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 0;
-  width: 640px; height: 640px;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.03) 42%, transparent 70%);
-  bottom: -280px; right: -220px;
-  animation: orb2 24s ease-in-out infinite;
-}
+/* ---- 顶栏 ---- */
+.app-top .brand h1 { font: inherit; letter-spacing: inherit; text-wrap: wrap; }
+.top-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
 
-@keyframes bgShift {
-  0%, 100% { background-position: 0% 0%; }
-  25% { background-position: 100% 0%; }
-  50% { background-position: 100% 100%; }
-  75% { background-position: 0% 100%; }
-}
-@keyframes orb1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(140px, 90px) scale(1.22); }
-  66% { transform: translate(-50px, 150px) scale(0.82); }
-}
-@keyframes orb2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(-110px, -70px) scale(1.18); }
-  66% { transform: translate(70px, -130px) scale(0.88); }
-}
-
-/* 整页横向二分：左侧 1/3 数字人，右侧 2/3 现有前端工程 */
-.app-layout {
-  display: flex;
-  gap: 22px;
-  align-items: stretch;
-  position: relative;
-  z-index: 1;
-}
-
-.workspace {
-  flex: 1;
-  min-width: 0;
-  width: auto;
-  margin: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 22px;
-  position: relative;
-  z-index: 1;
-}
-
-/* ── 数字人悬浮窗（见下方 .dh-widget）── ──────────────────────────────────────────── */
-.dh-status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-text-muted);
+/* ---- 会话声明带 ---- */
+.mono-note { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted); }
+.ribbon.is-inner {
   flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-3) var(--sp-4); flex-wrap: wrap;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  margin-bottom: var(--sp-4); padding: .625rem var(--sp-3);
+  background: var(--surface-subtle);
 }
-.dh-dot-ready { background: var(--color-success); }
-.dh-dot-loading { background: var(--color-warm); animation: dhPulse 1.2s ease-in-out infinite; }
-.dh-dot-error { background: var(--color-danger); }
-@keyframes dhPulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.45; transform: scale(0.82); }
+.sess-field { display: flex; align-items: center; gap: var(--sp-2); }
+.sess-input { height: 36px; width: 10rem; }
+
+/* ---- 对话线程 ---- */
+.turn { padding: var(--sp-5) 0; border-bottom: 1px solid var(--border); }
+.turn:first-child { padding-top: 0; }
+.turn:last-child { border-bottom: 0; }
+.turn-hd {
+  display: flex; align-items: center; gap: var(--sp-2);
+  flex-wrap: wrap; margin-bottom: var(--sp-3);
+}
+.turn-idx {
+  font-family: var(--font-mono); font-size: var(--fs-mini); font-weight: 700;
+  letter-spacing: .1em; color: var(--border-strong);
+}
+.turn-who { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted); }
+.turn .msg + .msg { margin-top: var(--sp-4); }
+.chip-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-3); }
+
+.msg-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius); }
+
+/* ---- 历史消息分隔线 ---- */
+.history-divider {
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin-block: var(--sp-4); color: var(--faint);
+}
+.history-divider::before,
+.history-divider::after { content: ""; flex: 1; border-top: 1px dashed var(--border-strong); }
+
+/* ---- 空态（欢迎） ---- */
+.welcome { margin-block: auto; }
+.welcome .chip-row { justify-content: flex-start; }
+
+/* ---- 客服回复操作按钮 ---- */
+.bot-text-row { display: flex; align-items: flex-start; gap: var(--sp-2); }
+.bot-text-row p { flex: 1; min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.bot-actions { display: flex; gap: var(--sp-1); flex-shrink: 0; }
+.icon-btn {
+  width: 28px; height: 28px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); color: var(--muted); cursor: pointer;
+  transition: background var(--t-2) var(--ease-state),
+              border-color var(--t-2) var(--ease-state),
+              color var(--t-2) var(--ease-state);
+}
+.icon-btn:hover:not(:disabled),
+.icon-btn.is-active { border-color: var(--accent); color: var(--accent); background: var(--accent-tint); }
+.icon-btn:disabled { opacity: .45; pointer-events: none; }
+.icon-btn.copy-done { border-color: var(--border-success); color: var(--success); background: var(--success-tint); }
+.tts-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; }
+.tts-bars span { width: 3px; background: var(--accent); animation: bar-bounce .6s var(--ease-loop) infinite; }
+.tts-bars span:nth-child(1) { height: 8px; }
+.tts-bars span:nth-child(2) { height: 14px; animation-delay: .15s; }
+.tts-bars span:nth-child(3) { height: 10px; animation-delay: .3s; }
+@keyframes bar-bounce {
+  0%, 100% { transform: scaleY(.5); }
+  50% { transform: scaleY(1); }
 }
 
-.dh-stage {
-  flex: 1;
-  min-height: 0;
-  padding: 16px;
-  display: flex;
+/* ---- 输入中指示 ---- */
+.typing-bubble {
+  display: flex; align-items: center; gap: var(--sp-2); width: fit-content;
+  background: var(--surface-subtle); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: .5rem .875rem;
 }
-.dh-stage-inner {
+.typing-dots { display: inline-flex; gap: 4px; align-items: center; }
+.typing-dots span {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--muted);
+  animation: dot-bounce 1.2s ease-in-out infinite;
+}
+.typing-dots span:nth-child(2) { animation-delay: .2s; }
+.typing-dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes dot-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: .35; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+.typing-label { font-size: var(--fs-mini); color: var(--muted); }
+
+/* ---- 错误横幅 ---- */
+.error-message {
+  margin: var(--sp-3) 0 0; padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--warn); border-left: 2px solid var(--warn);
+  border-radius: var(--radius); background: var(--warn-tint);
+  color: var(--warn); font-size: var(--fs-meta);
+}
+
+/* ---- 输入区 ---- */
+.composer-bar {
+  flex-shrink: 0;
+  margin-top: var(--sp-4); padding-top: var(--sp-4);
+  border-top: 1px solid var(--border-strong);
+}
+.composer input {
+  border: 0; background: none; min-width: 0;
+  padding: .375rem 0; line-height: 1.7;
+}
+.composer input:focus { outline: none; }
+.composer input::placeholder { color: var(--faint); }
+.composer.is-off { border-color: var(--border); background: var(--surface-subtle); }
+.composer.is-off input { color: var(--faint); cursor: not-allowed; }
+.composer.is-off input::placeholder { color: var(--faint); }
+
+/* ---- aside：业务对象面板 ---- */
+.aside {
   position: relative;
-  flex: 1;
-  min-height: 0;
-  min-width: 0;
-  border-radius: var(--radius-md);
+  width: 340px;
+  display: flex; flex-direction: column;
+  transition: width 240ms var(--ease-state);
+}
+.aside-stack { display: flex; flex-direction: column; gap: var(--sp-4); flex: 1; }
+.panel { box-shadow: var(--shadow-card); }
+
+.tabs { display: flex; gap: .25rem; border-bottom: 1px solid var(--border); margin-bottom: var(--sp-4); }
+.tab {
+  display: inline-flex; align-items: center; justify-content: center; gap: .4em;
+  min-height: 44px; padding: .5rem .875rem;
+  border: 1px solid transparent; border-bottom: 0;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: transparent; color: var(--muted);
+  font-family: var(--font-mono); font-size: var(--fs-mini);
+  font-weight: 600; letter-spacing: .06em;
+  transition: color var(--t-2) var(--ease-state), background-color var(--t-2) var(--ease-state);
+}
+.tab:hover { color: var(--fg); background: var(--surface-subtle); }
+.tab[aria-selected="true"] {
+  background: var(--surface); border-color: var(--border);
+  color: var(--fg); margin-bottom: -1px;
+}
+.tab .n { color: var(--faint); }
+
+.sidebar-error { margin: 0 0 var(--sp-3); font-size: var(--fs-mini); color: var(--warn); }
+
+.obj-list { display: flex; flex-direction: column; gap: var(--sp-3); }
+.obj-empty { padding: var(--sp-5) var(--sp-4); }
+
+/* 业务对象卡：封面用占位块 / 真实封面图 */
+.obj {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); overflow: hidden;
+}
+.obj-cover {
+  aspect-ratio: 8 / 3;
+  display: grid; place-items: center; gap: .25rem; align-content: center;
+  background: var(--surface-sunken); border-bottom: 1px solid var(--border);
+  color: var(--faint);
+  font-family: var(--font-mono); font-size: var(--fs-mini); letter-spacing: .1em;
+}
+.obj-cover img { width: 100%; height: 100%; object-fit: cover; }
+.obj-body { padding: var(--sp-3); display: flex; flex-direction: column; gap: .375rem; }
+.obj-title { font-weight: 700; font-size: var(--fs-meta); line-height: 1.5; }
+.obj-price {
+  font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-h3);
+  color: var(--accent); overflow-wrap: anywhere;
+}
+.obj-meta {
+  display: flex; flex-wrap: wrap; gap: .25rem .5rem;
+  font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint);
+}
+.obj-meta .no { overflow-wrap: anywhere; }
+.obj-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-2); flex-wrap: wrap;
+  padding: var(--sp-3); border-top: 1px solid var(--border);
+  background: var(--surface-subtle);
+}
+.msg-obj { max-width: 24rem; margin-top: var(--sp-2); }
+
+/* ---- 右栏收起态 ---- */
+.aside.collapsed {
+  width: 58px; padding-left: var(--sp-2); padding-right: var(--sp-2);
+  align-items: center;
+}
+.aside.collapsed > *:not(.sidebar-collapsed-face):not(.biz-edge-btn) { display: none; }
+.sidebar-collapsed-face { display: none; }
+.aside.collapsed .sidebar-collapsed-face {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 100%; height: 100%;
+  cursor: pointer; user-select: none;
+}
+.sidebar-vertical-text {
+  writing-mode: vertical-rl; text-orientation: upright;
+  letter-spacing: 4px; font-size: var(--fs-mini); font-weight: 700;
+  color: var(--fg); white-space: nowrap;
+}
+.biz-edge-btn {
+  position: absolute; left: -21px; top: 50%; transform: translateY(-50%);
+  width: 22px; height: 52px; padding: 0; z-index: 5;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border); border-right: 0;
+  border-radius: var(--radius) 0 0 var(--radius);
+  background: var(--surface); color: var(--accent);
+  cursor: pointer;
+  transition: background var(--t-2) var(--ease-state),
+              color var(--t-2) var(--ease-state),
+              border-color var(--t-2) var(--ease-state);
+}
+.biz-edge-btn:hover {
+  background: var(--accent-solid); border-color: var(--accent-solid); color: var(--on-accent);
+}
+.biz-edge-btn svg { transition: transform var(--t-3) var(--ease-state); }
+.aside.collapsed .biz-edge-btn svg { transform: rotate(180deg); }
+
+/* ---- 数字人悬浮窗（挂在对话主区内，只能在这里活动） ---- */
+.boundary-hit { outline: 2px solid var(--accent); outline-offset: -2px; }
+.dh-widget {
+  position: absolute; left: var(--sp-4); bottom: 104px;
+  width: 176px; height: 292px; z-index: 40;
+  display: flex; flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.dh-widget.animating {
+  transition: width 240ms var(--ease-state), height 240ms var(--ease-state);
+}
+.dh-widget-bar {
+  height: 30px; flex-shrink: 0;
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 6px 0 10px;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border);
+  cursor: grab; user-select: none; touch-action: none;
+}
+.dh-widget-bar:active { cursor: grabbing; }
+.dh-status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--muted); flex: none;
+}
+.dh-dot-ready { background: var(--success); }
+.dh-dot-loading { background: var(--warn); animation: dh-pulse 1.4s var(--ease-loop) infinite; }
+.dh-dot-error { background: var(--fg); }
+@keyframes dh-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .45; transform: scale(.82); }
+}
+.dh-widget-title {
+  flex: 1; min-width: 0;
+  font-size: var(--fs-mini); color: var(--fg-secondary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dh-widget-grip { flex: none; color: var(--faint); letter-spacing: 1px; }
+.dh-widget-collapse {
+  flex: none; width: 20px; height: 20px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: 0; border-radius: var(--radius);
+  background: transparent; color: var(--muted); cursor: pointer;
+  transition: background var(--t-2) var(--ease-state), color var(--t-2) var(--ease-state);
+}
+.dh-widget-collapse:hover { background: var(--accent-tint); color: var(--accent); }
+.dh-stage { flex: 1; min-height: 0; padding: var(--sp-2); display: flex; }
+.dh-stage-inner {
+  position: relative; flex: 1; min-height: 0; min-width: 0;
+  border: 1px solid var(--border); border-radius: var(--radius);
   overflow: hidden;
 }
 .dh-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(180deg, #eef4ff, #dce7fa);
-  overflow: hidden;
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  background: var(--surface-sunken); overflow: hidden;
 }
-
-/* 占位/加载/错误内容覆盖在常驻容器之上 */
-.dh-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-}
-
+.dh-overlay { position: absolute; inset: 0; z-index: 1; }
 .dh-placeholder {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 24px;
-  text-align: center;
-  border-radius: var(--radius-md);
-  background: var(--color-accent-soft-bg);
-  border: 1px dashed var(--color-border-strong);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--sp-2); padding: var(--sp-3); text-align: center;
+  border: 1px dashed var(--border-strong); border-radius: var(--radius);
+  background: var(--surface);
 }
-.dh-placeholder-title {
-  margin: 0;
-  font-size: 14px;
-  color: var(--color-text-secondary);
-}
-.dh-placeholder-sub {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--color-text-muted);
-}
+.dh-placeholder-title { margin: 0; font-size: var(--fs-mini); font-weight: 700; color: var(--fg-secondary); }
+.dh-placeholder-sub { margin: 0; font-size: var(--fs-mini); line-height: 1.6; color: var(--muted); }
 .dh-placeholder-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  font-weight: 500;
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface-subtle); color: var(--accent);
+  font-family: var(--font-mono); font-size: var(--fs-meta); font-weight: 700;
 }
-.dh-placeholder-icon-idle {
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
-}
-.dh-placeholder-error { border-style: solid; border-color: var(--color-danger); }
-
-.dh-spinner {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: 3px solid var(--color-border);
-  border-top-color: var(--color-accent);
-  animation: dh-spin 0.8s linear infinite;
-}
-@keyframes dh-spin { to { transform: rotate(360deg); } }
-
+.dh-placeholder-error { border-style: solid; border-color: var(--warn); }
 .dh-progress {
-  width: 100%;
-  max-width: 260px;
-  height: 5px;
-  border-radius: 3px;
-  background: var(--color-border-light);
-  overflow: hidden;
+  width: 100%; max-width: 260px; height: 8px;
+  border: 1px solid var(--border-strong); border-radius: var(--radius);
+  background: var(--surface-sunken); overflow: hidden;
 }
 .dh-progress-bar {
-  height: 100%;
-  border-radius: 3px;
-  background: var(--color-accent);
-  transition: width 0.3s var(--ease-out-expo);
+  height: 100%; background: var(--accent-solid);
+  transition: width .3s var(--ease-state);
 }
-
 .dh-actions {
-  padding: 0 16px 16px;
-  flex-shrink: 0;
+  flex-shrink: 0; padding: var(--sp-2);
+  border-top: 1px solid var(--border); background: var(--surface-subtle);
 }
 .dh-button {
-  width: 100%;
-  min-height: 42px;
-  padding: 10px 16px;
-  font-size: 14px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-accent);
-  background: var(--color-accent-soft);
-  color: var(--color-accent-strong);
-  cursor: pointer;
-  transition: all var(--duration-base) var(--ease-out-expo);
+  width: 100%; min-height: 32px; padding: var(--sp-1) var(--sp-2);
+  font-size: var(--fs-mini); font-weight: 600;
+  border: 1px solid var(--border-strong); border-radius: var(--radius);
+  background: var(--surface); color: var(--fg); cursor: pointer;
+  transition: background var(--t-2) var(--ease-state),
+              border-color var(--t-2) var(--ease-state),
+              color var(--t-2) var(--ease-state);
 }
-.dh-button:hover:not(:disabled) {
-  background: var(--color-accent);
-  color: #ffffff;
-}
-.dh-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.7;
-  border-color: var(--color-border-strong);
-  background: var(--color-border-light);
-  color: var(--color-text-muted);
-}
-.dh-button-danger {
-  border-color: var(--color-danger);
-  background: transparent;
-  color: var(--color-danger);
-}
-.dh-button-danger:hover:not(:disabled) {
-  background: var(--color-danger-soft);
-}
-
-/* ── 数字人悬浮窗（挂在聊天卡片内部，只能在这张卡片里活动）──────────── */
-.dh-widget {
-  position: absolute;
-  left: 24px;
-  bottom: 104px;
-  width: 176px;
-  height: 292px;
-  z-index: 40;
-  display: flex;
-  flex-direction: column;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  box-shadow: var(--shadow-md);
-}
-.dh-widget:hover {
-  box-shadow: var(--shadow-lg), 0 0 0 2px rgba(26, 86, 219, 0.16);
-}
-.dh-widget.animating {
-  transition: width 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
-              height 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
-              border-radius 240ms ease,
-              box-shadow var(--duration-base) var(--ease-in-out);
-}
-
-.dh-widget-bar {
-  height: 30px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 0 6px 0 10px;
-  background: var(--color-accent-soft-bg);
-  border-bottom: 1px solid var(--color-border-light);
-  cursor: grab;
-  user-select: none;
-  touch-action: none;
-}
-.dh-widget-bar:active { cursor: grabbing; }
-.dh-widget-title {
-  flex: 1;
-  min-width: 0;
-  font-size: 11px;
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.dh-widget-grip {
-  flex-shrink: 0;
-  font-size: 12px;
-  color: var(--color-accent);
-  letter-spacing: 1px;
-  padding: 2px 4px;
-  border-radius: 6px;
-}
-.dh-widget-collapse {
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--color-text-secondary);
-  font-size: 11px;
-  line-height: 1;
-  cursor: pointer;
-  transition: background var(--duration-fast) ease, color var(--duration-fast) ease;
-}
-.dh-widget-collapse:hover {
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
-}
-
-/* 悬浮窗内的舞台与按钮：把大面板时的尺寸压小 */
-.dh-widget .dh-stage { padding: 0; }
-.dh-widget .dh-stage-inner { border-radius: 0; }
-.dh-widget .dh-actions {
-  padding: 7px 8px 8px;
-  border-top: 1px solid var(--color-border-light);
-  background: var(--color-surface-raised);
-}
-.dh-widget .dh-button {
-  min-height: 30px;
-  padding: 5px 8px;
-  font-size: 11px;
-  border-radius: 8px;
-}
-.dh-widget .dh-placeholder { gap: 6px; padding: 10px; }
-.dh-widget .dh-placeholder-title { font-size: 12px; }
-.dh-widget .dh-placeholder-sub { font-size: 10px; line-height: 1.5; }
-.dh-widget .dh-placeholder-icon { width: 34px; height: 34px; font-size: 14px; }
-
+.dh-button:hover:not(:disabled) { background: var(--surface-subtle); }
+.dh-button:disabled { opacity: .45; pointer-events: none; }
+.dh-button-danger { border-color: var(--accent-solid); color: var(--accent); }
 .dh-widget-resize {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 16px;
-  height: 16px;
-  z-index: 4;
-  cursor: nwse-resize;
-  touch-action: none;
-  background: linear-gradient(135deg, transparent 45%, rgba(26, 86, 219, 0.45) 45%, rgba(26, 86, 219, 0.45) 60%, transparent 60%,
-                                      transparent 72%, rgba(26, 86, 219, 0.45) 72%, rgba(26, 86, 219, 0.45) 87%, transparent 87%);
+  position: absolute; right: 0; bottom: 0;
+  width: 16px; height: 16px; z-index: 4;
+  cursor: nwse-resize; touch-action: none;
+  background: var(--surface-subtle);
+  border-top: 1px solid var(--border); border-left: 1px solid var(--border);
 }
-
-/* 收起态：变成贴在卡片右侧的小圆圈 */
-.dh-widget.collapsed { border-radius: 50%; }
+.dh-widget.collapsed { border-radius: var(--radius); }
 .dh-widget.collapsed .dh-widget-bar,
 .dh-widget.collapsed .dh-stage,
 .dh-widget.collapsed .dh-actions,
 .dh-widget.collapsed .dh-widget-resize { display: none; }
 .dh-widget-circle {
   display: none;
-  position: relative;
-  width: 100%;
-  height: 100%;
-  align-items: center;
-  justify-content: center;
-  cursor: grab;
-  touch-action: none;
-  color: var(--color-accent);
-  background: radial-gradient(circle at 38% 30%, #f4f8ff, #d7e4ff 74%);
+  position: relative; width: 100%; height: 100%;
+  align-items: center; justify-content: center;
+  cursor: grab; touch-action: none;
+  color: var(--fg); background: var(--surface);
 }
 .dh-widget.collapsed .dh-widget-circle { display: flex; }
 .dh-widget-circle:active { cursor: grabbing; }
 .dh-widget-circle-dot {
-  position: absolute;
-  right: 5px;
-  bottom: 5px;
-  width: 9px;
-  height: 9px;
-  border: 2px solid #ffffff;
+  position: absolute; right: 5px; bottom: 5px;
+  width: 8px; height: 8px; border: 2px solid var(--bg);
 }
-.chat-card.boundary-hit {
-  box-shadow: var(--shadow-lg), inset 0 0 0 2px rgba(26, 86, 219, 0.45);
-}
-
-/* ── 业务对象面板：左侧中间的收起按钮 + 收起态竖条 ────────────────────── */
-.biz-edge-btn {
-  position: absolute;
-  left: -21px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 22px;
-  height: 52px;
-  padding: 0;
-  z-index: 5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--color-border);
-  border-right: none;
-  border-radius: 10px 0 0 10px;
-  background: #ffffff;
-  color: var(--color-accent);
-  box-shadow: -4px 0 12px rgba(15, 42, 74, 0.08);
-  cursor: pointer;
-  transition: background var(--duration-fast) ease, color var(--duration-fast) ease, border-color var(--duration-fast) ease;
-}
-.biz-edge-btn:hover {
-  background: var(--color-accent);
-  color: #ffffff;
-  border-color: var(--color-accent);
-}
-.biz-edge-btn svg { transition: transform 260ms ease; }
-.sidebar.collapsed .biz-edge-btn svg { transform: rotate(180deg); }
-
-.sidebar.collapsed {
-  width: 58px;
-  padding: 16px 8px;
-  align-items: center;
-}
-.sidebar.collapsed > *:not(.sidebar-collapsed-face):not(.biz-edge-btn) { display: none; }
-.sidebar-collapsed-face { display: none; }
-.sidebar.collapsed .sidebar-collapsed-face {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
-  user-select: none;
-}
-.sidebar-vertical-text {
-  writing-mode: vertical-rl;
-  text-orientation: upright;
-  letter-spacing: 4px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #12263f;
-  white-space: nowrap;
-}
-
-.chat-card,
-.sidebar {
-  min-height: calc(100vh - 48px);
-  height: calc(100vh - 48px);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  transition: border-color var(--duration-slow) var(--ease-in-out), box-shadow var(--duration-slow) var(--ease-in-out);
-}
-.chat-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  box-shadow: var(--shadow-glow-teal), var(--shadow-lg), var(--shadow-inner-glow);
-}
-.chat-card:hover {
-  border-color: rgba(26, 86, 219, 0.22);
-}
-.sidebar {
-  position: relative;
-  width: 370px;
-  display: flex;
-  flex-direction: column;
-  box-shadow: var(--shadow-glow-amber), var(--shadow-lg), var(--shadow-inner-glow);
-  transition: width 280ms cubic-bezier(0.2, 0.8, 0.2, 1), padding 280ms ease,
-              border-color var(--duration-slow) var(--ease-in-out),
-              box-shadow var(--duration-slow) var(--ease-in-out);
-}
-.sidebar:hover {
-  border-color: rgba(26, 86, 219, 0.22);
-}
-
-.chat-header,
-.sidebar-header {
-  padding: 24px 24px 16px;
-  border-bottom: 1px solid var(--color-border-light);
-}
-
-.chat-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
-  align-items: center;
-}
-
-.header-content {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-}
-
-.header-info {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex: 1;
-}
-
-.chat-header h1,
-.sidebar-header h2 {
-  margin: 0;
-  font-size: 24px;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-  color: #12263f;
-  padding-left: 12px;
-  border-left: 4px solid var(--color-accent);
-}
-
-.sidebar-header h2 {
-  font-size: 22px;
-}
-
-.chat-header p,
-.sidebar-header p {
-  margin: 10px 0 0;
-  color: var(--color-text-secondary);
-}
-
-/* 客服信息 */
-.service-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 16px;
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-}
-
-.service-avatar-wrapper {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.service-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  object-fit: cover;
-  padding: 3px;
-  background: conic-gradient(var(--color-success), var(--color-accent), var(--color-warm), var(--color-success));
-  animation: avatarSpin 4s linear infinite;
-  box-shadow: 0 0 20px var(--color-accent-glow), 0 4px 12px var(--color-success-soft);
-}
-@keyframes avatarSpin {
-  to { transform: rotate(360deg); }
-}
-
-.status-indicator {
-  position: absolute;
-  bottom: 2px;
-  right: 2px;
-  width: 14px;
-  height: 14px;
-  background: var(--color-success);
-  border: 3px solid #ffffff;
-  border-radius: 50%;
-  animation: pulse 2s infinite;
-}
-
-.service-details {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.service-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.service-status {
-  font-size: 12px;
-  color: var(--color-success);
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.service-status::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  background: var(--color-success);
-  border-radius: 50%;
-}
-
-.clear-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-raised);
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--duration-base) var(--ease-out-expo);
-  white-space: nowrap;
-}
-.clear-button:hover {
-  background: rgba(251, 113, 133, 0.10);
-  border-color: var(--color-danger);
-  color: var(--color-danger);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 18px var(--color-danger-soft);
-}
-
-.controls {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 12px;
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--color-border-light);
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.field span {
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.field-row {
-  display: flex;
-  gap: 12px;
-}
-
-.field input,
-.composer input {
-  width: 100%;
-  min-width: 0;
-  min-height: 46px;
-  padding: 11px 14px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-field);
-  color: var(--color-text-primary);
-  font-size: 15px;
-  line-height: 1.4;
-  transition: border-color var(--duration-fast) var(--ease-in-out), box-shadow var(--duration-fast) var(--ease-in-out);
-}
-.field input::placeholder,
-.composer input::placeholder {
-  color: var(--color-text-muted);
-}
-.field input:focus,
-.composer input:focus {
-  outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px var(--color-accent-soft);
-}
-
-.messages {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  scrollbar-gutter: stable;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-/* Turn 卡片样式 */
-.turn-card {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 20px 24px;
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  transition: all var(--duration-base) var(--ease-out-expo);
-  position: relative;
-  overflow: hidden;
-  animation: msgEnter 0.4s var(--ease-out-back) both;
-}
-@keyframes msgEnter {
-  from { opacity: 0; transform: translateY(24px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-.turn-card::before {
-  content: "";
-  position: absolute;
-  top: 0; left: -100%;
-  width: 100%; height: 100%;
-  background: linear-gradient(105deg, transparent 40%, rgba(26, 86, 219, 0.06) 50%, transparent 60%);
-  transition: left 0.5s ease;
-  pointer-events: none;
-  z-index: 2;
-}
-.turn-card:hover::before {
-  left: 100%;
-}
-.turn-card:hover {
-  background: var(--color-surface-hover);
-  border-color: var(--color-border-strong);
-  box-shadow: var(--shadow-md), 0 0 40px rgba(26, 86, 219, 0.08);
-  transform: translateY(-2px);
-}
-
-.turn-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding-bottom: 12px;
-  border-bottom: 1px dashed var(--color-border);
-}
-
-.turn-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 12px;
-  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-strong));
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: var(--radius-sm);
-  box-shadow: 0 2px 12px var(--color-accent-glow);
-}
-
-.turn-label {
-  font-size: 12px;
-  color: var(--color-text-muted);
-  font-weight: 500;
-}
-
-.turn-section {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-/* 头像样式 */
-.avatar-wrapper {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #e5e7eb;
-  background: #f3f4f6;
-  transition: all var(--duration-base) var(--ease-out-expo);
-}
-
-.user-avatar .avatar {
-  border: 3px solid transparent;
-  background: linear-gradient(#ffffff, #ffffff) padding-box,
-              linear-gradient(135deg, var(--color-info), var(--color-accent)) border-box;
-  box-shadow: 0 2px 14px var(--color-info-soft);
-}
-
-.service-avatar .avatar {
-  border-color: var(--color-success);
-  box-shadow: 0 2px 10px var(--color-success-soft);
-}
-
-.status-dot {
-  position: absolute;
-  bottom: 2px;
-  right: 2px;
-  width: 12px;
-  height: 12px;
-  background: var(--color-success);
-  border: 2px solid #ffffff;
-  border-radius: 50%;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.65;
-    transform: scale(1.12);
-  }
-}
-
-.agent-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.agent-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.agent-label {
-  font-size: 12px;
-  color: var(--color-text-muted);
-  font-weight: 500;
-}
-
-.user-section .agent-name {
-  color: var(--color-info);
-}
-
-.bot-section .agent-name {
-  color: var(--color-success);
-}
-
-.role-icon {
-  font-size: 16px;
-}
-
-.role-label {
-  color: var(--color-text-secondary);
-}
-
-.user-section .role-label {
-  color: var(--color-info);
-}
-
-.bot-section .role-label {
-  color: var(--color-success);
-}
-
-.turn-bubble {
-  padding: 14px 18px;
-  border-radius: var(--radius-md);
-  max-width: 100%;
-}
-
-.user-bubble {
-  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-strong));
-  border: 1px solid transparent;
-  color: #ffffff;
-  box-shadow: 0 4px 18px var(--color-accent-glow);
-  margin-left: auto;
-  max-width: 85%;
-}
-
-.bot-bubble {
-  background: var(--color-surface-field);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-primary);
-  box-shadow: var(--shadow-xs);
-}
-
-.bot-messages {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.turn-bubble p {
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.7;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.user-bubble p {
-  color: #ffffff;
-}
-
-/* 历史消息分隔线 */
-.history-divider {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  color: var(--color-text-muted);
-  font-size: 13px;
-  padding: 8px 0;
-}
-
-.history-divider::before,
-.history-divider::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--color-border-strong);
-}
-
-.history-divider span {
-  padding: 6px 14px;
-  border-radius: var(--radius-full);
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border);
-  font-size: 12px;
-}
-
-.welcome {
-  flex-shrink: 0;
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-.welcome-card {
-  position: relative;
-  max-width: 480px;
-  width: 100%;
-  padding: 44px 40px;
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  text-align: center;
-  box-shadow: var(--shadow-glow-teal), var(--shadow-lg);
-  overflow: hidden;
-  animation: welcomeFloat 0.6s var(--ease-out-back);
-}
-@keyframes welcomeFloat {
-  from { opacity: 0; transform: translateY(36px) scale(0.94); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-.welcome-glow {
-  position: absolute;
-  top: -100px; left: 50%; transform: translateX(-50%);
-  width: 350px; height: 350px;
-  background: radial-gradient(circle, rgba(26, 86, 219, 0.10) 0%, rgba(26, 86, 219, 0.03) 45%, transparent 70%);
-  pointer-events: none;
-}
-.welcome-avatar-wrapper {
-  position: relative;
-  display: inline-block;
-  margin-bottom: 20px;
-}
-.welcome-avatar {
-  width: 88px; height: 88px;
-  border-radius: 50%;
-  padding: 4px;
-  background: conic-gradient(var(--color-success), var(--color-accent), var(--color-warm), var(--color-success));
-  animation: avatarSpin 4s linear infinite;
-  box-shadow: 0 0 36px var(--color-accent-glow);
-}
-.welcome-status-pulse {
-  position: absolute;
-  bottom: 6px; right: 6px;
-  width: 18px; height: 18px;
-  background: var(--color-success);
-  border: 3px solid var(--color-bg-mid);
-  border-radius: 50%;
-  animation: pulse 2s infinite;
-  box-shadow: 0 0 16px rgba(21, 128, 61, 0.35);
-}
-.welcome-greeting {
-  margin: 0 0 8px;
-  font-size: 26px;
-  font-weight: 700;
-  background: linear-gradient(135deg, #e8f0ff, var(--color-accent));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.welcome-subtitle {
-  margin: 0 0 28px;
-  color: var(--color-text-secondary);
-  font-size: 15px;
-}
-.welcome-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-  margin-bottom: 28px;
-}
-.welcome-chip {
-  padding: 10px 20px;
-  border: 1px solid rgba(26, 86, 219, 0.18);
-  border-radius: var(--radius-full);
-  background: var(--color-accent-soft-bg);
-  color: var(--color-accent);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--duration-base) var(--ease-out-expo);
-}
-.welcome-chip:hover:not(:disabled) {
-  background: var(--color-accent-soft);
-  border-color: var(--color-accent);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px var(--color-accent-glow);
-}
-.welcome-chip:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-.welcome-features {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: center;
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: 13px;
-}
-
-.sidebar-empty {
-  margin: auto;
-  max-width: 420px;
-  color: var(--color-text-muted);
-  text-align: center;
-  line-height: 1.7;
-}
-
-.typing-indicator {
-  flex-shrink: 0;
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  padding: 0 20px;
-  animation: msgEnter 0.3s var(--ease-out-expo);
-}
-.avatar-small {
-  width: 34px; height: 34px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid var(--color-success);
-  box-shadow: 0 0 12px rgba(21, 128, 61, 0.25);
-}
-.typing-bubble {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 18px;
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border);
-  border-radius: 20px 20px 20px 6px;
-  box-shadow: var(--shadow-sm);
-}
-.typing-dots {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-}
-.typing-dots span {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--color-accent);
-  animation: dotBounce 1.2s ease-in-out infinite;
-}
-.typing-dots span:nth-child(1) { animation-delay: 0s; }
-.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes dotBounce {
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.3; }
-  30% { transform: translateY(-8px); opacity: 1; }
-}
-.typing-label {
-  font-size: 13px;
-  color: var(--color-text-muted);
-}
-
-.object-card-price {
-  font-size: 15px;
-  font-weight: 600;
-}
-
-/* ── 状态徽章 ────────────────────────────────────────────── */
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 12px;
-  border-radius: var(--radius-full);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-.status-warning {
-  background: var(--color-warm-soft);
-  color: var(--color-warm-strong);
-  border: 1px solid rgba(180, 83, 9, 0.28);
-}
-.status-info {
-  background: var(--color-info-soft);
-  color: var(--color-info);
-  border: 1px solid rgba(3, 105, 161, 0.28);
-}
-.status-success {
-  background: var(--color-success-soft);
-  color: var(--color-success);
-  border: 1px solid rgba(21, 128, 61, 0.28);
-}
-.status-muted {
-  background: rgba(138, 151, 171, 0.18);
-  color: var(--color-text-muted);
-  border: 1px solid rgba(138, 151, 171, 0.28);
-}
-.status-danger {
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
-  border: 1px solid rgba(220, 38, 38, 0.28);
-}
-
-/* ── 商品图片（侧边栏） ────────────────────────────────────── */
-.card-image-wrapper {
-  width: 100%;
-  height: 140px;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  background: var(--color-surface-field);
-  border: 1px solid var(--color-border-light);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.card-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform var(--duration-base) var(--ease-out-expo);
-}
-.sidebar-card:hover .card-image {
-  transform: scale(1.05);
-}
-.card-image-placeholder {
-  font-size: 40px;
-  opacity: 0.5;
-}
-
-/* ── 对象卡片图片（聊天区） ─────────────────────────────────── */
-.object-card-image {
-  width: 100%;
-  height: 150px;
-  object-fit: cover;
-  border-radius: var(--radius-sm);
-  margin-bottom: 8px;
-  border: 1px solid var(--color-border-light);
-  background: var(--color-surface-field);
-}
-
-/* Turn 卡片中的对象卡片样式调整 */
-.turn-bubble .object-card {
-  min-width: 200px;
-}
-
-.user-bubble .object-card-badge {
-  background: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-}
-
-.composer button,
-.secondary-button,
-.tab-button {
-  min-height: 42px;
-  padding: 9px 16px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  color: var(--color-text-primary);
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.2;
-  transition:
-    transform var(--duration-fast) var(--ease-out-expo),
-    box-shadow var(--duration-fast) var(--ease-out-expo),
-    background var(--duration-fast) var(--ease-in-out),
-    border-color var(--duration-fast) var(--ease-in-out);
-}
-
-.composer button:hover:not(:disabled),
-.secondary-button:hover:not(:disabled),
-.tab-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
-}
-
-.composer button:active:not(:disabled),
-.secondary-button:active:not(:disabled),
-.tab-button:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-.composer button:disabled,
-.secondary-button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
 
-.error-message,
-.sidebar-error {
-  margin: 0;
-  padding: 0 24px 14px;
-  color: var(--color-danger);
-  font-size: 13px;
-  font-weight: 500;
+/* ---- 响应式 ---- */
+@media (max-width: 1023px) {
+  .aside { width: 300px; }
 }
-
-.composer {
-  flex-shrink: 0;
-  display: flex;
-  align-items: stretch;
-  gap: 12px;
-  padding: 20px 24px;
-  border-top: 1px solid var(--color-border-light);
-  background: var(--color-surface-dim);
-}
-
-.composer button {
-  min-width: 96px;
-  padding-inline: 20px;
-  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-strong));
-  border-color: transparent;
-  color: #ffffff;
-  box-shadow: 0 14px 28px var(--color-accent-glow);
-}
-.composer button:hover:not(:disabled) {
-  box-shadow: 0 18px 36px var(--color-accent-glow);
-  transform: translateY(-2px);
-}
-
-.sidebar {
-  display: flex;
-  flex-direction: column;
-}
-
-.tabs {
-  display: flex;
-  gap: 8px;
-  padding: 16px 24px 12px;
-  border-bottom: 1px solid var(--color-border-light);
-}
-
-.tab-button {
-  min-width: 80px;
-}
-
-.tab-button.active {
-  background: linear-gradient(135deg, var(--color-accent-strong), var(--color-accent));
-  border-color: transparent;
-  color: #ffffff;
-  box-shadow: 0 4px 14px var(--color-accent-glow);
-}
-
-.sidebar-list {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 16px 24px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.sidebar-card {
-  padding: 16px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-raised);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  transition: all var(--duration-base) var(--ease-out-expo);
-}
-.sidebar-card:hover {
-  background: var(--color-surface-hover);
-  border-color: rgba(26, 86, 219, 0.22);
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-md), var(--shadow-glow-amber);
-}
-
-.card-top {
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.card-title {
-  font-size: 15px;
-  line-height: 1.5;
-  color: var(--color-text-primary);
-  font-weight: 600;
-}
-
-.card-amount {
-  flex-shrink: 0;
-  color: var(--color-warm-strong);
-  font-weight: 700;
-}
-
-.card-meta {
-  font-size: 14px;
-  color: var(--color-text-secondary);
-}
-
-.bot-text-row { display: flex; align-items: flex-start; gap: 8px; }
-.bot-text-row p { flex: 1; margin: 0; }
-.bot-actions {
-  display: flex; gap: 6px; flex-shrink: 0; align-items: center;
-}
-.tts-button, .copy-button {
-  flex-shrink: 0; width: 32px; height: 32px; padding: 0;
-  border: 1px solid var(--color-border-light); border-radius: 8px;
-  background: var(--color-surface); cursor: pointer;
-  font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
-  transition: all var(--duration-base) var(--ease-out-expo); color: var(--color-text-muted);
-}
-.tts-button:hover:not(:disabled), .copy-button:hover:not(:disabled) {
-  background: var(--color-accent-soft); border-color: var(--color-accent); color: var(--color-accent-strong);
-  transform: scale(1.1);
-}
-.tts-button:disabled, .copy-button:disabled { cursor: not-allowed; opacity: 0.65; }
-.tts-button.tts-playing { background: var(--color-accent-soft); border-color: var(--color-accent); color: var(--color-accent-strong); }
-.tts-bars {
-  display: inline-flex; align-items: flex-end; gap: 3px; height: 16px;
+@media (max-width: 899px) {
+  .app-body.has-aside { grid-template-rows: minmax(0, 1fr) auto; }
+  .aside { width: auto; max-height: 45vh; }
 }
-.tts-bars span {
-  width: 3px;
-  background: var(--color-accent);
-  border-radius: 2px;
-  animation: barBounce 0.6s ease-in-out infinite;
-}
-.tts-bars span:nth-child(1) { height: 8px; animation-delay: 0s; }
-.tts-bars span:nth-child(2) { height: 14px; animation-delay: 0.15s; }
-.tts-bars span:nth-child(3) { height: 10px; animation-delay: 0.3s; }
-@keyframes barBounce {
-  0%, 100% { transform: scaleY(0.5); }
-  50% { transform: scaleY(1); }
-}
-.tts-spinner {
-  width: 14px; height: 14px;
-  border: 2px solid var(--color-accent-soft); border-top-color: var(--color-accent);
-  border-radius: 50%; animation: tts-spin 0.6s linear infinite;
-}
-@keyframes tts-spin { to { transform: rotate(360deg); } }
-.copy-button.copy-done {
-  background: var(--color-success-soft);
-  border-color: var(--color-success);
-  color: var(--color-success);
-}
-
-.suggestion-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--color-border-light);
-}
-.suggestion-chip {
-  padding: 6px 14px;
-  border: 1px solid rgba(26, 86, 219, 0.18);
-  border-radius: var(--radius-full);
-  background: var(--color-accent-soft-bg);
-  color: var(--color-accent);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--duration-base) var(--ease-out-expo);
-}
-.suggestion-chip:hover:not(:disabled) {
-  background: var(--color-accent-soft);
-  border-color: var(--color-accent);
-  transform: translateY(-1px);
-}
-.suggestion-chip:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.full-width {
-  width: 100%;
-}
-
-.sidebar .secondary-button.full-width {
-  min-height: 42px;
-}
-
-.sidebar-empty {
-  margin: auto;
-  max-width: 420px;
-  color: var(--color-text-muted);
-  text-align: center;
-  line-height: 1.7;
-}
-
-/* Turn 卡片中的对象卡片样式调整 */
-.turn-bubble .object-card {
-  min-width: 200px;
-}
-
-.user-bubble .object-card-badge {
-  background: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-}
-
-@media (max-width: 1180px) {
-  .app-layout {
-    flex-direction: column;
-  }
-
-  .workspace {
-    grid-template-columns: 1fr;
-  }
-
-  .chat-header {
-    flex-direction: column;
-  }
-
-  .sidebar {
-    min-height: auto;
-    height: auto;
-  }
-}
-
-@media (max-width: 720px) {
-  .app-shell {
-    padding: 0;
-  }
-
-  .workspace {
-    gap: 0;
-  }
-
-  .chat-card,
-  .sidebar {
-    min-height: auto;
-    height: auto;
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
-  }
-
-  .chat-card {
-    min-height: 100vh;
-  }
-
-  .message {
-    max-width: 100%;
-  }
-
-  .composer,
-  .field-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
+@media (max-width: 767px) {
+  .thread { max-width: none; }
 }
 </style>
