@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>电商小二 · 绿色极简主题 · UI 预览（不改项目代码）</title>
+<script src="https://media.xingyun3d.com/xingyun3d/general/litesdk/xmovAvatar@latest.js"></script>
+<style>
+  /* ===================================================================
+     绿色极简主题（与作品集 portfolio/index.html 同风格）
+     - 色板：#FFFFFF / #F8F9FA / #2D3748 / #718096 / #42B983
+     - 6px 圆角、胶囊按钮、微交互 scale(1.03)/scale(0.97)、0.15s ease
+     =================================================================== */
+  :root {
+    color-scheme: light;
+    --bg: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --primary: #2d3748;
+    --text: #4a5568;
+    --text-secondary: #718096;
+    --accent: #42b983;
+    --accent-hover: #38a16f;
+    --accent-soft: rgba(66, 185, 131, 0.12);
+    --warm: #e6892f;
+    --ok: #38a16f;
+    --warn: #d69e2e;
+    --danger: #e53e3e;
+    --border: #e2e8f0;
+    --border-strong: #cbd5e0;
+    --radius: 6px;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.05);
+    --shadow-md: 0 1px 2px rgba(0,0,0,0.04), 0 6px 16px rgba(0,0,0,0.08);
+    --shadow-lg: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.08);
+  }
+  body.dark {
+    color-scheme: dark;
+    --bg: #2d3748;
+    --bg-secondary: #4a5568;
+    --primary: #f7fafc;
+    --text: #edf2f7;
+    --text-secondary: #a0aec0;
+    --accent: #48bb78;
+    --accent-hover: #38a16f;
+    --accent-soft: rgba(72, 187, 120, 0.18);
+    --warm: #f6ad55;
+    --ok: #48bb78;
+    --warn: #ecc94b;
+    --danger: #fc8181;
+    --border: #313e51;
+    --border-strong: #3d4c63;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.25);
+    --shadow-md: 0 1px 2px rgba(0,0,0,0.30), 0 6px 16px rgba(0,0,0,0.30);
+    --shadow-lg: 0 1px 2px rgba(0,0,0,0.30), 0 8px 24px rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px;
+    min-height: 100vh;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  /* ===== 浅色/深色主题切换（作品集同款分段控件）===== */
+  .theme-switch {
+    position: fixed; top: 16px; right: 16px; z-index: 100;
+    display: flex; padding: 2px;
+    background: var(--bg-secondary);
+    border-radius: 999px;
+  }
+  .theme-btn {
+    border: none; background: transparent; cursor: pointer;
+    font-family: inherit; font-size: 13px; line-height: 1.35;
+    color: var(--text-secondary);
+    padding: 5px 14px; border-radius: 999px;
+    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .theme-btn.active {
+    background: var(--bg); color: var(--primary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  }
+
+  /* ===== 页面骨架 ===== */
+  .app-layout { max-width: 1500px; margin: 0 auto; display: flex; gap: 24px; align-items: stretch; }
+  .workspace {
+    flex: 1; min-width: 0;
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px;
+  }
+
+  /* ===== 电商客服系统 ===== */
+  .chat-card {
+    position: relative;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    min-height: 656px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    transition: box-shadow 0.2s ease;
+  }
+  .chat-card.boundary-hit { box-shadow: var(--shadow-lg), inset 0 0 0 2px var(--accent); }
+
+  .chat-header { padding: 24px 24px 16px; border-bottom: 1px solid var(--border); }
+  .chat-header h1 {
+    margin: 0 0 16px; font-size: 20px; font-weight: 600; letter-spacing: -0.3px;
+    color: var(--primary);
+  }
+  .service-info { display: flex; align-items: center; justify-content: space-between; }
+  .service-left { display: flex; align-items: center; gap: 8px; }
+  .service-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 20px;
+    background: var(--bg-secondary);
+    position: relative;
+  }
+  .status-indicator {
+    position: absolute; right: 0; bottom: 0; width: 12px; height: 12px;
+    border-radius: 50%; background: var(--ok);
+    border: 2px solid var(--bg);
+  }
+  .service-name { font-size: 16px; font-weight: 600; color: var(--primary); }
+  .service-status { font-size: 12px; color: var(--accent); font-weight: 600; }
+  .clear-button {
+    background: var(--bg-secondary); border: none;
+    color: var(--accent); font-size: 13px; padding: 8px 16px;
+    border-radius: 999px; cursor: pointer; display: flex; gap: 8px; align-items: center;
+    font-family: inherit; font-weight: 500;
+    transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+  }
+  .clear-button:hover { transform: scale(1.03); background: var(--accent-soft); }
+  .clear-button:active { transform: scale(0.97); }
+
+  .controls { padding: 16px 24px 0; }
+  .field > span { font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 8px; }
+  .field-row { display: flex; gap: 8px; }
+  .field-row input {
+    flex: 1; background: var(--bg-secondary);
+    border: none; border-radius: var(--radius);
+    padding: 10px 16px; color: var(--text); font-size: 15px; outline: none;
+    font-family: inherit;
+    transition: box-shadow 0.2s ease;
+  }
+  .field-row input:focus { box-shadow: 0 0 0 3px var(--accent-soft); }
+  .secondary-button {
+    background: var(--accent-soft); border: none;
+    color: var(--accent); border-radius: 999px;
+    padding: 8px 16px; font-size: 13px; font-family: inherit; font-weight: 500;
+    cursor: pointer; white-space: nowrap;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+  .secondary-button:hover { transform: scale(1.03); opacity: 0.9; }
+  .secondary-button:active { transform: scale(0.97); }
+
+  .messages { flex: 1; padding: 16px 24px 24px; overflow-y: auto; overflow-x: hidden; position: relative; }
+  .error-message { color: var(--danger); font-size: 12px; margin: 8px 0 0; line-height: 1.6; }
+  .is-new { animation: bubbleIn 0.3s ease; }
+  @keyframes bubbleIn { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+  .history-divider {
+    text-align: center; font-size: 12px; color: var(--text-secondary); margin: 8px 0 16px;
+  }
+  .history-divider span { background: var(--bg); padding: 0 16px; }
+
+  .turn-card {
+    background: var(--bg-secondary);
+    border-radius: var(--radius); padding: 16px; margin-bottom: 16px;
+  }
+  .turn-header { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .turn-badge {
+    background: var(--accent); color: #ffffff; font-weight: 600;
+    font-size: 11px; padding: 4px 12px; border-radius: 999px;
+  }
+  .section-header { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .avatar-wrapper {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, #42b983, #38a16f);
+  }
+  .agent-name { font-size: 14px; font-weight: 600; color: var(--accent); }
+  .agent-label { display: block; font-size: 12px; color: var(--text-secondary); }
+  .turn-bubble {
+    background: var(--accent); color: #ffffff; font-weight: 500;
+    padding: 10px 16px; border-radius: 10px; font-size: 15px;
+    margin-left: auto; width: fit-content; max-width: 80%;
+  }
+  .bot-row { display: flex; justify-content: flex-start; margin-top: 12px; }
+  .bot-bubble {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 16px; font-size: 15px;
+    color: var(--text); max-width: 85%;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .bot-bubble .mini-actions span { color: var(--text-secondary); font-size: 13px; }
+  .typing { display: flex; align-items: center; gap: 8px; }
+  .typing-bubble {
+    background: var(--bg-secondary);
+    border-radius: 999px; padding: 8px 16px; display: flex; align-items: center;
+    gap: 8px; font-size: 12px; color: var(--text-secondary);
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: blink 1.2s infinite; }
+  .dot:nth-child(2) { animation-delay: .2s; } .dot:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 0%,80%,100% { opacity: .25 } 40% { opacity: 1 } }
+
+  .chat-footer {
+    padding: 16px 24px 24px; border-top: 1px solid var(--border);
+    display: flex; gap: 16px;
+  }
+  .chat-footer input {
+    flex: 1; background: var(--bg-secondary); border: none;
+    border-radius: var(--radius); padding: 10px 16px; color: var(--text);
+    font-size: 15px; outline: none; font-family: inherit;
+    transition: box-shadow 0.2s ease;
+  }
+  .chat-footer input:focus { box-shadow: 0 0 0 3px var(--accent-soft); }
+  .send-button {
+    background: #191817; color: #ffffff; font-weight: 500; border: none;
+    border-radius: 999px; padding: 0 24px; font-size: 14px; cursor: pointer;
+    line-height: 1.35; white-space: nowrap; font-family: inherit;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+  .send-button:hover:not(:disabled) { transform: scale(1.03); opacity: 0.9; }
+  .send-button:active:not(:disabled) { transform: scale(0.97); }
+  .send-button:disabled { opacity: .4; cursor: not-allowed; }
+  body.dark .send-button { background: var(--accent); }
+
+  /* ===== 右侧业务对象 ===== */
+  .sidebar-card {
+    position: relative;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-lg);
+    display: flex; flex-direction: column; min-height: 656px;
+    width: 376px;
+    transition: width 280ms cubic-bezier(.2,.8,.2,1), padding 280ms ease;
+  }
+  .sidebar-card h2 {
+    margin: 0 0 16px; font-size: 17px; font-weight: 600; letter-spacing: -0.3px; color: var(--primary);
+  }
+
+  .biz-edge-btn {
+    position: absolute; left: -21px; top: 50%; transform: translateY(-50%);
+    width: 22px; height: 52px; padding: 0; z-index: 5;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--border); border-right: none;
+    border-radius: var(--radius) 0 0 var(--radius);
+    background: var(--bg); color: var(--accent);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .biz-edge-btn:hover { background: var(--accent); color: #ffffff; }
+  .biz-edge-btn svg { transition: transform 0.2s ease; }
+  .sidebar-card.collapsed .biz-edge-btn svg { transform: rotate(180deg); }
+
+  .sidebar-card.collapsed { width: 56px; padding: 16px 8px; align-items: center; }
+  .sidebar-card.collapsed > *:not(.biz-collapsed-face):not(.biz-edge-btn) { display: none; }
+  .biz-collapsed-face { display: none; }
+  .sidebar-card.collapsed .biz-collapsed-face {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    width: 100%; height: 100%;
+    cursor: pointer; user-select: none;
+  }
+  .biz-vertical-text {
+    writing-mode: vertical-rl; text-orientation: upright;
+    letter-spacing: 4px; font-size: 13px; font-weight: 600; color: var(--text);
+    white-space: nowrap;
+  }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tab {
+    padding: 8px 24px; border-radius: 999px; font-size: 14px; cursor: pointer;
+    background: var(--bg-secondary); color: var(--text-secondary);
+    border: none; font-family: inherit; font-weight: 500;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  }
+  .tab:hover { transform: scale(1.03); }
+  .tab:active { transform: scale(0.97); }
+  .tab.active { background: var(--accent); color: #ffffff; font-weight: 600; }
+  .biz-card {
+    background: var(--bg-secondary);
+    border-radius: var(--radius); padding: 16px; margin-bottom: 16px;
+  }
+  .biz-img {
+    height: 120px; border-radius: var(--radius); display: flex;
+    align-items: center; justify-content: center; color: #fff;
+    font-size: 20px; font-weight: 700; margin-bottom: 16px;
+  }
+  .img-blue { background: linear-gradient(135deg, #42b983, #2f8f63); }
+  .img-orange { background: linear-gradient(135deg, #f6ad55, #e6892f); }
+  .biz-title { font-size: 15px; font-weight: 600; margin-bottom: 8px; color: var(--primary); }
+  .biz-sub { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+  .biz-price { color: var(--warm); font-weight: 700; font-size: 16px; }
+  .biz-tag {
+    display: inline-block; font-size: 12px; color: var(--accent);
+    background: var(--accent-soft); border-radius: 999px; padding: 4px 12px;
+  }
+  .biz-btn {
+    width: 100%; margin-top: 16px; background: #191817;
+    border: none; color: #ffffff;
+    border-radius: 999px; padding: 8px 16px; font-size: 14px; font-family: inherit; font-weight: 500; cursor: pointer;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+  .biz-btn:hover { transform: scale(1.03); opacity: .9; }
+  .biz-btn:active { transform: scale(0.97); }
+  body.dark .biz-btn { background: var(--accent); }
+
+  /* ===== 数字人悬浮窗 ===== */
+  .dh-widget {
+    position: absolute;
+    left: 24px; bottom: 96px;
+    width: 176px; height: 288px;
+    z-index: 60;
+    display: flex; flex-direction: column;
+    border-radius: var(--radius);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    transition: box-shadow 0.2s ease;
+  }
+  .dh-widget:hover { box-shadow: var(--shadow-lg); }
+  .dh-widget.dragging { transition: none; cursor: grabbing; }
+
+  .dh-widget-bar {
+    height: 32px; flex-shrink: 0;
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 8px 0 16px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    cursor: grab; user-select: none; touch-action: none;
+  }
+  .dh-widget-bar:active { cursor: grabbing; }
+  .dh-status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-secondary); flex-shrink: 0; }
+  .dh-dot-ready { background: var(--ok); }
+  .dh-dot-loading { background: var(--warn); animation: dhPulse 1.2s ease-in-out infinite; }
+  .dh-dot-error { background: var(--danger); }
+  @keyframes dhPulse { 0%,100% { opacity: 1; transform: scale(1) } 50% { opacity: .45; transform: scale(.82) } }
+  .dh-widget-title {
+    font-size: 12px; color: var(--text-secondary); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; flex: 1;
+  }
+  .dh-grip {
+    font-size: 12px; color: var(--accent); letter-spacing: 1px;
+    padding: 2px 8px; border-radius: 8px;
+  }
+  .dh-widget-bar:hover .dh-grip { background: var(--accent-soft); }
+
+  .dh-widget-stage { position: relative; flex: 1; min-height: 0; }
+  .dh-canvas {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    background: linear-gradient(180deg, #EAF7F1, #D7EFE4); overflow: hidden;
+  }
+  body.dark .dh-canvas { background: linear-gradient(180deg, #313e51, #2d3748); }
+  .dh-overlay { position: absolute; inset: 0; z-index: 2; }
+  .dh-placeholder {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; padding: 16px; text-align: center;
+    background: rgba(66, 185, 131, 0.06);
+    border: 1px dashed var(--border-strong);
+  }
+  body.dark .dh-placeholder { background: rgba(72, 187, 120, 0.08); }
+  .dh-placeholder[hidden] { display: none; }
+  .dh-placeholder-icon {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent-soft); color: var(--accent); font-size: 15px;
+  }
+  .dh-placeholder-title { margin: 0; font-size: 12px; color: var(--text-secondary); }
+  .dh-placeholder-sub { margin: 0; font-size: 11px; color: var(--text-secondary); line-height: 1.5; }
+  .dh-progress { width: 78%; height: 4px; border-radius: 4px; background: rgba(0, 0, 0, 0.08); overflow: hidden; }
+  body.dark .dh-progress { background: rgba(255, 255, 255, 0.12); }
+  .dh-progress-bar { height: 100%; width: 0%; background: var(--accent); transition: width .3s; }
+  .dh-spinner {
+    width: 24px; height: 24px; border-radius: 50%;
+    border: 2px solid var(--accent-soft); border-top-color: var(--accent);
+    animation: dhSpin .8s linear infinite;
+  }
+  @keyframes dhSpin { to { transform: rotate(360deg) } }
+
+  .dh-widget-foot {
+    flex-shrink: 0; padding: 8px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-secondary);
+  }
+  .dh-button {
+    width: 100%; border: none;
+    background: var(--accent-soft); color: var(--accent);
+    border-radius: 999px; padding: 8px; font-size: 12px; font-family: inherit; font-weight: 600; cursor: pointer;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+  .dh-button:hover:not(:disabled) { transform: scale(1.03); opacity: 0.9; }
+  .dh-button:active:not(:disabled) { transform: scale(0.97); }
+  .dh-button:disabled { opacity: .5; cursor: not-allowed; }
+  .dh-button-danger { background: rgba(229, 62, 62, 0.12); color: var(--danger); }
+  body.dark .dh-button-danger { background: rgba(252, 129, 129, 0.16); }
+
+  .dh-resize {
+    position: absolute; right: 0; bottom: 0;
+    width: 16px; height: 16px; cursor: nwse-resize; z-index: 4;
+    background: linear-gradient(135deg, transparent 45%, rgba(66, 185, 131, 0.55) 45%, rgba(66, 185, 131, 0.55) 60%, transparent 60%,
+                                        transparent 72%, rgba(66, 185, 131, 0.55) 72%, rgba(66, 185, 131, 0.55) 87%, transparent 87%);
+    touch-action: none;
+  }
+  .dh-tip {
+    position: absolute; z-index: 61; pointer-events: none;
+    font-size: 12px; color: var(--accent); white-space: nowrap;
+    background: var(--bg); border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    padding: 4px 16px; border-radius: 999px;
+  }
+
+  .dh-collapse-btn {
+    flex-shrink: 0; width: 24px; height: 24px; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    border: none; border-radius: 50%; background: transparent;
+    color: var(--text-secondary); font-size: 11px; line-height: 1;
+    cursor: pointer; transition: background 0.15s ease, color 0.15s ease;
+  }
+  .dh-collapse-btn:hover { background: var(--accent-soft); color: var(--accent); }
+
+  .dh-widget.dh-anim {
+    transition: width 240ms cubic-bezier(.2,.8,.2,1),
+                height 240ms cubic-bezier(.2,.8,.2,1),
+                border-radius 240ms ease,
+                box-shadow 0.2s ease;
+  }
+  .dh-widget.collapsed { border-radius: 50%; }
+  .dh-widget.collapsed .dh-widget-bar,
+  .dh-widget.collapsed .dh-widget-stage,
+  .dh-widget.collapsed .dh-widget-foot,
+  .dh-widget.collapsed .dh-resize { display: none !important; }
+
+  .dh-collapsed-face { display: none; }
+  .dh-widget.collapsed .dh-collapsed-face {
+    display: flex; position: relative;
+    width: 100%; height: 100%; border-radius: 50%;
+    align-items: center; justify-content: center;
+    cursor: grab; touch-action: none;
+    color: var(--accent);
+    background: radial-gradient(circle at 38% 30%, #F2FBF7, #CDEBDD 74%);
+    border: 1px solid rgba(66, 185, 131, 0.30);
+  }
+  body.dark .dh-widget.collapsed .dh-collapsed-face {
+    background: radial-gradient(circle at 38% 30%, #3f4a5c, #2f4a3c 74%);
+    border-color: rgba(72, 187, 120, 0.40);
+  }
+  .dh-widget.collapsed .dh-collapsed-face:active { cursor: grabbing; }
+  .dh-collapsed-dot {
+    position: absolute; right: 4px; bottom: 4px;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--text-secondary);
+    border: 2px solid var(--bg);
+  }
+</style>
+</head>
+<body>
+
+
+
+<!-- 浅色/深色主题切换（纯装饰，独立于业务逻辑） -->
+<div class="theme-switch" role="group" aria-label="主题切换">
+  <button type="button" class="theme-btn active" id="themeLightBtn">浅色</button>
+  <button type="button" class="theme-btn" id="themeDarkBtn">深色</button>
+</div>
+
+
+<div class="app-layout">
+  <div class="workspace">
+
+    <!-- ============ 电商客服系统 ============ -->
+    <div class="chat-card" id="chatCard">
+      <header class="chat-header">
+        <h1>电商客服系统</h1>
+        <div class="service-info">
+          <div class="service-left">
+            <div class="service-avatar">🍊<span class="status-indicator"></span></div>
+            <div>
+              <div class="service-name">小宝</div>
+              <div class="service-status">● 在线</div>
+            </div>
+          </div>
+          <button class="clear-button"><span>🔄</span><span>新对话</span></button>
+        </div>
+      </header>
+
+      <section class="controls">
+        <label class="field">
+          <span>sender_id</span>
+          <div class="field-row">
+            <input id="senderIdInput" value="u1001">
+            <button class="secondary-button">刷新对象列表</button>
+          </div>
+        </label>
+      </section>
+
+      <section class="messages" id="messagesArea">
+        <div class="history-divider"><span>— 历史对话 —</span></div>
+
+        <div class="turn-card">
+          <div class="turn-header">
+            <span class="turn-badge">14:32</span>
+          </div>
+          <div class="section-header">
+            <div class="avatar-wrapper"></div>
+            <div>
+              <span class="agent-name">你</span>
+              <span class="agent-label">用户</span>
+            </div>
+          </div>
+          <div class="turn-bubble">你好</div>
+        </div>
+
+        <div class="bot-row">
+          <div class="bot-bubble">
+            <span>你好呀！我在呢，有什么想聊的随时说哦~ 😊</span>
+            <span class="mini-actions"><span>🔊</span><span>📋</span></span>
+          </div>
+        </div>
+
+        <div class="typing" id="typingRow" hidden>
+          <div class="avatar-wrapper" style="width:26px;height:26px;background:linear-gradient(135deg,#ffe3ba,#ffb877);"></div>
+          <div class="typing-bubble">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            小宝正在输入...
+          </div>
+        </div>
+
+        <p class="error-message" id="errorLine" hidden></p>
+
+      </section>
+
+      <footer class="chat-footer" id="composer">
+        <input id="draftInput" placeholder="请输入咨询内容..." autocomplete="off">
+        <button class="send-button" id="sendBtn">发送</button>
+      </footer>
+
+      <!-- ============ 数字人悬浮窗 ============ -->
+      <div class="dh-widget" id="dhWidget">
+        <div class="dh-widget-bar" id="dhHandle" title="按住这里拖动数字人">
+          <span class="dh-status-dot" id="dhDot"></span>
+          <span class="dh-widget-title" id="dhTitle">数字人 · 未连接</span>
+          <span class="dh-grip">⠿</span>
+          <button class="dh-collapse-btn" id="dhCollapse" title="收起为小圆圈">➖</button>
+        </div>
+
+        <div class="dh-widget-stage">
+          <div id="digital-human-sdk" class="dh-canvas"></div>
+
+          <div class="dh-overlay dh-placeholder" id="dhPIdle">
+            <div class="dh-placeholder-icon">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="8" r="3.4" />
+                <path d="M4.6 20c0-3.6 3.3-6.2 7.4-6.2s7.4 2.6 7.4 6.2" />
+              </svg>
+            </div>
+            <p class="dh-placeholder-title">数字人待连接</p>
+            <p class="dh-placeholder-sub">点下方按钮加载 3D 形象</p>
+          </div>
+
+          <div class="dh-overlay dh-placeholder" id="dhPLoading" hidden>
+            <div class="dh-spinner"></div>
+            <p class="dh-placeholder-title">正在加载数字人…</p>
+            <div class="dh-progress"><div class="dh-progress-bar" id="dhProgressBar"></div></div>
+            <p class="dh-placeholder-sub" id="dhProgressText">0% · 准备中</p>
+          </div>
+
+          <div class="dh-overlay dh-placeholder" id="dhPError" hidden>
+            <div class="dh-placeholder-icon" style="color:var(--color-danger);background:rgba(220,38,38,.10)">!</div>
+            <p class="dh-placeholder-title">连接失败</p>
+            <p class="dh-placeholder-sub" id="dhErrorText"></p>
+          </div>
+        </div>
+
+        <div class="dh-widget-foot">
+          <button class="dh-button" id="dhToggle">连接数字人</button>
+        </div>
+
+        <div class="dh-resize" id="dhResize" title="拖动可放大/缩小"></div>
+
+        <!-- 收起后的圆圈：可拖、点一下展开 -->
+        <div class="dh-collapsed-face" id="dhCollapsedFace" title="点击展开数字人">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.6" stroke-linecap="round">
+            <circle cx="12" cy="8" r="3.6" />
+            <path d="M4.8 20c0-3.7 3.3-6.5 7.2-6.5s7.2 2.8 7.2 6.5" />
+          </svg>
+          <span class="dh-collapsed-dot" id="dhCollapsedDot"></span>
+        </div>
+      </div>
+
+      <div class="dh-tip" id="dhTip">⠿ 拖我 · 我只在客服系统里活动</div>
+    </div>
+
+    <!-- ============ 业务对象 ============ -->
+    <aside class="sidebar-card" id="sidebarCard">
+      <!-- 贴左边中间的收起/展开按钮 -->
+      <button class="biz-edge-btn" id="bizEdgeBtn" title="收起业务对象" aria-label="收起业务对象">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 5 16 12 9 19" />
+        </svg>
+      </button>
+
+      <h2>业务对象</h2>
+      <div class="tabs">
+        <button class="tab active">订单</button>
+        <button class="tab">商品</button>
+      </div>
+      <div class="biz-card">
+        <div class="biz-img img-blue">iPhone 15 Pro</div>
+        <div class="biz-title">iPhone 15 Pro 256G 远峰蓝</div>
+        <div class="biz-sub">订单号：A20260410001</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span class="biz-tag">待发货</span>
+          <span class="biz-price">¥ 8999.00</span>
+        </div>
+        <button class="biz-btn">发送订单</button>
+      </div>
+      <div class="biz-card">
+        <div class="biz-img img-orange">Xiaomi Kettle</div>
+        <div class="biz-title">小米恒温电热水壶 3</div>
+        <div style="text-align:right;"><span class="biz-price">¥ 149.00</span></div>
+        <button class="biz-btn">发送订单</button>
+      </div>
+
+      <!-- 收起后的窄竖条：点它展开 -->
+      <div class="biz-collapsed-face" id="bizCollapsedFace" title="点击展开业务对象">
+        <span class="biz-vertical-text">业务对象</span>
+      </div>
+    </aside>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  const card     = document.getElementById('chatCard');
+  const widget   = document.getElementById('dhWidget');
+  const handle   = document.getElementById('dhHandle');
+  const resizeEl = document.getElementById('dhResize');
+  const tip      = document.getElementById('dhTip');
+
+  const collapseBtn   = document.getElementById('dhCollapse');
+  const collapsedFace = document.getElementById('dhCollapsedFace');
+  const collapsedDot  = document.getElementById('dhCollapsedDot');
+
+  const sidebarCard      = document.getElementById('sidebarCard');
+  const bizEdgeBtn       = document.getElementById('bizEdgeBtn');
+  const bizCollapsedFace = document.getElementById('bizCollapsedFace');
+
+  const MIN_W = 130, MIN_H = 210;
+  const MAX_W = 340, MAX_H = 560;
+
+  let rafId = null;
+  function bump() {
+    card.classList.add('boundary-hit');
+    clearTimeout(rafId);
+    rafId = setTimeout(() => card.classList.remove('boundary-hit'), 260);
+  }
+
+  function clampToCard(left, top) {
+    const c = card.getBoundingClientRect();
+    const w = widget.offsetWidth, h = widget.offsetHeight;
+    const maxX = Math.max(6, c.width - w - 6);
+    const maxY = Math.max(6, c.height - h - 6);
+    const nx = Math.min(Math.max(left, 6), maxX);
+    const ny = Math.min(Math.max(top, 6), maxY);
+    if (nx !== left || ny !== top) bump();
+    widget.style.left = nx + 'px';
+    widget.style.top = ny + 'px';
+    widget.style.bottom = 'auto';
+    return [nx, ny];
+  }
+
+  /* ---------- 拖动：把手条 / 收起后的圆圈，都能拖 ---------- */
+  let dragging = false, moved = false, startX = 0, startY = 0, originLeft = 0, originTop = 0;
+
+  function dragStart(e, src) {
+    dragging = true; moved = false;
+    widget.classList.add('dragging');
+    const r = widget.getBoundingClientRect();
+    const c = card.getBoundingClientRect();
+    originLeft = r.left - c.left;
+    originTop  = r.top  - c.top;
+    startX = e.clientX; startY = e.clientY;
+    try { src.setPointerCapture(e.pointerId); } catch (_) {}
+    tip.style.opacity = '0';
+    e.preventDefault();
+  }
+
+  window.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+    clampToCard(originLeft + dx, originTop + dy);
+  });
+  window.addEventListener('pointerup', () => {
+    if (!dragging) return;
+    dragging = false;
+    widget.classList.remove('dragging');
+    applyLayout();
+  });
+
+  handle.addEventListener('pointerdown', (e) => dragStart(e, handle));
+  collapsedFace.addEventListener('pointerdown', (e) => dragStart(e, collapsedFace));
+  // 圆圈上「没拖动」的抬手 = 展开
+  collapsedFace.addEventListener('pointerup', () => { if (!moved) expandWidget(); });
+
+  /* ---------- 缩放：拖动右下角 ---------- */
+  let resizing = false, rsX = 0, rsY = 0, rsW = 0, rsH = 0;
+  resizeEl.addEventListener('pointerdown', (e) => {
+    resizing = true;
+    rsX = e.clientX; rsY = e.clientY;
+    rsW = widget.offsetWidth; rsH = widget.offsetHeight;
+    resizeEl.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  resizeEl.addEventListener('pointermove', (e) => {
+    if (!resizing) return;
+    const w = Math.min(Math.max(rsW + (e.clientX - rsX), MIN_W), MAX_W);
+    const h = Math.min(Math.max(rsH + (e.clientY - rsY), MIN_H), MAX_H);
+    widget.style.width = w + 'px';
+    widget.style.height = h + 'px';
+    clampToCard(parseFloat(widget.style.left) || 0, parseFloat(widget.style.top) || 0);
+  });
+  resizeEl.addEventListener('pointerup', (e) => {
+    resizing = false;
+    resizeEl.releasePointerCapture(e.pointerId);
+    applyLayout();
+  });
+
+  /* ===================================================================
+     ➖ 收起 / 展开：收起后变成卡片右侧的一个小圆圈
+     =================================================================== */
+  const CIRCLE = 56;      // 收起后的圆圈直径
+  const RIGHT_GAP = 18;   // 距卡片右边距
+  let saved = { left: 24, top: 120, width: 176, height: 292 };
+
+  function collapseWidget() {
+    if (widget.classList.contains('collapsed')) return;
+
+    const r = widget.getBoundingClientRect();
+    const c = card.getBoundingClientRect();
+    saved.width  = widget.offsetWidth;
+    saved.height = widget.offsetHeight;
+    saved.left   = r.left - c.left;
+    saved.top    = r.top  - c.top;
+
+    widget.classList.add('dh-anim');
+    void widget.offsetWidth;
+
+    widget.classList.add('collapsed');
+    widget.style.width  = CIRCLE + 'px';
+    widget.style.height = CIRCLE + 'px';
+
+    const nx = Math.max(6, card.clientWidth - CIRCLE - RIGHT_GAP);
+    const ny = Math.min(Math.max(saved.top, 6), card.clientHeight - CIRCLE - 6);
+    widget.style.left = nx + 'px';
+    widget.style.top  = ny + 'px';
+    widget.style.bottom = 'auto';
+
+    setTimeout(() => widget.classList.remove('dh-anim'), 320);
+  }
+
+  function expandWidget() {
+    if (!widget.classList.contains('collapsed')) return;
+
+    widget.classList.add('dh-anim');
+    void widget.offsetWidth;
+
+    widget.classList.remove('collapsed');
+    widget.style.width  = saved.width + 'px';
+    widget.style.height = saved.height + 'px';
+    clampToCard(saved.left, saved.top);
+
+    requestAnimationFrame(() => requestAnimationFrame(() => applyLayout()));
+    setTimeout(() => { applyLayout(); widget.classList.remove('dh-anim'); }, 320);
+  }
+
+  // 收起按钮在把手条里，别让它触发拖动
+  collapseBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+  collapseBtn.addEventListener('click', (e) => { e.stopPropagation(); collapseWidget(); });
+
+  /* ===================================================================
+     业务对象面板：左边中间的箭头按钮 → 收起成贴右的窄竖条
+     =================================================================== */
+  let bizTimer = null;
+
+  // 面板宽度变了 → 聊天卡片跟着变宽/变窄，数字人要重新夹边 + 重排
+  function reflowAfterSidebar() {
+    clearTimeout(bizTimer);
+    bizTimer = setTimeout(() => {
+      clampToCard(parseFloat(widget.style.left) || 0, parseFloat(widget.style.top) || 0);
+      applyLayout();
+    }, 320);
+  }
+
+  bizEdgeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const collapsed = sidebarCard.classList.toggle('collapsed');
+    bizEdgeBtn.title = collapsed ? '展开业务对象' : '收起业务对象';
+    reflowAfterSidebar();
+  });
+
+  bizCollapsedFace.addEventListener('click', () => {
+    sidebarCard.classList.remove('collapsed');
+    bizEdgeBtn.title = '收起业务对象';
+    reflowAfterSidebar();
+  });
+
+  window.addEventListener('resize', () => {
+    clampToCard(parseFloat(widget.style.left) || 0, parseFloat(widget.style.top) || 0);
+    applyLayout();
+  });
+
+  /* ===================================================================
+     数字人真实接入逻辑（与项目 App.vue 一致）
+     =================================================================== */
+  const dot = document.getElementById('dhDot');
+  const title = document.getElementById('dhTitle');
+  const btn = document.getElementById('dhToggle');
+  const pIdle = document.getElementById('dhPIdle');
+  const pLoading = document.getElementById('dhPLoading');
+  const pError = document.getElementById('dhPError');
+  const progressBar = document.getElementById('dhProgressBar');
+  const progressText = document.getElementById('dhProgressText');
+  const errorText = document.getElementById('dhErrorText');
+
+  const DH_STATUS_TEXT = {
+    idle: '数字人 · 未连接',
+    loading: '数字人 · 加载中',
+    ready: '数字人 · 已连接',
+    error: '数字人 · 连接失败',
+  };
+
+  let status = 'idle';
+  let liteSDK = null;
+
+  function setStatus(next, msg) {
+    status = next;
+    const dotState = { ready: 'dh-dot-ready', loading: 'dh-dot-loading', error: 'dh-dot-error' }[next] || '';
+    dot.className = 'dh-status-dot ' + dotState;
+    collapsedDot.className = 'dh-collapsed-dot ' + dotState;
+    title.textContent = DH_STATUS_TEXT[next];
+    pIdle.hidden = next !== 'idle';
+    pLoading.hidden = next !== 'loading';
+    pError.hidden = next !== 'error';
+    if (msg) errorText.textContent = msg;
+    btn.disabled = next === 'loading';
+    btn.classList.toggle('dh-button-danger', next === 'ready');
+    btn.textContent = next === 'loading' ? '连接中…'
+                    : next === 'ready'   ? '断开连接'
+                    : next === 'error'   ? '重试连接' : '连接数字人';
+  }
+
+  function applyLayout() {
+    if (!liteSDK) return;
+    try {
+      liteSDK.changeLayout({
+        container: { size: [widget.querySelector('.dh-widget-stage').clientWidth,
+                            widget.querySelector('.dh-widget-stage').clientHeight] },
+        avatar: { v_align: 'bottom', h_align: 'center', scale: '95vh', offset_x: 0, offset_y: 0 },
+      });
+    } catch (e) { console.warn('[数字人] 布局适配失败:', e); }
+  }
+
+  async function connect() {
+    if (status === 'loading' || status === 'ready') return;
+    setStatus('loading');
+    progressBar.style.width = '0%';
+    progressText.textContent = '0% · 正在获取数字人凭证…';
+
+    const CRED_URLS = [
+      '/api/digital-human/credentials',
+      'http://127.0.0.1:18777/api/digital-human/credentials',
+      'http://127.0.0.1:5173/api/digital-human/credentials',
+      'http://127.0.0.1:18082/api/digital-human/credentials',
+    ];
+    const CRED_LABELS = ['同源/api', '本地代理18777', 'vite代理5173', '后端直连18082'];
+
+    let cred;
+    try {
+      const attempts = [];
+      for (let i = 0; i < CRED_URLS.length; i++) {
+        progressText.textContent = '正在获取数字人凭证…（' + CRED_LABELS[i] + '）';
+        try {
+          const resp = await fetch(CRED_URLS[i]);
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          cred = await resp.json();
+          break;
+        } catch (e) {
+          attempts.push(CRED_LABELS[i] + ':' + e.message);
+          console.warn('[数字人] 凭证获取失败 -', CRED_LABELS[i], e);
+        }
+      }
+      if (!cred) {
+        setStatus('error',
+          '四个入口都取不到凭证。页面Origin=' + location.origin + '。' +
+          '明细：' + attempts.join('；')
+        );
+        return;
+      }
+    } catch (e) {
+      setStatus('error', '获取数字人凭证异常：' + e.message);
+      return;
+    }
+    if (!cred || !cred.app_id || !cred.app_secret) {
+      setStatus('error', '后端未配置数字人凭证，请检查 .env。');
+      return;
+    }
+    if (typeof XmovAvatar !== 'function') {
+      setStatus('error', 'SDK 未加载（预览页可能无法访问 CDN）。');
+      return;
+    }
+
+    try {
+      liteSDK = new XmovAvatar({
+        containerId: '#digital-human-sdk',
+        appId: cred.app_id,
+        appSecret: cred.app_secret,
+        gatewayServer: cred.gateway_server,
+        hardwareAcceleration: 'prefer-hardware',
+        enableLogger: true,
+        onMessage(m) {
+          if (m && m.code && m.code !== 50001 && m.code !== 50002) {
+            setStatus('error', '数字人错误 code=' + m.code + ' ' + (m.message || ''));
+          }
+        },
+        onStateChange(s) {
+          if (s === 'speak') progressText.textContent = '数字人正在朗读…';
+          else if (s === 'interactive_idle') progressText.textContent = '已就绪，等待提问';
+        },
+      });
+
+      await liteSDK.init({
+        initModel: 'normal',
+        onDownloadProgress(p) {
+          const v = Math.max(0, Math.min(100, Math.round(p)));
+          progressBar.style.width = v + '%';
+          progressText.textContent = v + '% · ' + (v < 100 ? '正在下载 3D 模型与表情资源…' : '资源就绪');
+        },
+      });
+
+      setStatus('ready');
+      requestAnimationFrame(applyLayout);
+    } catch (e) {
+      const detail = (e && e.message) || String(e);
+      setStatus('error', '数字人初始化失败：' + detail);
+      try { await liteSDK?.destroy(); } catch (_) {}
+      liteSDK = null;
+    }
+  }
+
+  async function disconnect() {
+    const inst = liteSDK;
+    liteSDK = null;
+    setStatus('idle');
+    progressBar.style.width = '0%';
+    try { await inst?.destroy(); } catch (_) {}
+  }
+
+  btn.addEventListener('click', () => (status === 'ready' ? disconnect() : connect()));
+
+  /* ===================================================================
+     聊天发送：接真实后端（三路降级）+ 数字人朗读
+     =================================================================== */
+  const CHAT_URLS = [
+    '/api/chat',
+    'http://127.0.0.1:18777/api/chat',
+    'http://127.0.0.1:5173/api/chat',
+  ];
+  const CHAT_LABELS = ['同源/api', '本地代理18777', 'vite代理5173'];
+
+  const senderIdInput = document.getElementById('senderIdInput');
+  const draftInput = document.getElementById('draftInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const messagesArea = document.getElementById('messagesArea');
+  const typingRow = document.getElementById('typingRow');
+  const errorLine = document.getElementById('errorLine');
+  let sending = false;
+
+  function refreshSendBtn() {
+    sendBtn.disabled = sending || !draftInput.value.trim();
+    sendBtn.textContent = sending ? '发送中...' : '发送';
+  }
+  draftInput.addEventListener('input', refreshSendBtn);
+  refreshSendBtn();
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function nowTime() {
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, '0');
+    return p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  let currentTurnCard = null;
+  function appendUserTurn(text) {
+    const el = document.createElement('div');
+    el.className = 'turn-card is-new';
+    el.innerHTML =
+      '<div class="turn-header"><span class="turn-badge">' + nowTime() + '</span></div>' +
+      '<div class="section-header"><div class="avatar-wrapper"></div>' +
+      '<div><span class="agent-name">你</span><span class="agent-label">用户</span></div></div>' +
+      '<div class="turn-bubble">' + esc(text) + '</div>';
+    messagesArea.appendChild(el);
+    currentTurnCard = el;
+  }
+
+  function appendBotTurn(text) {
+    const el = document.createElement('div');
+    el.className = 'bot-row is-new';
+    el.innerHTML = '<div class="bot-bubble"><span>' + esc(text) + '</span>' +
+      '<span class="mini-actions"><span>🔊</span><span>📋</span></span></div>';
+    (currentTurnCard || messagesArea).appendChild(el);
+  }
+
+  function scrollBottom() { messagesArea.scrollTop = messagesArea.scrollHeight; }
+
+  async function doSend() {
+    if (sending) return;
+    const text = draftInput.value.trim();
+    const sid = senderIdInput.value.trim();
+    if (!sid) { errorLine.hidden = false; errorLine.textContent = '请先输入 sender_id。'; return; }
+    if (!text) return;
+
+    draftInput.value = '';
+    sending = true;
+    refreshSendBtn();
+    errorLine.hidden = true;
+    appendUserTurn(text);
+    typingRow.hidden = false;
+    scrollBottom();
+
+    try {
+      const attempts = [];
+      let data = null;
+      for (let i = 0; i < CHAT_URLS.length; i++) {
+        try {
+          const resp = await fetch(CHAT_URLS[i], {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sender_id: sid, text: text }),
+          });
+          const body = await resp.json().catch(() => null);
+          if (!resp.ok) throw new Error((body && body.detail) || ('HTTP ' + resp.status));
+          data = body;
+          break;
+        } catch (e) {
+          attempts.push(CHAT_LABELS[i] + ':' + e.message);
+        }
+      }
+      if (!data) throw new Error(attempts.join('；'));
+
+      const msgs = data.messages || [];
+      if (!msgs.length) appendBotTurn('（后端返回了空消息）');
+      msgs.forEach((m) => {
+        if (m.text) appendBotTurn(m.text);
+        else if (m.object) appendBotTurn('（业务对象：' + (m.object.title || m.object.type) + '）');
+      });
+
+      const speakText = msgs.map((m) => m.text).filter(Boolean).join(' ');
+      if (speakText && liteSDK) {
+        try { liteSDK.speak(speakText, true, true); } catch (e) { console.warn('[数字人] 朗读失败:', e); }
+      }
+    } catch (e) {
+      errorLine.hidden = false;
+      errorLine.textContent = '发送失败：' + e.message + '（页面Origin=' + location.origin + '）';
+    } finally {
+      sending = false;
+      typingRow.hidden = true;
+      refreshSendBtn();
+      scrollBottom();
+    }
+  }
+
+  sendBtn.addEventListener('click', doSend);
+  document.getElementById('composer').addEventListener('submit', (e) => { e.preventDefault(); doSend(); });
+  draftInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); doSend(); }
+  });
+
+  window.addEventListener('load', () => {
+    clampToCard(24, card.getBoundingClientRect().height - widget.offsetHeight - 96);
+    setStatus('idle');
+    const t = tip;
+    t.style.left = (widget.offsetLeft + widget.offsetWidth / 2) + 'px';
+    t.style.top = (widget.offsetTop - 20) + 'px';
+    t.style.transform = 'translateX(-50%)';
+    setTimeout(() => { t.style.transition = 'opacity .4s'; t.style.opacity = '0'; }, 4200);
+  });
+})();
+</script>
+
+<script>
+/* 主题切换（独立小脚本）：仅切换 body.dark 与按钮态，并记忆到 localStorage，不参与任何业务逻辑 */
+(function () {
+  var lightBtn = document.getElementById('themeLightBtn');
+  var darkBtn = document.getElementById('themeDarkBtn');
+  function applyTheme(mode, save) {
+    document.body.classList.toggle('dark', mode === 'dark');
+    lightBtn.classList.toggle('active', mode !== 'dark');
+    darkBtn.classList.toggle('active', mode === 'dark');
+    if (save) { try { localStorage.setItem('page-theme', mode); } catch (e) {} }
+  }
+  var saved = 'light';
+  try { saved = localStorage.getItem('page-theme') || 'light'; } catch (e) {}
+  applyTheme(saved, false);
+  lightBtn.addEventListener('click', function () { applyTheme('light', true); });
+  darkBtn.addEventListener('click', function () { applyTheme('dark', true); });
+})();
+</script>
+</body>
+</html>

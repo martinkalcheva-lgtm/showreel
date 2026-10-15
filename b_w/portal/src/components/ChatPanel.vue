@@ -126,7 +126,7 @@ const inputEl = ref(null)
   align-items: center;
   justify-content: center;
   gap: 16px;
-  color: var(--text-2);
+  color: var(--text-3);
 }
 .empty-icon {
   width: 64px;
@@ -149,7 +149,7 @@ const inputEl = ref(null)
   flex: 1;
   resize: none;
   background: var(--bg-input);
-  border: 1px solid transparent;
+  border: 1px solid var(--border);
   border-radius: var(--radius-input);
   padding: 11px 14px;
   font-size: 15px;
@@ -157,14 +157,15 @@ const inputEl = ref(null)
   min-height: 44px;
   max-height: 120px;
   outline: none;
-  transition: border-color 160ms var(--ease), background 160ms var(--ease);
+  transition: border-color 160ms var(--ease), background 160ms var(--ease), box-shadow 160ms var(--ease);
 }
 .chat-input textarea::placeholder {
   color: var(--text-3);
 }
 .chat-input textarea:focus {
   background: var(--bg-card);
-  border-color: var(--blue);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(66, 185, 131, 0.12);
 }
 .send-btn {
   min-width: 76px;

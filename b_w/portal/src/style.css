@@ -1,27 +1,24 @@
-/* ===== 设计 token（iOS 商务风） ===== */
+/* ===== 设计 token（商务简约风） ===== */
 :root {
-  --bg-page: #f5f5f7;
-  --bg-card: #fff;
-  --blue: #007aff;
-  --blue-hover: #0a84ff;
-  --blue-active: #0062cc;
-  --green: #34c759;
-  --orange: #ff9500;
-  --red: #ff3b30;
-  --text-1: #1d1d1f;
-  --text-2: #6e6e73;
-  --text-3: #aeaeb2;
-  --border: #e5e5ea;
-  --bg-input: #f5f5f7;
+  --bg-page: #ffffff;
+  --bg-card: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --accent: #42b983;
+  --accent-hover: #38a16f;
+  --text-1: #2d3748;
+  --text-2: #4a5568;
+  --text-3: #718096;
+  --border: #e2e8f0;
+  --bg-input: #f8f9fa;
 
-  --radius-card: 16px;
-  --radius-btn: 12px;
-  --radius-bubble: 18px;
-  --radius-input: 12px;
-  --radius-badge: 8px;
+  --radius-card: 6px;
+  --radius-btn: 999px;
+  --radius-bubble: 12px;
+  --radius-input: 6px;
+  --radius-badge: 4px;
 
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.04);
-  --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.04);
+  --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
 
   --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
 }
@@ -40,8 +37,7 @@ body,
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC',
-    'Helvetica Neue', 'Microsoft YaHei', sans-serif;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
   font-size: 15px;
   color: var(--text-1);
   background: var(--bg-page);
@@ -61,13 +57,13 @@ button {
   background: none;
 }
 
-/* 滚动条 8px #c7c7cc 圆角 */
+/* 滚动条 */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #c7c7cc;
+  background: var(--border);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-track {
@@ -76,19 +72,18 @@ button {
 
 /* ===== 通用按钮 ===== */
 .btn-primary {
-  background: var(--blue);
+  background: var(--accent);
   color: #fff;
   border-radius: var(--radius-btn);
   padding: 8px 20px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   transition: background 160ms var(--ease), transform 100ms var(--ease);
 }
 .btn-primary:hover {
-  background: var(--blue-hover);
+  background: var(--accent-hover);
 }
 .btn-primary:active {
-  background: var(--blue-active);
   transform: scale(0.97);
 }
 .btn-primary:disabled {
@@ -98,15 +93,16 @@ button {
 }
 
 .btn-ghost {
-  color: var(--blue);
+  color: var(--text-2);
   font-size: 13px;
   font-weight: 500;
-  padding: 6px 12px;
+  padding: 6px 14px;
   border-radius: 999px;
   transition: background 160ms var(--ease), transform 100ms var(--ease);
 }
 .btn-ghost:hover {
-  background: rgba(0, 122, 255, 0.08);
+  background: var(--bg-secondary);
+  color: var(--text-1);
 }
 .btn-ghost:active {
   transform: scale(0.97);
@@ -117,12 +113,14 @@ button {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 20px;
+  padding: 14px 20px;
   min-height: 48px;
+  border-bottom: 1px solid var(--border);
 }
 .mod-title {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
+  color: var(--text-1);
 }
 
 .conn {
@@ -130,7 +128,7 @@ button {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--text-2);
+  color: var(--text-3);
 }
 .conn .dot {
   width: 8px;
@@ -140,11 +138,11 @@ button {
   flex: none;
 }
 .conn.ok .dot {
-  background: var(--green);
+  background: var(--accent);
   animation: breathe 2s var(--ease) infinite;
 }
 .conn.fail .dot {
-  background: var(--red);
+  background: #e53e3e;
 }
 @keyframes breathe {
   0%,
