@@ -10,6 +10,15 @@ const errorMessage = ref('')
 const messages = ref([])
 const messagesContainer = ref(null)
 
+// 回到底部：滚动位置状态
+const scrolledUp = ref(false)   // 距底超过阈值 → 亮出回到底部按钮
+const unreadCount = ref(0)      // 未贴底时新到达的消息条数
+const NEAR_BOTTOM_PX = 8        // 距底 ≤8px 视为「贴底」
+const SHOW_JUMP_PX = 120        // 上滚超过 120px 才亮出按钮
+const reduceMotion = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+  ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  : false
+
 const orders = ref([])
 const products = ref([])
 const isLoadingSidebar = ref(false)
@@ -103,9 +112,30 @@ const commerceProductsEndpoint = computed(
   () => `/commerce/users/${encodeURIComponent(senderId.value.trim())}/products`
 )
 
+/* crypto.randomUUID 属于安全上下文专属 API（仅 https / localhost 存在）。
+   本系统常经公网 HTTP 访问（如 http://62.234.56.90:18082），此时该函数为
+   undefined，调用即抛错并中断整条对话链路，故提供等价兜底实现。 */
+function uuid() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    const b = crypto.getRandomValues(new Uint8Array(16))
+    b[6] = (b[6] & 0x0f) | 0x40
+    b[8] = (b[8] & 0x3f) | 0x80
+    const h = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('')
+    return h.slice(0, 8) + '-' + h.slice(8, 12) + '-' + h.slice(12, 16) + '-' + h.slice(16, 20) + '-' + h.slice(20)
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    const v = c === 'x' ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
+}
+
 function createBaseMessage(role) {
   return {
-    id: crypto.randomUUID(),
+    id: uuid(),
     role,
     buttons: [],
   }
@@ -169,19 +199,54 @@ function setHistoryMessages(historyMessages) {
   }
 }
 
-async function scrollToBottom() {
+/* 量一次当前滚动位置：distance = 距底部还有多少 px */
+function measureScroll() {
+  const el = messagesContainer.value
+  if (!el) {
+    return { atBottom: true, distance: 0 }
+  }
+  const distance = el.scrollHeight - el.scrollTop - el.clientHeight
+  return { atBottom: distance <= NEAR_BOTTOM_PX, distance }
+}
+
+/* 滚动监听：贴底就收按钮，上滚超过阈值才亮出 */
+function onMessagesScroll() {
+  const { atBottom, distance } = measureScroll()
+  if (atBottom) {
+    scrolledUp.value = false
+    unreadCount.value = 0
+    return
+  }
+  scrolledUp.value = distance > SHOW_JUMP_PX
+}
+
+async function scrollToBottom(smooth = false) {
   await nextTick()
   const container = messagesContainer.value
   if (!container) {
     return
   }
-  container.scrollTop = container.scrollHeight
+  unreadCount.value = 0
+  const useSmooth = smooth && !reduceMotion && typeof container.scrollTo === 'function'
+  if (useSmooth) {
+    container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' })
+  } else {
+    container.scrollTop = container.scrollHeight
+    scrolledUp.value = false
+  }
 }
 
 watch(
   () => messages.value.length,
-  async () => {
-    await scrollToBottom()
+  async (next, prev) => {
+    // 先量「新消息渲染前」的位置：贴底（或首次加载）才跟随滚动，
+    // 否则不抢用户正在看的位置，只累计未读数
+    const { atBottom } = measureScroll()
+    if (atBottom || !prev) {
+      await scrollToBottom()
+    } else if (next > prev) {
+      unreadCount.value += next - prev
+    }
   }
 )
 
@@ -895,10 +960,34 @@ async function playTts(botMsg) {
   }
 }
 
+/* navigator.clipboard 同样只在安全上下文可用，公网 HTTP 下为 undefined，
+   否则复制按钮会静默失败。此处降级到 textarea + execCommand 保证可用。 */
+async function copyText(text) {
+  if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+    return navigator.clipboard.writeText(text)
+  }
+  const ta = document.createElement('textarea')
+  ta.value = text
+  ta.setAttribute('readonly', '')
+  ta.style.position = 'fixed'
+  ta.style.top = '-1000px'
+  ta.style.opacity = '0'
+  document.body.appendChild(ta)
+  ta.select()
+  ta.setSelectionRange(0, ta.value.length)
+  let ok = false
+  try {
+    ok = document.execCommand('copy')
+  } finally {
+    document.body.removeChild(ta)
+  }
+  if (!ok) throw new Error('copy fallback failed')
+}
+
 async function copyBotText(botMsg) {
   const msgId = botMsg.id
   try {
-    await navigator.clipboard.writeText(botMsg.text)
+    await copyText(botMsg.text)
     copyState.value[msgId] = true
     setTimeout(() => { copyState.value[msgId] = false }, 1800)
   } catch (error) {
@@ -953,7 +1042,7 @@ async function copyBotText(botMsg) {
             </button>
           </div>
 
-          <section ref="messagesContainer" class="messages">
+          <section ref="messagesContainer" class="messages" @scroll.passive="onMessagesScroll">
             <!-- 空态 -->
             <div v-if="turns.length === 0" class="empty welcome">
               <h4>Hi，我是 {{ customerService.name }}</h4>
@@ -1128,6 +1217,32 @@ async function copyBotText(botMsg) {
               </button>
             </form>
           </div>
+
+          <!-- ---------- 回到底部：轨道底部 ▼ + 圆形浮标 ---------- -->
+          <Transition name="jump-fade">
+            <div v-if="scrolledUp" class="jump-tools">
+              <button
+                v-if="unreadCount > 0"
+                type="button"
+                class="jump-fab"
+                title="回到底部"
+                aria-label="回到底部"
+                @click="scrollToBottom(true)"
+              >
+                <svg class="ic" aria-hidden="true" focusable="false"><use href="#i-chev"></use></svg>
+                <span class="jump-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+              </button>
+              <button
+                type="button"
+                class="jump-bottom"
+                title="回到底部"
+                aria-label="回到底部"
+                @click="scrollToBottom(true)"
+              >
+                <span class="jump-tri" aria-hidden="true"></span>
+              </button>
+            </div>
+          </Transition>
 
           <!-- ============ 数字人悬浮窗（只能在对话主区内活动）============ -->
           <div ref="dhWidgetEl" class="dh-widget">
@@ -1337,8 +1452,28 @@ async function copyBotText(botMsg) {
    全部只取 var(--) 值。零阴影（仅 --shadow-card 一级）/ 零渐变 / 零 emoji 图标。
    ======================================================================== */
 
+/* ---- 视口内固定骨架：顶栏与输入框常驻，只有消息列表滚动 ----
+   公共样式里 .app 是「min-height:100vh + auto/1fr 两行」，min-height 不封顶：
+   右侧业务对象列表会把 1fr 行撑到几千 px，实测 40 条消息时 .app 高 20924px，
+   于是变成「整页滚动、输入框要滑到最底才看得见」，.messages 自己永远不滚。
+   这里只在组件私有样式内覆盖，不动公共 design-system.css，故只影响本页。 */
+.app {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+/* 打印时不锁视口高度，否则内容会被 overflow:hidden 裁掉 */
+@media print {
+  .app { height: auto; min-height: 0; overflow: visible; }
+}
+
 /* ---- 结构适配：单屏两栏（左对话 / 右业务对象，右栏可收起） ---- */
-.app-body.has-aside { grid-template-columns: minmax(0, 1fr) auto; }
+.app-body.has-aside {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr);
+}
 
 .pane {
   position: relative;
@@ -1346,6 +1481,7 @@ async function copyBotText(botMsg) {
   min-height: 0; min-width: 0;
 }
 .thread {
+  position: relative;
   flex: 1; min-height: 0;
   width: 100%; max-width: 58rem; margin-inline: auto;
   display: flex; flex-direction: column;
@@ -1354,6 +1490,73 @@ async function copyBotText(botMsg) {
   flex: 1; min-height: 0; overflow-y: auto;
   padding-block: var(--sp-4) var(--sp-5);
   display: flex; flex-direction: column;
+  /* 细滚动条：轨道透明，滑块靠 border 内缩做出 4px 视觉宽度 */
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--muted) 42%, transparent) transparent;
+}
+.messages::-webkit-scrollbar { width: 10px; height: 10px; }
+.messages::-webkit-scrollbar-track { background: transparent; }
+.messages::-webkit-scrollbar-thumb {
+  min-height: 40px;
+  border: 3px solid transparent;
+  border-radius: 5px;
+  background-color: color-mix(in oklab, var(--muted) 40%, transparent);
+  background-clip: content-box;
+  transition: background-color .16s ease;
+}
+.messages::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklab, var(--muted) 68%, transparent);
+}
+.messages::-webkit-scrollbar-corner { background: transparent; }
+
+/* ---- 回到底部：轨道底部 ▼ + 圆形浮标 ---- */
+.jump-tools {
+  position: absolute; right: 0; bottom: 99px; z-index: 30;
+  display: flex; align-items: center; gap: 6px;
+}
+.jump-bottom {
+  width: 26px; height: 30px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0; border: 0; background: transparent;
+  color: var(--faint);
+  cursor: pointer;
+  transition: color .16s ease;
+}
+.jump-bottom:hover { color: var(--accent); }
+.jump-bottom:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 4px; }
+.jump-tri {
+  width: 0; height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid currentColor;
+}
+.jump-fab {
+  position: relative;
+  width: 36px; height: 36px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--accent);
+  cursor: pointer;
+  transition: background-color .16s ease, border-color .16s ease;
+}
+.jump-fab:hover { background: var(--accent-tint); border-color: var(--accent); }
+.jump-fab .ic { width: 16px; height: 16px; }
+.jump-badge {
+  position: absolute; top: -5px; right: -5px;
+  min-width: 17px; height: 17px; padding: 0 4px;
+  border-radius: 9px;
+  background: var(--accent-solid); color: var(--on-accent);
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+  line-height: 17px; text-align: center;
+}
+.jump-fade-enter-active, .jump-fade-leave-active {
+  transition: opacity .18s ease, transform .18s ease;
+}
+.jump-fade-enter-from, .jump-fade-leave-to {
+  opacity: 0; transform: translateY(6px);
 }
 
 /* ---- 顶栏 ---- */
@@ -1391,6 +1594,15 @@ async function copyBotText(botMsg) {
 
 .msg-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius); }
 
+/* ---- 用户消息右对齐：气泡靠右、头像居右；长文本限宽，不再拉满整行 ---- */
+.msg-user { grid-template-columns: minmax(0, 1fr) 28px; }
+.msg-user .msg-avatar { grid-column: 2; grid-row: 1; }
+.msg-user .msg-body {
+  grid-column: 1; grid-row: 1;
+  justify-self: end;
+  max-width: min(82%, 40rem);
+}
+
 /* ---- 历史消息分隔线 ---- */
 .history-divider {
   display: flex; align-items: center; gap: var(--sp-3);
@@ -1400,7 +1612,9 @@ async function copyBotText(botMsg) {
 .history-divider::after { content: ""; flex: 1; border-top: 1px dashed var(--border-strong); }
 
 /* ---- 空态（欢迎） ---- */
-.welcome { margin-block: auto; }
+/* 原为 margin-block:auto 垂直居中，首屏只剩大片空白；改为贴顶保留小间距，
+   留白集中到下方，与消息态的自上而下生长方向一致 */
+.welcome { margin-block: var(--sp-5) auto; }
 .welcome .chip-row { justify-content: flex-start; }
 
 /* ---- 客服回复操作按钮 ---- */
@@ -1706,7 +1920,13 @@ async function copyBotText(botMsg) {
   .aside { width: 300px; }
 }
 @media (max-width: 899px) {
-  .app-body.has-aside { grid-template-rows: minmax(0, 1fr) auto; }
+  /* 窄屏改单列两行：对话在上、业务对象在下。
+     组件私有样式里的两列定义（minmax(0,1fr) auto）优先级高于公共样式 ≤899 的单列规则，
+     不在这里显式改回单列，aside 会继续占第 2 列，把对话区挤到几乎 0 宽。 */
+  .app-body.has-aside {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
   .aside { width: auto; max-height: 45vh; }
 }
 @media (max-width: 767px) {

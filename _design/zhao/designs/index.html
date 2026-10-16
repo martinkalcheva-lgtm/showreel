@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" class="js">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>设计稿总览 · 多智能体运营平台 UI 设计稿</title>
+  <meta name="description" content="多智能体运营平台全套 UI 设计稿总览：4 个系统共 12 个子页面（另含 1 份总览），1 主智能体 + 4 子智能体拓扑。">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f8f7f4'/%3E%3Cg fill='%230d1218'%3E%3Crect x='12' y='12' width='8' height='8'/%3E%3Crect x='4' y='4' width='4' height='4'/%3E%3Crect x='24' y='4' width='4' height='4'/%3E%3Crect x='4' y='24' width='4' height='4'/%3E%3Crect x='24' y='24' width='4' height='4'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="stylesheet" href="design-system.css">
+  <style>
+    /* ====================================================================
+       页面级布局规则（designs/index）
+       硬约束：只消费 design-system.css 的 token 与组件类，不新增视觉值。
+       ==================================================================== */
+    .app-top nav a { min-height: 44px; display: inline-flex; align-items: center; }
+    .app-top .top-actions { display: flex; align-items: center; gap: var(--sp-2); }
+
+    .stack   { display: flex; flex-direction: column; gap: var(--sp-7); }
+    .stack-5 { display: flex; flex-direction: column; gap: var(--sp-5); }
+    .stack-4 { display: flex; flex-direction: column; gap: var(--sp-4); }
+    .stack-3 { display: flex; flex-direction: column; gap: var(--sp-3); }
+    .stack-2 { display: flex; flex-direction: column; gap: var(--sp-2); }
+    .row     { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
+    .row-between { justify-content: space-between; }
+    .grow { flex: 1; min-width: 0; }
+
+    /* ---- 交付规格台账 ---- */
+    .ledger {
+      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+      border-top: 1px solid var(--border-strong);
+    }
+    .ledger-cell {
+      display: flex; flex-direction: column; gap: .25rem;
+      padding: var(--sp-4) var(--sp-4) 0 0;
+      border-right: 1px solid var(--border);
+    }
+    .ledger-cell:last-child { border-right: 0; padding-right: 0; }
+    .ledger-cell + .ledger-cell { padding-left: var(--sp-4); }
+    .ledger-key { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+    .ledger-val { font-family: var(--font-display); font-size: var(--fs-h2); font-weight: 700; line-height: 1.25; }
+    .ledger-desc { font-size: var(--fs-mini); color: var(--muted); }
+
+    /* ---- 系统拓扑 ---- */
+    .topo { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--sp-4); align-items: stretch; }
+    .topo-main { padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-4); }
+    .topo-main .big { font-family: var(--font-display); font-size: var(--fs-h2); font-weight: 700; line-height: 1.3; }
+    .topo-main ul { display: flex; flex-direction: column; gap: .375rem; font-size: var(--fs-mini); }
+    .topo-main li { display: flex; gap: .5rem; align-items: baseline; }
+    .topo-main li::before { content: ""; width: 12px; height: 1px; background: currentColor; flex: none; opacity: .6; transform: translateY(-.25em); }
+    .topo-bus {
+      display: flex; flex-wrap: wrap; gap: .5rem var(--sp-3);
+      margin-top: auto; padding-top: var(--sp-4);
+      border-top: 1px solid currentColor;
+      font-family: var(--font-mono); font-size: var(--fs-mini);
+    }
+    .topo-subs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); }
+    .node { padding: var(--sp-4); display: flex; flex-direction: column; gap: .5rem; }
+    .node-no { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+    .node-title { font-family: var(--font-display); font-size: var(--fs-h3); font-weight: 700; }
+    .node-desc { font-size: var(--fs-mini); color: var(--muted); line-height: 1.7; }
+    .node-foot { margin-top: auto; }
+
+    /* ---- 系统分区 ---- */
+    .sys { display: flex; flex-direction: column; gap: var(--sp-4); }
+    .sys-hd {
+      display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem var(--sp-3);
+      padding-bottom: var(--sp-3); border-bottom: 1px solid var(--border-strong);
+    }
+    .sys-idx { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+    .sys-name { font-family: var(--font-display); font-size: var(--fs-h2); font-weight: 700; }
+    .sys-port { margin-left: auto; }
+
+    .pcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(290px, 100%), 1fr)); gap: var(--sp-4); }
+    .pcard {
+      display: flex; flex-direction: column; gap: .5rem;
+      min-height: 44px; padding: var(--sp-4);
+      background: var(--surface);
+      transition: background-color var(--t-2) var(--ease-state),
+                  border-color var(--t-2) var(--ease-state);
+    }
+    .pcard:hover { background: var(--surface-subtle); border-color: var(--border-strong); }
+    .pcard-code { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+    .pcard-title { font-family: var(--font-display); font-size: var(--fs-h3); font-weight: 700; }
+    .pcard-desc { font-size: var(--fs-meta); color: var(--muted); line-height: 1.75; }
+    .pcard-foot {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: var(--sp-3); margin-top: auto; padding-top: var(--sp-3);
+      border-top: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: var(--fs-mini);
+    }
+    .pcard-enter { display: inline-flex; align-items: center; gap: .375rem; color: var(--fg); font-weight: 600; }
+    .pcard:hover .pcard-enter { text-decoration: underline; }
+
+    /* ---- 固定返回链接 ---- */
+    .home-fixed {
+      position: fixed; right: var(--sp-4); bottom: var(--sp-4); z-index: 60;
+      display: inline-flex; align-items: center; gap: .5rem;
+      min-height: 44px; padding: 0 1rem;
+      border: 1px solid var(--border-strong); border-radius: var(--radius);
+      background: var(--surface); color: var(--fg);
+      font-family: var(--font-mono); font-size: var(--fs-mini); font-weight: 600;
+      box-sizing: border-box;
+      transition: background-color var(--t-2) var(--ease-state),
+                  color var(--t-2) var(--ease-state);
+    }
+    .home-fixed:hover { background: var(--fg); color: var(--bg); }
+    /* 唯一的图标只有「向右箭头」，返回语义靠旋转表达，不新增第 14 枚图标 */
+    .home-fixed .ic { transform: rotate(180deg); }
+
+    /* ---- 设计系统说明 ---- */
+    .ds-key { font-family: var(--font-mono); font-size: var(--fs-mini); font-weight: 700; color: var(--fg); white-space: nowrap; }
+    .ds-val { font-size: var(--fs-meta); color: var(--muted); }
+    .ds-val .mono { color: var(--fg-secondary); }
+
+    .ta-r { text-align: right; }
+    .txt-faint { color: var(--faint); }
+    .txt-muted { color: var(--muted); }
+    .txt-ok { color: var(--success); }
+
+    @media (max-width: 1023px) {
+      .topo { grid-template-columns: minmax(0, 1fr); }
+      .ledger { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .ledger-cell { border-bottom: 0; }
+      .ledger-cell:nth-child(odd) { border-right: 1px solid var(--border); padding-left: 0; }
+      .ledger-cell:nth-child(even) { border-right: 0; }
+      .ledger-cell:nth-child(-n + 2) { border-bottom: 1px solid var(--border); padding-bottom: var(--sp-4); }
+    }
+    @media (max-width: 767px) {
+      .topo-subs { grid-template-columns: minmax(0, 1fr); }
+      .app-top .brand .sub { display: none; }
+      .home-fixed { left: var(--sp-4); right: var(--sp-4); justify-content: center; }
+    }
+    @media (max-width: 479px) {
+      .ledger { grid-template-columns: minmax(0, 1fr); }
+      .ledger-cell { border-right: 0 !important; border-bottom: 1px solid var(--border); padding-left: 0; padding-bottom: var(--sp-4); }
+      .ledger-cell:last-child { border-bottom: 0; }
+    }
+    /* 给固定返回链接让位，滚动到底时不被盖住 */
+    .pane { padding-bottom: calc(var(--sp-5) + 60px); }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ================================================================
+       应用顶栏
+       ================================================================ -->
+  <header class="app-top">
+    <a class="brand" href="#top">
+      <svg class="mark ic-lg" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <rect x="12" y="12" width="8" height="8" rx="2"/>
+        <rect x="4" y="4" width="4" height="4" rx="1"/>
+        <rect x="24" y="4" width="4" height="4" rx="1"/>
+        <rect x="4" y="24" width="4" height="4" rx="1"/>
+        <rect x="24" y="24" width="4" height="4" rx="1"/>
+      </svg>
+      <span>多智能体运营平台</span>
+      <span class="sub">UI DESIGN PROPOSAL</span>
+    </a>
+
+    <nav aria-label="页面导航">
+      <a href="#topology" aria-current="page">系统拓扑</a>
+      <a href="#pages">页面清单</a>
+      <a href="#system">设计系统</a>
+    </nav>
+
+    <div class="top-actions">
+      <a class="btn btn-sm" href="../index.html">
+        <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-repo"></use></svg>
+        <span>作品集首页</span>
+      </a>
+      <button type="button" class="btn btn-sm" id="themeBtn" aria-label="切换明暗主题">
+        <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-agent"></use></svg>
+        <span id="themeBtnText" class="mono">DARK</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="pane" id="top">
+    <div class="stack">
+
+      <!-- ============================================================
+           导语
+           ============================================================ -->
+      <header class="stack-4">
+        <span class="eyebrow">DESIGN PROPOSAL · 静态设计稿 · 非线上系统</span>
+        <h1 class="t-h1">多智能体运营平台 · 全套 UI 设计稿</h1>
+        <p class="t-lead">
+          这是为已经跑在线上的 4 套系统补做的一套界面设计稿，覆盖 4 个系统、共 12 个页面（另含本总览）。
+          全部页面共用同一份设计系统（<span class="mono">design-system.css</span>）：同一套配色、同一套字体分工、
+          同一批组件类，不允许任何一页私自定义颜色、圆角或阴影 ——
+          所以这 12 个页面并排看过去像一套东西，而不是 12 个网页。
+        </p>
+        <div class="row">
+          <span class="badge badge-accent">12 PAGES + INDEX</span>
+          <span class="badge">4 SYSTEMS</span>
+          <span class="badge">1 主 + 4 子智能体</span>
+          <span class="badge">零外部依赖</span>
+          <span class="status-led" aria-hidden="true"></span>
+          <span class="t-mini mono">纯静态 HTML · 无后端</span>
+        </div>
+
+        <dl class="ledger">
+          <div class="ledger-cell">
+            <span class="ledger-key">01 / SCOPE</span>
+            <dd class="ledger-val">4 系统</dd>
+            <dd class="ledger-desc">知识库 / 调研 / 应答 / 运营</dd>
+          </div>
+          <div class="ledger-cell">
+            <span class="ledger-key">02 / PAGES</span>
+            <dd class="ledger-val">12 页</dd>
+            <dd class="ledger-desc">含导入流水线与预览校验</dd>
+          </div>
+          <div class="ledger-cell">
+            <span class="ledger-key">03 / TOPOLOGY</span>
+            <dd class="ledger-val">1 + 4</dd>
+            <dd class="ledger-desc">主智能体调度 4 个子智能体</dd>
+          </div>
+          <div class="ledger-cell">
+            <span class="ledger-key">04 / TOKENS</span>
+            <dd class="ledger-val">1 份</dd>
+            <dd class="ledger-desc">design-system.css 单一色源</dd>
+          </div>
+        </dl>
+      </header>
+
+      <!-- ============================================================
+           系统拓扑图
+           ============================================================ -->
+      <section class="stack-4 reveal" id="topology" aria-labelledby="h-topo">
+        <div class="row row-between">
+          <div class="stack-2">
+            <span class="eyebrow">SYSTEM TOPOLOGY</span>
+            <h2 class="t-h2" id="h-topo">1 个主智能体 + 4 个子智能体</h2>
+          </div>
+          <span class="badge mono">MAIN + 4 SUB AGENTS</span>
+        </div>
+
+        <div class="topo">
+          <!-- 主节点：反白实心块 -->
+          <div class="panel panel-inverted topo-main">
+            <div class="stack-2">
+              <span class="eyebrow">MAIN ORCHESTRATOR</span>
+              <span class="big">主智能体<br>统一调度与实时网关</span>
+            </div>
+            <ul>
+              <li>意图识别 → 任务路由</li>
+              <li>多智能体协作调度</li>
+              <li>结果聚合与断点续跑</li>
+              <li>WebSocket / SSE 实时推送</li>
+              <li>租户与角色隔离</li>
+            </ul>
+            <div class="topo-bus">
+              <span>ENGINE: deepagents / LangGraph</span>
+              <span>·</span>
+              <span>4 SUB NODES</span>
+            </div>
+          </div>
+
+          <!-- 4 个子节点：描边面板 -->
+          <div class="topo-subs">
+            <a class="panel node" href="kb-import.html">
+              <span class="node-no">SUB 01</span>
+              <span class="node-title">知识库智能体</span>
+              <span class="node-desc">RAG 全链路：MinerU 解析、三路并发召回、RRF 融合精排，答案可溯源。</span>
+              <span class="row node-foot">
+                <span class="badge badge-online mono">:7954</span>
+                <span class="badge mono">2 页</span>
+              </span>
+            </a>
+            <a class="panel node" href="research.html">
+              <span class="node-no">SUB 02</span>
+              <span class="node-title">联网调研智能体</span>
+              <span class="node-desc">Tavily 联网搜索 + 知识库问答双源检索，结果自动生成 PDF 报告。</span>
+              <span class="row node-foot">
+                <span class="badge badge-online mono">:8000</span>
+                <span class="badge mono">1 页</span>
+              </span>
+            </a>
+            <a class="panel node" href="support.html">
+              <span class="node-no">SUB 03</span>
+              <span class="node-title">智能应答台</span>
+              <span class="node-desc">三轨对话路由 + YAML 流程编排，订单 / 物流 / 退换政策，高风险转人工。</span>
+              <span class="row node-foot">
+                <span class="badge badge-online mono">:18082</span>
+                <span class="badge mono">1 页</span>
+              </span>
+            </a>
+            <a class="panel node" href="workspace.html">
+              <span class="node-no">SUB 04</span>
+              <span class="node-title">运营智能体</span>
+              <span class="node-desc">门店经营：竞品监控、广告推荐、库存建议，多模态素材生成链路。</span>
+              <span class="row node-foot">
+                <span class="badge badge-online mono">:80</span>
+                <span class="badge mono">8 页</span>
+              </span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           页面清单
+           ============================================================ -->
+      <section class="stack-5 reveal" id="pages" aria-labelledby="h-pages">
+        <div class="row row-between">
+          <div class="stack-2">
+            <span class="eyebrow">PAGE INVENTORY</span>
+            <h2 class="t-h2" id="h-pages">页面清单 · 4 个系统 12 个页面</h2>
+          </div>
+          <span class="badge mono">CLICK ANY CARD TO OPEN</span>
+        </div>
+
+        <!-- 系统 01 -->
+        <section class="sys" id="sys-kb" aria-labelledby="h-sys-kb">
+          <div class="sys-hd">
+            <span class="sys-idx">SYSTEM 01</span>
+            <h3 class="sys-name" id="h-sys-kb">知识库智能体</h3>
+            <span class="t-meta">知识供给 · RAG 全链路</span>
+            <span class="badge badge-online mono sys-port">:7954 · 2 页</span>
+          </div>
+          <div class="pcards">
+            <a class="panel pcard" href="kb-import.html">
+              <span class="pcard-code">kb-import.html</span>
+              <span class="pcard-title">知识库文件导入</span>
+              <span class="pcard-desc">8 步 RAG 导入流水线，逐步实时耗时；非 PDF 文件条件分支跳过解析，每步耗时落矩阵表。</span>
+              <span class="pcard-foot">
+                <span class="txt-faint">知识库智能体 :7954</span>
+                <span class="pcard-enter">进入 <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg></span>
+              </span>
+            </a>
+            <a class="panel pcard" href="kb-chat.html">
+              <span class="pcard-code">kb-chat.html</span>
+              <span class="pcard-title">知识库问答</span>
+              <span class="pcard-desc">三路并发召回与内部运行轨迹，答案附引用来源与置信分，证据不足主动拒答。</span>
+              <span class="pcard-foot">
+                <span class="txt-faint">知识库智能体 :7954</span>
+                <span class="pcard-enter">进入 <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg></span>
+              </span>
+            </a>
+          </div>
+        </section>
+
+        <!-- 系统 02 -->
+        <section class="sys" id="sys-research" aria-labelledby="h-sys-research">
+          <div class="sys-hd">
+            <span class="sys-idx">SYSTEM 02</span>
+            <h3 class="sys-name" id="h-sys-research">联网调研智能体</h3>
+            <span class="t-meta">联网调研 · 多智能体协作</span>
+            <span class="badge badge-online mono sys-port">:8000 · 1 页</span>
+          </div>
+          <div class="pcards">
+            <a class="panel pcard" href="research.html">
+              <span class="pcard-code">research.html</span>
+              <span class="pcard-title">调研任务台</span>
+              <span class="pcard-desc">四类调研任务入口，会话列表与实时检索进度同屏，推理过程可见、决策可解释。</span>
+              <span class="pcard-foot">
+                <span class="txt-faint">联网调研智能体 :8000</span>
+                <span class="pcard-enter">进入 <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg></span>
+              </span>
+            </a>
+          </div>
+        </section>
+
+        <!-- 系统 03 -->
+        <section class="sys" id="sys-reply" aria-labelledby="h-sys-reply">
+          <div class="sys-hd">
+            <span class="sys-idx">SYSTEM 03</span>
+            <h3 class="sys-name" id="h-sys-reply">智能应答台</h3>
+            <span class="t-meta">售前售后 · 三轨路由 + 流程编排</span>
+            <span class="badge badge-online mono sys-port">:18082 · 1 页</span>
+          </div>
+          <div class="pcards">
+            <a class="panel pcard" href="support.html">
+              <span class="pcard-code">support.html</span>
+              <span class="pcard-title">三轨路由 + DAG 流程编排</span>
+              <span class="pcard-desc">业务办理 / 知识咨询 / 闲聊三轨路由，YAML 流程按 DAG 推进，高风险场景自动转人工工单。</span>
+              <span class="pcard-foot">
+                <span class="txt-faint">智能应答台 :18082</span>
+                <span class="pcard-enter">进入 <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg></span>
+              </span>
+            </a>
+          </div>
+        </section>
+
+        <!-- 系统 04 -->
+        <section class="sys" id="sys-ops" aria-labelledby="h-sys-ops">
+          <div class="sys-hd">
+            <span class="sys-idx">SYSTEM 04</span>
+            <h3 class="sys-name" id="h-sys-ops">运营智能体</h3>
+            <span class="t-meta">门店经营 · 竞品监控 + 素材生成</span>
+            <span class="badge badge-online mono sys-port">:80 · 8 页</span>
+          </div>
+          <div class="pcards">
+            <a class="panel pcard" href="workspace.html">
+              <span class="pcard-code">workspace.html</span>
+              <span class="pcard-title">运营工作台</span>
+              <span class="pcard-desc">登录即用的工作台：关键数字、渠道与门店、商品池，系统未初始化时给出明确的接入引导。</span>
+              <span class="pcard-foot">
+                <span class="txt-faint">运营智能体 :80</span>
+                <span class="pcard-enter">进入 <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg></span>
+              </span>
+            </a>
+            <a class="panel pcard" href="imports.html">
+              <span class="pcard-code">imports.html</span>
+              <span class="pcard-title">导入中心</span>
+              <span class="pcard-desc">4 张模板下载卡 + 3 个 CSV 分步导入向导，含预览表格、逐行校验反馈与能力矩阵。</span>
+              <span class="pcard-foot">
+                <span class="txt-faint">运营智能体 :80</span>
+                <span class="pcard-enter">进入 <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg></span>
+              </span>
+            </a>
+            <a class="panel pcard" href="model-config.html">
+              <span class="pcard-code">model-config.html</span>
+              <span class="pcard-title">模型配置</span>
+              <span class="pcard-desc">按子智能体分别指定模型与参数，展示 ToolGateway 的租户 / 角色 / 租约 / 幂等四重管控。</span>
+              <span class="pcard-foot">
+                <span class="txt-faint">运营智能体 :80</span>
+                <span class="pcard-enter">进入 <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg></span>
+              </span>
+            </a>
+            <a class="panel pcard" href="login.html">
+              <span class="pcard-code">login.html</span>
+              <span class="pcard-title">登录工作台</span>
+              <span class="pcard-desc">邮箱密码登录：提交中态、字段级错误、服务端拒绝与会话过期分支全覆盖，附逐条修复对照。</span>
+              <span class="pcard-foot">
+                <span class="txt-faint">运营智能体 :80</span>
+                <span class="pcard-enter">进入 <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg></span>
+              </span>
+            </a>
+            <a class="panel pcard" href="agent.html">
+              <span class="pcard-code">agent.html</span>
+              <span class="pcard-title">Agent 中心</span>
+              <span class="pcard-desc">统一运营 Agent 中心：任务模板、任务中心、审批收件箱、结构化记忆、内部专业 Agent 目录与空态边界态。</span>
+              <span class="pcard-foot">
+                <span class="txt-faint">运营智能体 :80</span>
+                <span class="pcard-enter">进入 <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg></span>
+              </span>
+            </a>
+            <a class="panel pcard" href="product-detail.html">
+              <span class="pcard-code">product-detail.html</span>
+              <span class="pcard-title">单品运营</span>
+              <span class="pcard-desc">全站最大页面：商品与竞品、诊断、素材、投放、任务、复盘，10 个页签对应 10 个编号区块，另含空态与权限态。</span>
+              <span class="pcard-foot">
+                <span class="txt-faint">运营智能体 :80</span>
+                <span class="pcard-enter">进入 <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg></span>
+              </span>
+            </a>
+            <a class="panel pcard" href="store-detail.html">
+              <span class="pcard-code">store-detail.html</span>
+              <span class="pcard-title">店铺详情</span>
+              <span class="pcard-desc">平台账号授权、经营概览、库存异常与处置建议、店铺商品与库存流水，含空态与接入引导。</span>
+              <span class="pcard-foot">
+                <span class="txt-faint">运营智能体 :80</span>
+                <span class="pcard-enter">进入 <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg></span>
+              </span>
+            </a>
+            <a class="panel pcard" href="generation-job.html">
+              <span class="pcard-code">generation-job.html</span>
+              <span class="pcard-title">生成任务详情</span>
+              <span class="pcard-desc">任务摘要、五种状态语义、执行进度与预估，附排队 / 失败 / 取消三种状态变体。</span>
+              <span class="pcard-foot">
+                <span class="txt-faint">运营智能体 :80</span>
+                <span class="pcard-enter">进入 <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg></span>
+              </span>
+            </a>
+          </div>
+        </section>
+      </section>
+
+      <!-- ============================================================
+           设计系统说明
+           ============================================================ -->
+      <section class="panel reveal" id="system" aria-labelledby="h-system">
+        <div class="panel-head">
+          <h3 id="h-system">设计系统说明</h3>
+          <span class="badge mono">DESIGN SYSTEM v1</span>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th scope="col">维度</th>
+                <th scope="col">规格</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row" class="ds-key">配色</th>
+                <td class="ds-val">暖纸底 / 碳素墨 / 工程朱红 / 信号翠绿，全部以 OKLCH 定义为单一色源；明暗双主题各一套变量，无第二处硬编码色值，零渐变、零辉光、零玻璃拟态。</td>
+              </tr>
+              <tr>
+                <th scope="row" class="ds-key">字体</th>
+                <td class="ds-val">衬线标题（宋体系）+ 无衬线正文 + 等宽标签三轨分工；7 档字阶每一档都带 px 下限，保证投屏可读；汉字一律零字距，字距只放开在全大写拉丁标签上。</td>
+              </tr>
+              <tr>
+                <th scope="row" class="ds-key">组件</th>
+                <td class="ds-val">面板 / 表格 / 徽标 / 标签 / 状态灯 / 运行轨迹 / 引用卡 / 空状态 / 表单 / 按钮，共 10 组现成类；1px 发丝线，圆角全局统一 <span class="mono">2px</span>，零投影。</td>
+              </tr>
+              <tr>
+                <th scope="row" class="ds-key">响应式断点</th>
+                <td class="ds-val"><span class="mono">1023 / 899 / 767</span> 三档 + 横屏矮窗一档，数值由「每栏还能放多少中文字」推导而非设备宽度；侧栏在 899 折成横向滚动条；375px 下无横向溢出。</td>
+              </tr>
+              <tr>
+                <th scope="row" class="ds-key">动效原则</th>
+                <td class="ds-val"><span class="mono">160 / 260 / 420ms</span> 三档缓动（进场 / 退场 / 状态 / 循环四组曲线）；无限动画仅限状态指示（状态灯/骨架屏/流式光标），总数 ≤ 3，禁止装饰性无限动画，且只动 <span class="mono">transform</span> 与 <span class="mono">opacity</span>；<span class="mono">prefers-reduced-motion</span> 下所有动效一次性降级为 0.001ms。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="panel-body">
+          <div class="row row-between">
+            <p class="t-mini">
+              图标共 13 枚，24 网格 / 描边统一 1.5 / <span class="mono">currentColor</span>；零外部依赖：无 CDN、无 Web Font、无图标库。
+            </p>
+            <span class="badge mono">design-system.css + icons.js</span>
+          </div>
+        </div>
+      </section>
+
+      <p class="t-mini">
+        本目录全部为静态设计稿：不含任何后端调用，页面内的端口、数据与状态均为示意。
+      </p>
+
+    </div>
+  </main>
+</div>
+
+<!-- 固定的「返回作品集首页」链接 -->
+<a class="home-fixed" href="../index.html">
+  <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg>
+  <span>返回作品集首页</span>
+</a>
+
+<script src="icons.js"></script>
+<script>
+  (function () {
+    'use strict';
+    var lbl = document.getElementById('themeBtnText');
+    var root = document.documentElement;
+    function syncThemeLabel() {
+      if (!lbl) return;
+      lbl.textContent = root.getAttribute('data-theme') === 'dark' ? 'LIGHT' : 'DARK';
+    }
+    syncThemeLabel();
+    var btn = document.getElementById('themeBtn');
+    if (btn) btn.addEventListener('click', syncThemeLabel);
+  })();
+</script>
+</body>
+</html>

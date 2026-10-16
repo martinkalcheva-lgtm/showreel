@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f8f7f4'/%3E%3Cg fill='%230d1218'%3E%3Crect x='12' y='12' width='8' height='8'/%3E%3Crect x='4' y='4' width='4' height='4'/%3E%3Crect x='24' y='4' width='4' height='4'/%3E%3Crect x='4' y='24' width='4' height='4'/%3E%3Crect x='24' y='24' width='4' height='4'/%3E%3C/g%3E%3C/svg%3E">
+<title>运营智能体 · 登录 | 设计稿</title>
+<link rel="stylesheet" href="design-system.css">
+<style>
+  /* ========================================================================
+     线上 /login 的 6 处问题与本稿修法（字段以 web/src/app/login/page.tsx 为准）：
+       1. 明文渲染 owner 测试账号与密码（emerald 区块 + select-all）
+          → 整块删除；换成中性「演示凭据」说明，全页不出现任何账号或口令
+       2. 失败只有一句通用错误
+          → 拆四类：本地字段校验 / 服务端凭据错误（字段级标注 + 自查清单）
+                     / 会话过期 / 账号已停用；但仍不做账号枚举
+       3. 无提交中态，按钮可重复点击
+          → 提交中态：禁用输入 + 状态灯 + aria-busy + 认证链路进度
+       4. /login?expired=1 被丢弃（源码只读 error 参数）
+          → 补会话过期分支
+       5. 表单无 autocomplete / aria-*，文本 14px
+          → 正文 16px + autocomplete + aria-invalid + aria-describedby + 错误聚焦
+       6. 一页三套主色（slate-950 / blue-700 / emerald）
+          → 统一到设计系统：墨色品牌徽标 + 朱红主行动 + 发丝线
+     真实字段只有两个：email、password；提交到 /login/submit（POST）。
+     ======================================================================== */
+  .app { grid-template-rows: auto auto 1fr; }
+
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
+  summary:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  .ribbon {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--sp-3) var(--sp-4); flex-wrap: wrap;
+    padding: .5rem var(--pad-x);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-subtle);
+  }
+  .ribbon .mono-note { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted); }
+
+  .wrap { width: 100%; max-width: var(--max-w); margin-inline: auto; }
+  .sec { margin-bottom: var(--sp-7); scroll-margin-top: 76px; }
+  .sec:last-child { margin-bottom: 0; }
+  .sec-hd {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: var(--sp-3) var(--sp-4); flex-wrap: wrap;
+    margin-bottom: var(--sp-4); padding-bottom: var(--sp-3);
+    border-bottom: 1px solid var(--border);
+  }
+  .sec-hd h2 { font-size: var(--fs-h2); }
+  .sec-hd .mono-note { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+
+  .mark-slot { display: inline-flex; align-items: center; }
+  .mark-slot .mark { width: 1em; height: 1em; }
+  .brand .mark-slot { font-size: 20px; }
+
+  /* --- 正文与注释：正文 ≥16px，等宽小标签 ≥13px --------------------- */
+  .prose { font-size: var(--fs-body); line-height: 1.75; color: var(--fg-secondary); }
+  .note { display: flex; flex-direction: column; gap: .25rem; border-top: 1px solid var(--border); padding-top: var(--sp-3); }
+  .note p { font-size: var(--fs-body); line-height: 1.7; color: var(--muted); }
+  /* 同 agent.html：放路由 / token 的容器必须允许任意位置断行，避免 flex 子项顶宽页面 */
+  .tbl-note > span, .card-foot { min-width: 0; overflow-wrap: anywhere; }
+  .hair { border: 0; border-top: 1px solid var(--border); margin: var(--sp-4) 0; }
+
+  /* --- 表单：系统 .input 为 42px，本稿统一抬到 44px 命中区 ----------- */
+  .input, .field .input, select.input { width: 100%; min-height: 44px; }
+  .input:disabled { background: var(--surface-sunken); color: var(--faint); cursor: not-allowed; }
+  .input.is-bad { border-color: var(--accent); }
+  .input.is-bad:focus-visible { outline-color: var(--accent); }
+  .field-msg { font-family: var(--font-mono); font-size: var(--fs-mini); line-height: 1.7; color: var(--faint); }
+  .field-msg.is-bad { color: var(--accent); }
+
+  /* --- 登录主区 ------------------------------------------------------ */
+  .login-grid { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr); gap: var(--sp-5); align-items: start; }
+  .trust .panel-body { display: flex; flex-direction: column; gap: var(--sp-3); }
+  .trust .hair { border-top-color: color-mix(in oklch, var(--bg) 22%, transparent); }
+  .trust .prose { color: color-mix(in oklch, var(--bg) 78%, var(--fg)); }
+  .trust-brand { display: flex; align-items: center; gap: var(--sp-3); margin-top: .25rem; }
+  .trust-brand .mark-slot { font-size: 28px; color: var(--bg); }
+  .trust-brand b { font-size: var(--fs-h3); }
+  .trust-brand .mono { display: block; font-family: var(--font-mono); font-size: var(--fs-mini); color: color-mix(in oklch, var(--bg) 64%, var(--fg)); }
+  .trust-list { display: flex; flex-direction: column; gap: var(--sp-2); }
+  .trust-list li {
+    display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: .625rem; align-items: start;
+    font-size: var(--fs-body); line-height: 1.7;
+    color: color-mix(in oklch, var(--bg) 80%, var(--fg));
+  }
+  .trust-list .ic { color: var(--bg); margin-top: .35em; }
+  .trust-flow { display: flex; flex-direction: column; gap: .5rem; counter-reset: fl; }
+  .trust-flow li { position: relative; padding-left: 1.75rem; }
+  .trust-flow li::before {
+    counter-increment: fl; content: counter(fl, decimal-leading-zero);
+    position: absolute; left: 0; top: .15em;
+    font-family: var(--font-mono); font-size: var(--fs-mini);
+    color: color-mix(in oklch, var(--bg) 58%, var(--fg));
+  }
+  .trust-flow .mono { display: block; font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--bg); }
+  .trust-flow .desc { display: block; font-size: var(--fs-body); line-height: 1.7; color: color-mix(in oklch, var(--bg) 68%, var(--fg)); }
+
+  .card-signin { max-width: 28rem; width: 100%; }
+  .card-signin .id-row { display: flex; align-items: center; gap: var(--sp-3); }
+  .card-signin h1 { font-size: var(--fs-h2); }
+  .card-signin .who { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted); }
+  .brand-badge {
+    width: 44px; height: 44px; flex: none; display: grid; place-items: center;
+    border: 1px solid var(--fg); border-radius: var(--radius);
+    background: var(--fg); color: var(--bg); font-size: 20px;
+  }
+  .signin-form { display: flex; flex-direction: column; gap: var(--sp-4); margin-top: var(--sp-5); }
+  .input-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .375rem; }
+  .btn-reveal {
+    min-height: 44px; min-width: 58px; padding: 0 .75rem;
+    border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
+    color: var(--muted); font-family: var(--font-mono); font-size: var(--fs-mini);
+    font-weight: 600; letter-spacing: .04em; white-space: nowrap;
+  }
+  .btn-reveal:hover { background: var(--surface-subtle); color: var(--fg); }
+  .btn-block { width: 100%; }
+  .back-link {
+    display: inline-flex; align-items: center; gap: .375rem;
+    min-height: 44px; margin-top: var(--sp-3);
+    font-size: var(--fs-meta); color: var(--muted);
+  }
+  .back-link:hover { color: var(--fg); }
+  .card-foot {
+    margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--border);
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint);
+  }
+
+  /* --- 提示块 -------------------------------------------------------- */
+  .alert {
+    display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: var(--sp-3); align-items: start;
+    border: 1px solid var(--border); border-left-width: 3px; border-left-color: var(--border-strong);
+    border-radius: var(--radius); background: var(--surface-subtle);
+    padding: var(--sp-3) var(--sp-4);
+  }
+  .alert b { display: block; font-size: var(--fs-body); }
+  .alert p, .alert li { font-size: var(--fs-body); line-height: 1.7; color: var(--fg-secondary); }
+  .alert ul { list-style: disc; padding-left: 1.15em; margin-top: .375rem; display: flex; flex-direction: column; gap: .25rem; }
+  .alert.is-error { border-color: var(--accent); background: var(--accent-tint); }
+  .alert.is-error .ic, .alert.is-error b { color: var(--accent); }
+  .alert.is-warn { border-color: var(--warn); background: var(--warn-tint); }
+  .alert.is-warn .ic, .alert.is-warn b { color: var(--warn); }
+  .alert.is-info { border-color: var(--info); background: var(--info-tint); }
+  .alert.is-info .ic, .alert.is-info b { color: var(--info); }
+
+  /* 演示凭据说明：中性描边，不用绿色成功色 */
+  .cred-note {
+    display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: var(--sp-3); align-items: start;
+    margin-top: var(--sp-4); padding: var(--sp-3) var(--sp-4);
+    border: 1px solid var(--border); border-left: 3px solid var(--border-strong);
+    border-radius: var(--radius); background: var(--surface-sunken);
+  }
+  .cred-note b { display: block; font-size: var(--fs-body); }
+  .cred-note p { font-size: var(--fs-body); line-height: 1.7; color: var(--muted); }
+  .cred-note .ic { color: var(--muted); }
+
+  /* --- 状态规格 ------------------------------------------------------ */
+  .state-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-4); }
+  .branch-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); margin-top: var(--sp-4); }
+  .spec { display: flex; flex-direction: column; gap: var(--sp-3); }
+  .spec-hd { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap; }
+  .spec > .panel { flex: 1; }
+  .spec .signin-form { margin-top: 0; }
+  .spec .trace { margin-bottom: 0; }
+  .spec-body { display: flex; flex-direction: column; gap: var(--sp-4); }
+  .trace-step b { font-weight: 600; font-size: var(--fs-meta); }
+  .trace-step .sub { display: block; font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); line-height: 1.6; }
+
+  /* --- 响应式 -------------------------------------------------------- */
+  @media (max-width: 1023px) {
+    .login-grid { grid-template-columns: minmax(0, 1fr); }
+    .state-grid { grid-template-columns: minmax(0, 1fr); }
+    .branch-grid { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 767px) {
+    .card-signin { max-width: 100%; }
+    .input-row { grid-template-columns: minmax(0, 1fr); }
+    .btn-reveal { width: 100%; }
+  }
+</style>
+</head>
+<body class="js">
+
+<div class="app">
+
+  <!-- ================= 顶栏（登录页是唯一未鉴权入口，因此不暴露产品导航） ================= -->
+  <header class="app-top">
+    <div class="brand">
+      <span class="mark-slot" data-mark aria-hidden="true"></span>
+      <span>运营智能体</span>
+      <span class="sub">SIGN IN</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+      <span class="badge">公开入口 · 未鉴权</span>
+      <a class="btn btn-sm" href="index.html">
+        <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg>
+        <span>设计稿总览</span>
+      </a>
+      <button type="button" class="btn btn-ghost" id="themeBtn" aria-label="切换明暗主题">
+        <svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>主题
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= 设计稿声明带 ================= -->
+  <div class="ribbon">
+    <span class="eyebrow">DESIGN PROPOSAL · 静态设计稿 · 非线上系统</span>
+    <span class="mono-note">本稿修复 6 项：明文凭据 / 字段级错误 / 提交中态 / 会话过期分支 / 表单可访问性 / 主色统一</span>
+  </div>
+
+  <!-- ================= 主体 ================= -->
+  <main class="app-body">
+    <div class="pane">
+      <div class="wrap" id="top">
+
+        <!-- ============ 正常态：说明栏 + 登录卡 ============ -->
+        <section class="sec" id="signin">
+          <div class="sec-hd">
+            <div>
+              <span class="eyebrow">SIGN IN · 正常态</span>
+              <h2>登录工作台</h2>
+            </div>
+            <span class="mono-note">字段：email / password · 提交目标：POST /login/submit</span>
+          </div>
+
+          <div class="login-grid">
+
+            <!-- 左：门面说明（线上原版没有；登录页是唯一公开入口，必须自证可信） -->
+            <aside class="panel panel-inverted trust">
+              <div class="panel-body">
+                <span class="eyebrow">Operator Access</span>
+                <div class="trust-brand">
+                  <span class="mark-slot" data-mark aria-hidden="true"></span>
+                  <span>
+                    <b>运营智能体</b>
+                    <span class="mono">ECOMMERCE OPERATIONS AGENT</span>
+                  </span>
+                </div>
+                <p class="prose">
+                  统一运营 Agent 中心的唯一公开入口。登录后由一个协调 Agent 从版本化工作流中路由，
+                  R2 / R3 副作用必须经数据库审批放行，业务结果回到可编辑工作台。
+                </p>
+
+                <hr class="hair">
+                <span class="eyebrow">本页安全边界</span>
+                <ul class="trust-list">
+                  <li>
+                    <svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg>
+                    <span>页面不渲染任何账号、口令或口令片段；演示凭据一律向管理员线下获取。</span>
+                  </li>
+                  <li>
+                    <svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg>
+                    <span>密码字段 type=password，不回显、不进入前端状态、不写入日志。</span>
+                  </li>
+                  <li>
+                    <svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg>
+                    <span>失败提示不区分「邮箱不存在」与「密码错误」，避免账号枚举。</span>
+                  </li>
+                  <li>
+                    <svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg>
+                    <span>令牌只落在 httpOnly + SameSite=Lax Cookie 上，前端脚本读不到。</span>
+                  </li>
+                </ul>
+
+                <hr class="hair">
+                <span class="eyebrow">认证链路</span>
+                <ol class="trust-flow">
+                  <li><span class="mono">POST /login/submit</span><span class="desc">表单提交（Next.js route handler）</span></li>
+                  <li><span class="mono">POST /api/v1/auth/login</span><span class="desc">转发给 FastAPI，返回 access_token</span></li>
+                  <li><span class="mono">Set-Cookie · httpOnly</span><span class="desc">SameSite=Lax · Path=/ · 服务端统一附加 Authorization</span></li>
+                  <li><span class="mono">302 → /</span><span class="desc">进入业务工作台</span></li>
+                </ol>
+              </div>
+            </aside>
+
+            <!-- 右：登录卡（保留线上单卡形态与字段，去掉明文凭据块） -->
+            <div class="panel card-signin">
+              <div class="panel-body">
+                <div class="id-row">
+                  <span class="brand-badge mark-slot" data-mark aria-hidden="true"></span>
+                  <div>
+                    <p class="who">麦克思汉堡 · 运营智能体</p>
+                    <h1>登录工作台</h1>
+                  </div>
+                </div>
+
+                <div class="cred-note">
+                  <svg class="ic" aria-hidden="true"><use href="#i-doc"></use></svg>
+                  <div>
+                    <b>演示凭据</b>
+                    <p>演示账号请向管理员获取。设计稿与页面模板中均不含任何账号、口令或可登录凭据。</p>
+                  </div>
+                </div>
+
+                <form class="signin-form" action="/login/submit" method="post" novalidate>
+                  <div class="field">
+                    <label for="email">邮箱</label>
+                    <input id="email" class="input" type="email" name="email" required
+                           autocomplete="username" inputmode="email" spellcheck="false"
+                           placeholder="owner@example.com">
+                  </div>
+
+                  <div class="field">
+                    <label for="password">密码</label>
+                    <div class="input-row">
+                      <input id="password" class="input" type="password" name="password" required
+                             autocomplete="current-password" placeholder="输入密码">
+                      <button type="button" class="btn-reveal" data-reveal="password"
+                              aria-pressed="false" aria-label="显示密码">显示</button>
+                    </div>
+                  </div>
+
+                  <button type="submit" class="btn btn-primary btn-block">登录</button>
+                </form>
+
+                <a class="back-link" href="workspace.html">
+                  <svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>返回业务工作台
+                </a>
+
+                <p class="card-foot">
+                  失败时不区分具体字段 · 成功后 302 到 / · 会话写入 httpOnly Cookie
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ============ 状态与错误分支 ============ -->
+        <section class="sec" id="states">
+          <div class="sec-hd">
+            <div>
+              <span class="eyebrow">States · 3</span>
+              <h2>状态与错误分支</h2>
+            </div>
+            <span class="mono-note">正常态见上；下列为提交中、字段校验、服务端拒绝与两条分支</span>
+          </div>
+
+          <div class="state-grid">
+
+            <!-- STATE 02 · 提交中 -->
+            <article class="spec">
+              <div class="spec-hd">
+                <span class="badge badge-warn"><span class="status-led is-busy" aria-hidden="true"></span>提交中</span>
+                <span class="t-mini mono">STATE 02 / 03</span>
+              </div>
+              <div class="panel">
+                <div class="panel-body spec-body">
+                  <form class="signin-form" aria-busy="true" onsubmit="return false">
+                    <div class="field">
+                      <label for="busy-email">邮箱</label>
+                      <input id="busy-email" class="input" type="email" value="owner@example.com" disabled>
+                    </div>
+                    <div class="field">
+                      <label for="busy-pw">密码</label>
+                      <input id="busy-pw" class="input" type="password" value="···············" disabled>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-block" disabled aria-busy="true">
+                      <span class="status-led is-busy" aria-hidden="true"></span>正在验证凭据
+                    </button>
+                  </form>
+
+                  <div class="trace">
+                    <div class="trace-hd"><span>认证链路 · AUTH FLOW</span><span>2 / 4</span></div>
+                    <div class="trace-step">
+                      <span class="trace-dot done" aria-hidden="true"></span>
+                      <div><b>本地校验通过</b><span class="sub">required · type=email</span></div>
+                      <span class="trace-time">0 ms</span>
+                    </div>
+                    <div class="trace-step">
+                      <span class="trace-dot run" aria-hidden="true"></span>
+                      <div><b>提交登录请求</b><span class="sub">POST /login/submit</span></div>
+                      <span class="trace-time">进行中</span>
+                    </div>
+                    <div class="trace-step">
+                      <span class="trace-dot skip" aria-hidden="true"></span>
+                      <div><b>校验凭据</b><span class="sub">POST /api/v1/auth/login</span></div>
+                      <span class="trace-time">待执行</span>
+                    </div>
+                    <div class="trace-step">
+                      <span class="trace-dot skip" aria-hidden="true"></span>
+                      <div><b>写入会话并跳转</b><span class="sub">Set-Cookie httpOnly · 302 → /</span></div>
+                      <span class="trace-time">待执行</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="note">
+                <span class="eyebrow">Fix · 03</span>
+                <p>提交期间禁用输入与按钮、表单 aria-busy、按钮内状态灯；进度只表达「请求已发出」，不表达「登录成功」。</p>
+              </div>
+            </article>
+
+            <!-- STATE 03 · 服务端凭据错误（字段级） -->
+            <article class="spec">
+              <div class="spec-hd">
+                <span class="badge badge-accent">凭据错误</span>
+                <span class="t-mini mono">STATE 03 / 03</span>
+              </div>
+              <div class="panel">
+                <div class="panel-body spec-body">
+                  <div class="alert is-error" role="alert">
+                    <svg class="ic" aria-hidden="true"><use href="#i-warn"></use></svg>
+                    <div>
+                      <b>邮箱与密码组合不正确，或账号已停用</b>
+                      <p>为避免账号枚举，这里不区分「邮箱不存在」与「密码错误」。按顺序自查：</p>
+                      <ul>
+                        <li>密码区分大小写：确认未开启大写锁定，输入法处于英文 / 半角状态。</li>
+                        <li>浏览器密码管理器可能回填了旧密码：清空后手动输入一次。</li>
+                        <li>仍失败请联系管理员核对账号状态（停用账号无法登录）。</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <form class="signin-form" action="/login/submit" method="post" novalidate>
+                    <div class="field">
+                      <label for="err-email">邮箱</label>
+                      <input id="err-email" class="input is-bad" type="email" name="email"
+                             value="owner@example.com" aria-invalid="true"
+                             aria-describedby="err-email-msg" autocomplete="username">
+                      <span class="field-msg is-bad" id="err-email-msg">格式已通过校验 · 未匹配到可用凭据组合</span>
+                    </div>
+                    <div class="field">
+                      <label for="err-pw">密码</label>
+                      <div class="input-row">
+                        <input id="err-pw" class="input is-bad" type="password" name="password"
+                               value="···············" aria-invalid="true"
+                               aria-describedby="err-pw-msg" autocomplete="current-password">
+                        <button type="button" class="btn-reveal" data-reveal="err-pw"
+                                aria-pressed="false" aria-label="显示密码">显示</button>
+                      </div>
+                      <span class="field-msg is-bad" id="err-pw-msg">请确认大小写、输入法与是否残留自动填充后重试</span>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">重新登录</button>
+                  </form>
+                </div>
+              </div>
+              <div class="note">
+                <span class="eyebrow">Fix · 02</span>
+                <p>错误同时落在两个字段（aria-invalid + 红色发丝边 + 字段级说明）与表单横幅上，焦点回到第一个无效字段 —— 但措辞不泄露哪一项错。</p>
+              </div>
+            </article>
+
+            <!-- 本地字段校验 -->
+            <article class="spec">
+              <div class="spec-hd">
+                <span class="badge">字段校验</span>
+                <span class="t-mini mono">本地 · 不发请求</span>
+              </div>
+              <div class="panel">
+                <div class="panel-body spec-body">
+                  <form class="signin-form" action="/login/submit" method="post" novalidate>
+                    <div class="field">
+                      <label for="v-email">邮箱</label>
+                      <input id="v-email" class="input is-bad" type="text" name="email"
+                             value="owner@" aria-invalid="true" aria-describedby="v-email-msg"
+                             autocomplete="username" inputmode="email">
+                      <span class="field-msg is-bad" id="v-email-msg">请输入完整邮箱地址，例如 owner@example.com</span>
+                    </div>
+                    <div class="field">
+                      <label for="v-pw">密码</label>
+                      <input id="v-pw" class="input is-bad" type="password" name="password"
+                             value="" aria-invalid="true" aria-describedby="v-pw-msg"
+                             autocomplete="current-password" placeholder="输入密码">
+                      <span class="field-msg is-bad" id="v-pw-msg">请输入密码</span>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">登录</button>
+                  </form>
+                </div>
+              </div>
+              <div class="note">
+                <span class="eyebrow">Fix · 05</span>
+                <p>关闭浏览器原生气泡（novalidate），改用可定位字段的自定义提示；错误文案挂在 aria-describedby 上，屏幕阅读器能读到。</p>
+              </div>
+            </article>
+          </div>
+
+          <!-- 分支：会话过期 / 账号停用 -->
+          <div class="branch-grid">
+            <article class="spec">
+              <div class="panel">
+                <div class="panel-body">
+                  <div class="alert is-info" role="status">
+                    <svg class="ic" aria-hidden="true"><use href="#i-server"></use></svg>
+                    <div>
+                      <b>登录状态已过期，请重新登录</b>
+                      <p>原会话已被服务端判定失效，本次操作未提交，重新登录后可继续。</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="note">
+                <span class="eyebrow">Branch · expired</span>
+                <p>Agent 中心在 401 时跳 <span class="mono">/login?expired=1</span>，但线上登录页只读取 error 参数，这条提示被丢弃 —— 本稿补上该分支。</p>
+              </div>
+            </article>
+
+            <article class="spec">
+              <div class="panel">
+                <div class="panel-body">
+                  <div class="alert is-warn" role="alert">
+                    <svg class="ic" aria-hidden="true"><use href="#i-warn"></use></svg>
+                    <div>
+                      <b>账号已停用</b>
+                      <p>凭据正确但账号状态为停用，无法进入工作台。请联系管理员恢复账号或改用其他成员账号。</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="note">
+                <span class="eyebrow">Branch · disabled</span>
+                <p>线上 <span class="mono">/login/submit</span> 把任何非 2xx 都归为 ?error=1，无法区分停用与密码错误；落地需后端返回可区分错误码（如 403 account_disabled）。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ============ 修复对照 ============ -->
+        <section class="sec" id="fixes">
+          <div class="sec-hd">
+            <div>
+              <span class="eyebrow">Fix Log</span>
+              <h2>逐条修复对照</h2>
+            </div>
+            <span class="mono-note">左列为线上源码实际行为</span>
+          </div>
+
+          <div class="panel">
+            <div class="tbl-wrap">
+              <table class="tbl">
+                <caption class="sr-only">线上登录页问题与本设计稿处理方式对照</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">线上原版</th>
+                    <th scope="col">本稿处理</th>
+                    <th scope="col">为什么</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>以 emerald 成功色区块明文渲染 owner 测试账号与密码，并加 select-all 方便复制</td>
+                    <td>整块删除，替换为中性的「演示凭据 · 请向管理员获取」说明；全页不含任何账号或口令</td>
+                    <td>任何拿到该 IP 的人都能直接登录 owner；口令还会进入截图、录屏、浏览器缓存与搜索引擎快照</td>
+                  </tr>
+                  <tr>
+                    <td>失败只有一句「邮箱或密码不正确，或者账号已停用。」</td>
+                    <td>拆为四类：本地字段校验 / 服务端凭据错误（字段级标注 + 自查清单）/ 会话过期 / 账号停用</td>
+                    <td>用户无法定位问题；同时仍不通过「邮箱是否存在」泄露账号信息</td>
+                  </tr>
+                  <tr>
+                    <td>无提交中态，按钮可反复点击</td>
+                    <td>提交中态：禁用输入与按钮、表单 aria-busy、按钮内状态灯、认证链路进度</td>
+                    <td>重复提交会反复打登录接口；用户无法判断请求是否已发出</td>
+                  </tr>
+                  <tr>
+                    <td><span class="mono">/login?expired=1</span> 被丢弃（页面只读取 error）</td>
+                    <td>新增会话过期分支，明确「已过期、本次操作未提交」</td>
+                    <td>Agent 中心 401 时正是跳这个地址，用户被静默登出又看不到原因</td>
+                  </tr>
+                  <tr>
+                    <td>输入框无 autocomplete 与 aria-*，标签与正文均为 14px</td>
+                    <td>正文 16px；autocomplete=username / current-password；aria-invalid + aria-describedby；错误后聚焦第一个无效字段</td>
+                    <td>密码管理器无法自动填充，屏幕阅读器读不到错误原因，投屏时 14px 偏小</td>
+                  </tr>
+                  <tr>
+                    <td>一页三套主色：卡片 slate-950、品牌行 blue-700、凭据块 emerald</td>
+                    <td>统一到设计系统：墨色品牌徽标 + 朱红主行动（--accent）+ 1px 发丝线</td>
+                    <td>三种颜色互相削弱，没有一处像「主行动」，且与工作台主色不一致</td>
+                  </tr>
+                  <tr>
+                    <td>「返回首页」为 20px 行高的文字链接</td>
+                    <td>命中区抬到 44px，并更名为「返回业务工作台」指向真实目标</td>
+                    <td>触摸端文字链接点击容错过低；线上该链接指向 / 而非首页</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="tbl-note">
+              <svg class="ic ic-sm" aria-hidden="true"><use href="#i-warn"></use></svg>
+              <span>未新增「忘记密码」入口：仓库内没有对应的重置路由，<span class="mono">/login/submit</span> 是当前唯一认证入口。</span>
+            </div>
+          </div>
+        </section>
+
+        <p class="t-mini mono" style="margin-top:var(--sp-6);color:var(--faint)">
+          设计稿说明：字段与接口口径取自 web/src/app/login/page.tsx 与 login/submit/route.ts；页面不含任何真实凭据；
+          颜色 / 圆角 / 阴影 / 字体全部来自 design-system.css。
+        </p>
+
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<script src="icons.js" defer></script>
+<script>
+  /* 品牌标志统一由 window.OD.MARK 注入。
+     icons.js 带 defer，执行时机晚于本内联脚本，因此这里必须等 DOMContentLoaded。 */
+  (function () {
+    function injectMark() {
+      if (!window.OD || !window.OD.MARK) { return; }
+      var slots = document.querySelectorAll('[data-mark]');
+      for (var i = 0; i < slots.length; i++) { slots[i].innerHTML = window.OD.MARK; }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', injectMark);
+    } else { injectMark(); }
+  })();
+
+  /* 显示 / 隐藏密码：不改动任何字段语义，仅切换 input.type */
+  (function () {
+    document.addEventListener('click', function (event) {
+      var btn = event.target.closest('[data-reveal]');
+      if (!btn) { return; }
+      var input = document.getElementById(btn.getAttribute('data-reveal'));
+      if (!input) { return; }
+      var shown = input.type === 'text';
+      input.type = shown ? 'password' : 'text';
+      btn.setAttribute('aria-pressed', shown ? 'false' : 'true');
+      btn.textContent = shown ? '显示' : '隐藏';
+    });
+  })();
+</script>
+</body>
+</html>

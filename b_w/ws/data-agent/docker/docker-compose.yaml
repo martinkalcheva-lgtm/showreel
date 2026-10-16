@@ -1,15 +1,21 @@
+# Boss 问数（data-agent）专用 MySQL
+# ⚠️ 本文件只管这一件事。ES / Kibana / Qdrant / Embedding 的容器是由
+#    C:\Users\gbb\Desktop\stady_all\xm\ws\data-agent\docker\docker-compose.yaml 创建的，
+#    一键脚本里用 docker start 按容器名起，所以本文件里那几个服务已注释掉（避免同名抢容器）。
+# 2026-10-16：加项目名 boss-agent + 独立数据卷，彻底断开与客服库的重名冲突。
+name: boss-agent
 services:
 
   mysql:
     image: mysql:8.0
-    container_name: mysql
+    container_name: boss-data-agent-mysql
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: itwwy123
       MYSQL_USER: itwwy
       MYSQL_PASSWORD: itwwy123
     ports:
-      - "3306:3306"
+      - "3309:3306"   # 3306 被系统 MySQL80 占用（2026-10-16 挪到 3309）
     volumes:
       - mysql_data:/var/lib/mysql
       - ./mysql:/docker-entrypoint-initdb.d
@@ -29,60 +35,65 @@ services:
 #    volumes:
 #      - es_data:/usr/share/elasticsearch/data
 
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.19.10
-    container_name: elasticsearch
-    restart: unless-stopped
-#    user: root
-    environment:
-      discovery.type: single-node
-      xpack.security.enabled: "false"
-    ports:
-      - "9200:9200"
-    volumes:
-      - es_data:/usr/share/elasticsearch/data
-  kibana:
-    image: kibana:8.19.10
-    container_name: kibana
-    restart: unless-stopped
-#    environment:
-#      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
-    environment:
-      # 容器内部访问ES，保留 elasticsearch:9200
-      ELASTICSEARCH_HOSTS: "http://elasticsearch:9200"
-      # 关闭安全，和ES保持一致 xpack.security.enabled: false
-      XPACK_SECURITY_ENABLED: "false"
-      # 关键！允许浏览器跨域访问，解决前端fetch报错
-      SERVER_PUBLICBASEURL: "http://127.0.0.1:5601"
-    ports:
-      - "5601:5601"
-    depends_on:
-      - elasticsearch
+# ↓↓↓ 以下四个服务（ES/Kibana/Qdrant/Embedding）由 stady_all\xm\ws\data-agent 那份 compose 负责，
+#     一键脚本用 docker start 按容器名起，这里注释掉，免得同名抢容器 ↓↓↓
 
-  qdrant:
-    image: qdrant/qdrant:v1.16
-    container_name: qdrant
-    restart: unless-stopped
-    ports:
-      - "6333:6333"   # HTTP
-      - "6334:6334"   # gRPC
-    volumes:
-      - qdrant_data:/qdrant/storage
+#   elasticsearch:
+#     image: docker.elastic.co/elasticsearch/elasticsearch:8.19.10
+#     container_name: elasticsearch
+#     restart: unless-stopped
+# #    user: root
+#     environment:
+#       discovery.type: single-node
+#       xpack.security.enabled: "false"
+#     ports:
+#       - "9200:9200"
+#     volumes:
+#       - es_data:/usr/share/elasticsearch/data
+#   kibana:
+#     image: kibana:8.19.10
+#     container_name: kibana
+#     restart: unless-stopped
+# #    environment:
+# #      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+#     environment:
+#       # 容器内部访问ES，保留 elasticsearch:9200
+#       ELASTICSEARCH_HOSTS: "http://elasticsearch:9200"
+#       # 关闭安全，和ES保持一致 xpack.security.enabled: false
+#       XPACK_SECURITY_ENABLED: "false"
+#       # 关键！允许浏览器跨域访问，解决前端fetch报错
+#       SERVER_PUBLICBASEURL: "http://127.0.0.1:5601"
+#     ports:
+#       - "5601:5601"
+#     depends_on:
+#       - elasticsearch
 
-  embedding:
-    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.8
-    container_name: embedding
-    restart: unless-stopped
-    ports:
-      - "8081:80"
-    environment:
-      MODEL_ID: /models/bge-large-zh-v1.5
-      MAX_CONCURRENT_REQUESTS: "16"
-      MAX_BATCH_TOKENS: "16384"
-    volumes:
-      - ./embedding/bge-large-zh-v1.5:/models/bge-large-zh-v1.5
+#   qdrant:
+#     image: qdrant/qdrant:v1.16
+#     container_name: qdrant
+#     restart: unless-stopped
+#     ports:
+#       - "6333:6333"   # HTTP
+#       - "6334:6334"   # gRPC
+#     volumes:
+#       - qdrant_data:/qdrant/storage
 
+#   embedding:
+#     image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.8
+#     container_name: embedding
+#     restart: unless-stopped
+#     ports:
+#       - "8081:80"
+#     environment:
+#       MODEL_ID: /models/bge-large-zh-v1.5
+#       MAX_CONCURRENT_REQUESTS: "16"
+#       MAX_BATCH_TOKENS: "16384"
+#     volumes:
+#       - ./embedding/bge-large-zh-v1.5:/models/bge-large-zh-v1.5
+
+# ↑↑↑ 以上四个服务不用管 ↑↑↑
 volumes:
   mysql_data:
+    name: boss-agent_mysql_data   # 独立新卷（数据已从旧卷 dump 恢复），不再和客服共用 docker_mysql_data
   es_data:
   qdrant_data:

@@ -1,0 +1,906 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f8f7f4'/%3E%3Cg fill='%230d1218'%3E%3Crect x='12' y='12' width='8' height='8'/%3E%3Crect x='4' y='4' width='4' height='4'/%3E%3Crect x='24' y='4' width='4' height='4'/%3E%3Crect x='4' y='24' width='4' height='4'/%3E%3Crect x='24' y='24' width='4' height='4'/%3E%3C/g%3E%3C/svg%3E">
+<title>联网调研智能体 · 单屏页设计稿</title>
+<link rel="stylesheet" href="design-system.css">
+<style>
+  /* ==========================================================================
+     三栏单屏。颜色 / 圆角 / 阴影 / 字体全部取自 design-system.css 的 token。
+     ========================================================================== */
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  .proposal-bar {
+    display: flex; align-items: center; gap: .5rem;
+    min-height: 34px; padding: 0 var(--pad-x);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-subtle);
+  }
+  .app { min-height: calc(100vh - 34px); }
+
+  /* 三栏：左会话 / 中对话 / 右文件。窄屏沿用设计系统自带的 rail、aside 断点 */
+  .app-body.has-rail.has-aside { grid-template-columns: 248px minmax(0, 1fr) 340px; }
+
+  .app-top .brand .mark { font-size: 1.15rem; }
+
+  /* ---- 结构修复：文档大纲 ----
+     顶栏品牌名由 span 改为 h1（页面主标题）；页面内标题按
+     「h2 = 顶层区块 / h3 = 区块内小节」重排。
+     下列规则只让新标签沿用旧标签的排版，渲染像素不变。 */
+  .app-top .brand h1 { font: inherit; letter-spacing: inherit; text-wrap: wrap; }
+  /* design-system.css 的 .empty h4 是标签选择器，标题改级后在本页复述同一组取值 */
+  .empty h2 { font-size: var(--fs-h3); margin-bottom: .375rem; }
+  .top-actions { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
+  .ws-badge { color: var(--info); border-color: var(--info); background: var(--info-tint); }
+  .ws-badge .status-led { background: var(--info); }
+
+  /* ---- 左栏 ---- */
+  .rail { overflow-y: auto; }
+  @media (min-width: 900px) {
+    .rail { position: sticky; top: 60px; align-self: start;
+      max-height: calc(100vh - 60px); }
+  }
+  .rail .panel-head h3, .rail .panel-head h2 { font-size: var(--fs-meta); }
+  .rail-new { width: 100%; }
+  .sess-list { display: flex; flex-direction: column; gap: 2px; }
+  .sess { position: relative; border-radius: var(--radius); }
+  .sess-main {
+    display: flex; flex-direction: column; justify-content: center; gap: .25rem;
+    width: 100%; min-height: 52px; padding: .5rem 2.75rem .5rem .625rem;
+    text-align: left; border: 1px solid transparent; border-radius: var(--radius);
+    transition: background-color var(--t-2) var(--ease-state),
+                border-color var(--t-2) var(--ease-state);
+  }
+  .sess:hover { background: var(--surface-subtle); }
+  .sess.is-active .sess-main { background: var(--surface); border-color: var(--border-strong); }
+  .sess-title { font-size: var(--fs-meta); font-weight: 600; color: var(--fg-secondary);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sess-meta { display: flex; align-items: center; gap: .375rem;
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  .sess-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--faint); flex: none; }
+
+  .engine-list { display: flex; flex-direction: column; gap: .5rem; }
+  .engine-row { display: grid; grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center; gap: .5rem; font-size: var(--fs-mini); }
+  .engine-k { font-family: var(--font-mono); color: var(--faint); }
+  .engine-v { display: inline-flex; align-items: center; gap: .4em;
+    font-family: var(--font-mono); color: var(--fg-secondary); }
+  .engine-row .status-led { width: 6px; height: 6px; }
+  .rail-health { margin-top: auto; }
+
+  /* ---- 中栏 ---- */
+  .pane-inner { display: flex; flex-direction: column; width: 100%;
+    min-width: 0; max-width: 52rem; margin-inline: auto; }
+  .stream { display: grid; gap: var(--sp-6); }
+  .msg-user .msg-body { justify-self: start; max-width: 40rem; }
+
+  .welcome { padding-bottom: var(--sp-5); border-bottom: 1px solid var(--border); }
+  .welcome > .eyebrow { display: block; margin-bottom: .375rem; }
+  .welcome .t-h1 { margin-bottom: .5rem; }
+  .welcome .t-lead { font-size: var(--fs-meta); }
+
+  /* 2 × 2 引导卡：不拉成三条等宽横卡 */
+  .starter-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sp-3); margin-top: var(--sp-4); }
+  .starter { display: grid; grid-template-columns: 36px minmax(0, 1fr);
+    align-items: start; gap: var(--sp-3); min-height: 44px;
+    padding: .875rem; text-align: left;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface);
+    transition: background-color var(--t-2) var(--ease-state),
+                border-color var(--t-2) var(--ease-state);
+  }
+  .starter:hover { background: var(--surface-subtle); border-color: var(--border-strong); }
+  .starter-ic { width: 36px; height: 36px; display: grid; place-items: center;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface-subtle); color: var(--accent); }
+  .starter-body { display: flex; flex-direction: column; gap: .25rem; min-width: 0; }
+  .starter-title { font-weight: 600; font-size: var(--fs-meta); color: var(--fg); }
+  .starter-ex { font-size: var(--fs-mini); color: var(--muted); line-height: 1.7; }
+
+  /* ---- 调度轨迹：结构化，不吐裸 JSON ---- */
+  .trace-name { display: flex; flex-wrap: wrap; align-items: baseline;
+    gap: .25rem .5rem; min-width: 0; font-weight: 600; }
+  .agent-chip { font-family: var(--font-mono); font-size: var(--fs-mini); font-weight: 700;
+    letter-spacing: .02em; color: var(--fg); }
+  .tool-chip { display: inline-flex; align-items: center; gap: .3em;
+    padding: .1rem .4rem; border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface-subtle); color: var(--fg-secondary);
+    font-family: var(--font-mono); font-size: var(--fs-mini); font-weight: 600; }
+  .trace-args { width: 100%; font-size: var(--fs-mini); font-weight: 400;
+    color: var(--muted); overflow-wrap: anywhere; }
+  .trace-tool { font-weight: 400; color: var(--faint); font-size: var(--fs-mini); }
+
+  .msg-foot { display: flex; flex-wrap: wrap; align-items: center;
+    gap: .375rem var(--sp-4); margin-top: var(--sp-4); padding-top: .625rem;
+    border-top: 1px solid var(--border);
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  .msg-foot .sep { width: 1px; height: 10px; background: var(--border); }
+  .msg-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: var(--sp-3); }
+
+  /* ---- Markdown 答案 ---- */
+  .prose { font-size: var(--fs-body); line-height: 1.85; color: var(--fg); overflow-wrap: anywhere; }
+  .prose > * + * { margin-top: var(--sp-4); }
+  .prose h4, .prose h3 { margin-top: var(--sp-5); font-family: var(--font-display);
+    font-size: var(--fs-h3); font-weight: 700; line-height: 1.4; letter-spacing: 0; }
+  .prose > h4:first-child, .prose > h3:first-child { margin-top: 0; }
+  .prose ol, .prose ul { display: grid; gap: .5rem; padding-left: 1.4rem; }
+  .prose ol { list-style: decimal; }
+  .prose ol li::marker { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  .prose ul { list-style: none; padding-left: 0; }
+  .prose ul > li { position: relative; padding-left: 1rem; }
+  .prose ul > li::before { content: ""; position: absolute; left: .125rem; top: .95em;
+    width: 7px; height: 1px; background: var(--faint); }
+  .prose code { font-family: var(--font-mono); font-size: .875em;
+    padding: .12em .4em; border: 1px solid var(--border);
+    background: var(--surface-subtle); border-radius: var(--radius); }
+  .cursor { display: inline-block; width: 2px; height: 1.05em;
+    background: var(--accent); vertical-align: -.18em; margin-left: 2px;
+    animation: led-breathe 1.2s var(--ease-loop) infinite; }
+
+  /* ---- 空结果面板：搜索执行完但 0 条，中性表达，不用警告色 ---- */
+  .empty-actions { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; margin-top: var(--sp-4); }
+
+  /* ---- 错误面板：与正文分离，错误绝不拼进答案 ---- */
+  .err { border-left: 2px solid var(--accent); }
+  .err .panel-head { background: var(--accent-tint); border-bottom-color: var(--border-accent); }
+  .err .panel-head h3, .err .panel-head h2 { font-size: var(--fs-h3); }
+  .err .panel-body > p { font-size: var(--fs-meta); color: var(--fg-secondary); line-height: 1.75; }
+  .err-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: var(--sp-4); }
+  .kv { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); font-size: var(--fs-meta); }
+  .kv dt, .kv dd { padding: .4rem 0; border-bottom: 1px solid var(--border); }
+  .kv dt { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); letter-spacing: .06em; }
+  .kv dd { color: var(--fg); overflow-wrap: anywhere; }
+  .kv > :nth-last-child(1), .kv > :nth-last-child(2) { border-bottom: 0; }
+  .kv-spaced { margin-top: var(--sp-3); }
+
+  /* ---- 骨架屏（首屏加载态） ---- */
+  .sk-stack { display: grid; gap: .625rem; margin-top: var(--sp-3); }
+  .sk { display: block; height: 12px; border-radius: var(--radius); background: var(--surface-subtle); }
+  .sk.is-title { height: 20px; width: min(42%, 16rem); }
+  .sk.is-mid   { width: 82%; }
+  .sk.is-short { width: 56%; }
+  .sk-now { margin-top: .75rem; }
+  @media (prefers-reduced-motion: no-preference) {
+    .sk { animation: sk-pulse 1.8s var(--ease-loop) infinite; }
+  }
+  @keyframes sk-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+
+  /* ---- 报告产物卡 ---- */
+  .artifacts { margin-top: var(--sp-4); border: 1px solid var(--border);
+    border-left: 2px solid var(--success); border-radius: var(--radius);
+    background: var(--surface-sunken); padding: var(--sp-3) var(--sp-4); }
+  .artifacts-hd { display: flex; flex-wrap: wrap; align-items: center;
+    justify-content: space-between; gap: .5rem; margin-bottom: var(--sp-3); }
+  .artifacts-hd .artifacts-title { display: inline-flex; align-items: center;
+    gap: .5rem; font-weight: 600; font-size: var(--fs-meta); }
+  .artifact-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto;
+    align-items: center; gap: var(--sp-3); padding: .5rem 0;
+    border-top: 1px solid var(--border); }
+  .file-kind { display: grid; place-items: center; height: 24px; min-width: 40px;
+    padding: 0 .375rem; border: 1px solid var(--border-strong); border-radius: var(--radius);
+    background: var(--surface); font-family: var(--font-mono);
+    font-size: 11px; font-weight: 700; letter-spacing: .06em; color: var(--fg-secondary); }
+  .file-name { font-size: var(--fs-meta); font-weight: 600; color: var(--fg);
+    overflow-wrap: anywhere; }
+  .file-meta { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  .artifacts-foot { margin-top: var(--sp-3); font-size: var(--fs-mini);
+    color: var(--muted); line-height: 1.7; }
+
+  /* ---- 流式状态条 ---- */
+  .streambar { position: sticky; bottom: 0; z-index: 20; margin-top: var(--sp-5);
+    padding: var(--sp-3) 0; background: var(--bg); border-top: 1px solid var(--border-strong); }
+  .streambar-in { display: flex; flex-wrap: wrap; align-items: center;
+    justify-content: space-between; gap: var(--sp-3); }
+  .streambar-left { display: flex; flex-wrap: wrap; align-items: center;
+    gap: .5rem var(--sp-3); min-width: 0; }
+  .streambar-text { font-size: var(--fs-meta); font-weight: 600; color: var(--fg); }
+  .streambar-stat { font-size: var(--fs-mini); color: var(--faint); }
+  .streambar-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .streambar-actions .btn { height: 44px; }
+  .stop-glyph { width: 9px; height: 9px; background: currentColor; flex: none; }
+
+  /* ---- 右栏：会话文件 ---- */
+  .aside { display: flex; flex-direction: column; gap: var(--sp-4); }
+  .aside .panel-head h3, .aside .panel-head h2 { font-size: var(--fs-meta); }
+  .file-list { display: flex; flex-direction: column; }
+  .file-item { display: grid; grid-template-columns: 40px minmax(0, 1fr);
+    gap: var(--sp-3); padding: var(--sp-3) 0;
+    border-bottom: 1px solid var(--border); }
+  .file-item:last-child { border-bottom: 0; padding-bottom: 0; }
+  .file-body { display: flex; flex-direction: column; gap: .25rem; min-width: 0; }
+  .file-actions { display: flex; gap: .25rem; margin-top: .25rem; }
+  .file-actions .btn { height: 44px; padding: 0 .75rem; }
+  .empty-compact { padding: var(--sp-4) var(--sp-3); }
+  .empty-compact .ic { color: var(--faint); }
+  .empty-compact h4, .empty-compact h3 { font-size: var(--fs-meta); margin-bottom: .25rem; }
+  .empty-compact p { font-size: var(--fs-mini); line-height: 1.75; }
+
+  /* ---- 设计说明（提案稿专用，不是产品 UI） ---- */
+  .note { margin-top: var(--sp-3); padding: .625rem .75rem;
+    border: 1px dashed var(--border-strong); border-radius: var(--radius); }
+  .note .eyebrow { display: block; margin-bottom: .25rem; }
+  .note p { font-size: var(--fs-mini); line-height: 1.75; color: var(--muted); }
+
+  /* ==========================================================================
+     响应式
+     ========================================================================== */
+  @media (max-width: 1279px) {
+    .app-body.has-rail.has-aside { grid-template-columns: 248px minmax(0, 1fr); }
+    .app-body.has-rail.has-aside > .aside { grid-column: 1 / -1; border-top: 1px solid var(--border); }
+    .aside { flex-direction: row; flex-wrap: wrap; align-items: flex-start; }
+    .aside > * { flex: 1 1 20rem; min-width: 0; }
+  }
+  @media (max-width: 1023px) {
+    .app-body.has-rail.has-aside { grid-template-columns: 200px minmax(0, 1fr); }
+  }
+  @media (max-width: 899px) {
+    .app-body.has-rail.has-aside { grid-template-columns: minmax(0, 1fr); }
+    .app-body.has-rail.has-aside > .aside { grid-column: auto; }
+    .aside { flex-direction: column; }
+    .sess-list { flex-direction: row; }
+    .sess { flex: 0 0 auto; }
+    .sess-main { width: 12.5rem; }
+    .rail-new { width: auto; }
+    .rail-health { margin-top: 0; }
+    .rail-health .panel-body { padding: var(--sp-3); }
+    .engine-list { flex-direction: row; flex-wrap: wrap; gap: var(--sp-3); }
+    .engine-row { grid-template-columns: auto; gap: .25rem; }
+    .engine-k { display: none; }
+  }
+  @media (max-width: 767px) {
+    .top-actions { width: 100%; justify-content: flex-start; }
+    .kv { grid-template-columns: 5.25rem minmax(0, 1fr); }
+    /* 眉标 / 起始卡片说明在 390 下会折出单字孤行（「…非线上系 / 统」），配平换行 */
+    .proposal-bar .eyebrow, .starter-ex { text-wrap: balance; }
+    /* 运行轨迹表头两栏在 390 下互相挤压，左栏尾字、右栏尾字都会单独掉一行 */
+    .trace-hd > span:first-child { text-wrap: balance; }
+    .trace-hd > span:last-child { white-space: nowrap; }
+    /* 键值行的值同样会在窄栏里折出单字孤行（「…稍后再试联网」尾字单独一行） */
+    dd { text-wrap: balance; }
+  }
+  @media (max-width: 640px) {
+    .starter-grid { grid-template-columns: minmax(0, 1fr); }
+    .streambar-in { flex-direction: column; align-items: stretch; }
+    .streambar-actions { justify-content: flex-end; }
+  }
+  @media (max-width: 480px) {
+    .top-actions .badge-secondary { display: none; }
+    .prose ol, .prose ul { padding-left: 1.1rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="proposal-bar">
+  <span class="eyebrow">DESIGN PROPOSAL · 静态设计稿 · 非线上系统</span>
+</div>
+
+<div class="app">
+
+  <!-- ============================ 顶栏 ============================ -->
+  <header class="app-top">
+    <div class="brand">
+      <svg class="mark ic-lg" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <rect x="12" y="12" width="8" height="8" rx="2"/>
+        <rect x="4" y="4" width="4" height="4" rx="1"/>
+        <rect x="24" y="4" width="4" height="4" rx="1"/>
+        <rect x="4" y="24" width="4" height="4" rx="1"/>
+        <rect x="24" y="24" width="4" height="4" rx="1"/>
+      </svg>
+      <h1>联网调研智能体</h1>
+      <span class="sub">RESEARCH AGENT</span>
+    </div>
+
+    <div class="top-actions">
+      <span class="badge badge-info ws-badge mono" title="WebSocket 推送通道">
+        <span class="status-led" aria-hidden="true"></span>WS 已连接
+      </span>
+      <span class="badge badge-secondary mono">chunk 46 /秒</span>
+      <span class="badge badge-online mono">
+        <span class="status-led" aria-hidden="true"></span>:8000 ONLINE
+      </span>
+      <a class="btn btn-sm" href="index.html">
+        <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg>
+        <span>设计稿总览</span>
+      </a>
+      <button type="button" class="btn btn-ghost" id="themeBtn" aria-label="切换明暗主题">
+        <span id="themeLabel">DARK</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="app-body has-rail has-aside">
+
+    <!-- ============================ 左栏：会话 ============================ -->
+    <aside class="rail" aria-label="会话列表">
+      <div>
+        <button type="button" class="btn btn-primary rail-new">
+          <svg class="ic" aria-hidden="true"><use href="#i-copy"></use></svg>
+          新建会话
+        </button>
+      </div>
+
+      <ul class="sess-list">
+        <li class="sess is-active">
+          <button type="button" class="sess-main" aria-current="true">
+            <span class="sess-title">现制茶饮供应链格局</span>
+            <span class="sess-meta"><span>6 轮</span><span class="sess-dot" aria-hidden="true"></span><span>刚刚</span></span>
+          </button>
+        </li>
+        <li class="sess">
+          <button type="button" class="sess-main">
+            <span class="sess-title">线上服务错误率排查</span>
+            <span class="sess-meta"><span>3 轮</span><span class="sess-dot" aria-hidden="true"></span><span>12 分钟前</span></span>
+          </button>
+        </li>
+        <li class="sess">
+          <button type="button" class="sess-main">
+            <span class="sess-title">新店开业清单核对</span>
+            <span class="sess-meta"><span>8 轮</span><span class="sess-dot" aria-hidden="true"></span><span>昨天 15:02</span></span>
+          </button>
+        </li>
+        <li class="sess">
+          <button type="button" class="sess-main">
+            <span class="sess-title">竞品定价对比</span>
+            <span class="sess-meta"><span>5 轮</span><span class="sess-dot" aria-hidden="true"></span><span>10 月 11 日</span></span>
+          </button>
+        </li>
+        <li class="sess">
+          <button type="button" class="sess-main">
+            <span class="sess-title">会员复购下滑归因</span>
+            <span class="sess-meta"><span>7 轮</span><span class="sess-dot" aria-hidden="true"></span><span>10 月 08 日</span></span>
+          </button>
+        </li>
+      </ul>
+
+      <div class="rail-health panel">
+        <div class="panel-head">
+          <h2>依赖服务</h2>
+          <span class="status-led" aria-hidden="true"></span>
+        </div>
+        <div class="panel-body">
+          <ul class="engine-list">
+            <li class="engine-row">
+              <span class="engine-k">联网检索</span>
+              <span class="engine-v"><span class="status-led" aria-hidden="true"></span>Tavily 2.4</span>
+            </li>
+            <li class="engine-row">
+              <span class="engine-k">知识库</span>
+              <span class="engine-v"><span class="status-led" aria-hidden="true"></span>RAGFlow</span>
+            </li>
+            <li class="engine-row">
+              <span class="engine-k">运营库</span>
+              <span class="engine-v"><span class="status-led" aria-hidden="true"></span>MySQL 8.0</span>
+            </li>
+            <li class="engine-row">
+              <span class="engine-k">推送通道</span>
+              <span class="engine-v"><span class="status-led is-busy" aria-hidden="true"></span>WS 活跃</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ============================ 中栏：对话 ============================ -->
+    <main class="pane">
+      <div class="pane-inner">
+        <div class="stream">
+
+          <!-- ---------- 状态演示：首屏加载骨架 ---------- -->
+          <article class="msg msg-bot">
+            <div class="msg-avatar bot" aria-hidden="true">AG</div>
+            <div class="msg-body">
+              <span class="eyebrow">状态演示 · 首屏加载骨架</span>
+              <div class="sk-stack" aria-hidden="true">
+                <span class="sk is-title"></span>
+                <span class="sk"></span>
+                <span class="sk is-mid"></span>
+                <span class="sk is-short"></span>
+              </div>
+              <p class="t-mini sk-now">正在恢复会话与调度记录…</p>
+              <div class="note">
+                <span class="eyebrow">设计说明</span>
+                <p>打开已有会话时先渲染与最终答案同构的骨架：轨迹标题、正文行一次到位，内容返回后只替换灰条、不回跳布局。加载文案说明当前动作，用户知道系统在工作，而不是卡死。</p>
+              </div>
+            </div>
+          </article>
+
+          <!-- ---------- 欢迎空态 ---------- -->
+          <section class="welcome">
+            <span class="eyebrow">联网调研智能体 · 统一入口</span>
+            <h2 class="t-h1">可以从这四类任务开始</h2>
+            <p class="t-lead">主智能体判断意图后调度子智能体协作执行，过程实时推送到这一栏，不另开页面。</p>
+
+            <div class="starter-grid">
+              <button type="button" class="starter">
+                <span class="starter-ic"><svg class="ic" aria-hidden="true"><use href="#i-db"></use></svg></span>
+                <span class="starter-body">
+                  <span class="starter-title">数据库查询</span>
+                  <span class="starter-ex">查一下线上服务近 7 天的错误率，按端口拆开</span>
+                </span>
+              </button>
+
+              <button type="button" class="starter">
+                <span class="starter-ic"><svg class="ic" aria-hidden="true"><use href="#i-search"></use></svg></span>
+                <span class="starter-body">
+                  <span class="starter-title">联网调研</span>
+                  <span class="starter-ex">调研 2026 年连锁餐饮供应链的头部玩家格局</span>
+                </span>
+              </button>
+
+              <button type="button" class="starter">
+                <span class="starter-ic"><svg class="ic" aria-hidden="true"><use href="#i-doc"></use></svg></span>
+                <span class="starter-body">
+                  <span class="starter-title">文件分析</span>
+                  <span class="starter-ex">分析我上传的门店日报 CSV，找出环比下降的门店</span>
+                </span>
+              </button>
+
+              <button type="button" class="starter">
+                <span class="starter-ic"><svg class="ic" aria-hidden="true"><use href="#i-agent"></use></svg></span>
+                <span class="starter-body">
+                  <span class="starter-title">知识库检索</span>
+                  <span class="starter-ex">按知识库里的开店审核 SOP 回答我的具体问题</span>
+                </span>
+              </button>
+            </div>
+          </section>
+
+          <!-- ---------- 一轮真实对话 ---------- -->
+          <article class="msg msg-user">
+            <div class="msg-avatar me" aria-hidden="true">ME</div>
+            <div class="msg-body">
+              <p>调研一下现制茶饮供应链在今年的格局：头部品牌的原料来源集中在哪几个产区，去年到今年有哪些明显的成本变化？最后给一份能直接发给投资部的报告。</p>
+              <p class="msg-time">16:04:52</p>
+            </div>
+          </article>
+
+          <article class="msg msg-bot">
+            <div class="msg-avatar bot" aria-hidden="true">AG</div>
+            <div class="msg-body">
+
+              <!-- 结构化调度轨迹：助手名 / 工具名 / 参数摘要 / 耗时 -->
+              <div class="trace" aria-label="调度轨迹">
+                <div class="trace-hd">
+                  <span>调度轨迹 · 多智能体协作</span>
+                  <span class="mono">5 个节点 · 约 12 s</span>
+                </div>
+
+                <div class="trace-step">
+                  <span class="trace-dot done" aria-hidden="true"></span>
+                  <span class="trace-name">
+                    <span class="agent-chip">主智能体</span>
+                    <span class="trace-tool mono">意图路由 · 置信 0.93 · 判定为调研任务</span>
+                  </span>
+                  <span class="trace-time">0.4 s</span>
+                </div>
+
+                <div class="trace-step">
+                  <span class="trace-dot done" aria-hidden="true"></span>
+                  <span class="trace-name">
+                    <span class="agent-chip">research_planner</span>
+                    <span class="tool-chip"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-search"></use></svg>web_search</span>
+                    <span class="trace-args mono">provider=Tavily · query=「现制茶饮 原料产区 供应链 格局 2026」 · max_results=8 · depth=advanced</span>
+                  </span>
+                  <span class="trace-time">6.2 s</span>
+                </div>
+
+                <div class="trace-step">
+                  <span class="trace-dot done" aria-hidden="true"></span>
+                  <span class="trace-name">
+                    <span class="agent-chip">data_analyst</span>
+                    <span class="tool-chip"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-db"></use></svg>sql_query</span>
+                    <span class="trace-args mono">db=ops_prod · sql=SELECT 品牌, 产区, 采购均价 FROM 供应链台账 WHERE 年份 BETWEEN 2025 AND 2026 · 只读副本</span>
+                  </span>
+                  <span class="trace-time">1.8 s</span>
+                </div>
+
+                <div class="trace-step">
+                  <span class="trace-dot done" aria-hidden="true"></span>
+                  <span class="trace-name">
+                    <span class="agent-chip">report_writer</span>
+                    <span class="tool-chip"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-doc"></use></svg>compose_pdf</span>
+                    <span class="trace-args mono">template=research_v2 · refs=11 · format=A4 · 18 页</span>
+                  </span>
+                  <span class="trace-time">3.1 s</span>
+                </div>
+
+                <div class="trace-step">
+                  <span class="trace-dot run" aria-hidden="true"></span>
+                  <span class="trace-name">
+                    <span class="agent-chip">主智能体</span>
+                    <span class="tool-chip">answer_stream</span>
+                    <span class="trace-args mono">正在输出结论段落，已接收 128 个 chunk</span>
+                  </span>
+                  <span class="trace-time">进行中</span>
+                </div>
+              </div>
+
+              <div class="prose">
+                <h3>产区格局</h3>
+                <p>头部品牌的原料采购已从单一主产区转向双中心结构：云贵两地承担茶叶与糖类的稳定供应，广西承担鲜果与糖浆的短链供应。两地的差别不只体现在价格，还体现在到货周期。</p>
+
+                <h3>成本变化</h3>
+                <ul>
+                  <li>茶叶：去年到今年采购均价上行，主因是中高端毛尖的产地收购竞争加剧。</li>
+                  <li>糖浆与包材：受制于包装材料的统一采购价，变化幅度小于茶叶。</li>
+                  <li>鲜果：短链直采比例提升后，到货损耗下降，但单批次采购成本波动更大。</li>
+                </ul>
+
+                <h3>结论</h3>
+                <p>成本压力目前集中在茶叶单一品类。若要压住整体毛利，更有效的做法是调整品类结构，把原料波动控制在 1 个大类以内<span class="cursor" aria-hidden="true"></span></p>
+              </div>
+
+              <div class="artifacts">
+                <div class="artifacts-hd">
+                  <span class="artifacts-title">
+                    <svg class="ic" aria-hidden="true"><use href="#i-doc"></use></svg>
+                    本轮已产出 2 个文件
+                  </span>
+                  <span class="badge badge-info">引用 11 条</span>
+                </div>
+
+                <div class="artifact-row">
+                  <span class="file-kind">PDF</span>
+                  <span class="file-name">现制茶饮供应链格局_2026.pdf</span>
+                  <span class="file-meta">2.4 MB</span>
+                </div>
+                <div class="artifact-row">
+                  <span class="file-kind">CSV</span>
+                  <span class="file-name">品牌产区映射.csv</span>
+                  <span class="file-meta">64 KB</span>
+                </div>
+
+                <p class="artifacts-foot">report_writer 在正文写完前就已渲染完报告，所以文件先于正文出现在右栏。完整清单见右侧会话文件面板。</p>
+              </div>
+
+              <div class="msg-foot">
+                <span>已调度 3 个子智能体</span><span class="sep" aria-hidden="true"></span>
+                <span>工具调用 3 次</span><span class="sep" aria-hidden="true"></span>
+                <span>联网来源 11 · 内部数据 1 组</span>
+              </div>
+
+              <div class="msg-actions">
+                <button type="button" class="btn btn-ghost">导出结论为 Markdown</button>
+                <button type="button" class="btn btn-ghost">重新调度</button>
+              </div>
+
+              <div class="note">
+                <span class="eyebrow">设计说明</span>
+                <p>原稿把工具调用直接渲染成原始 JSON。这里改成四列结构：谁在调、调了什么工具、参数摘要、耗时，节点状态用同一套状态点表达。参数只给摘要，不铺开整段 payload。</p>
+              </div>
+            </div>
+          </article>
+
+          <!-- ---------- 状态演示 · 搜索执行完但 0 条结果（中性，不是错误） ---------- -->
+          <article class="msg msg-user">
+            <div class="msg-avatar me" aria-hidden="true">ME</div>
+            <div class="msg-body">
+              <p>查一下「甜啦啦」在淄博的门店外卖评分，只取本周数据。</p>
+              <p class="msg-time">16:12:03</p>
+            </div>
+          </article>
+
+          <article class="msg msg-bot">
+            <div class="msg-avatar bot" aria-hidden="true">AG</div>
+            <div class="msg-body">
+
+              <div class="trace" aria-label="调度轨迹">
+                <div class="trace-hd">
+                  <span>调度轨迹 · 多智能体协作</span>
+                  <span class="mono">3 个节点 · 约 2 s</span>
+                </div>
+                <div class="trace-step">
+                  <span class="trace-dot done" aria-hidden="true"></span>
+                  <span class="trace-name">
+                    <span class="agent-chip">主智能体</span>
+                    <span class="trace-tool mono">意图路由 · 判定为联网调研</span>
+                  </span>
+                  <span class="trace-time">0.3 s</span>
+                </div>
+                <div class="trace-step">
+                  <span class="trace-dot done" aria-hidden="true"></span>
+                  <span class="trace-name">
+                    <span class="agent-chip">research_planner</span>
+                    <span class="tool-chip"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-search"></use></svg>web_search</span>
+                    <span class="trace-args mono">provider=Tavily · query=「甜啦啦 淄博 外卖评分 本周」 · max_results=8 · 返回 0 条</span>
+                  </span>
+                  <span class="trace-time">1.6 s</span>
+                </div>
+                <div class="trace-step">
+                  <span class="trace-dot skip" aria-hidden="true"></span>
+                  <span class="trace-name">
+                    <span class="agent-chip">report_writer</span>
+                    <span class="trace-tool mono">无来源可综合，停止写作，未产生正文</span>
+                  </span>
+                  <span class="trace-time">—</span>
+                </div>
+              </div>
+
+              <div class="empty">
+                <h2>搜索完成，返回 0 条结果</h2>
+                <p>这次搜索没有返回任何网页结果，链路本身正常。多半是关键词叠加太窄（品牌、城市、平台、时间四层全限定）。放宽一到两层再搜，或改用知识库检索。</p>
+                <div class="empty-actions">
+                  <button type="button" class="btn">放宽关键词重试</button>
+                  <button type="button" class="btn btn-ghost">
+                    <svg class="ic" aria-hidden="true"><use href="#i-db"></use></svg>改用知识库检索
+                  </button>
+                </div>
+              </div>
+
+              <div class="note">
+                <span class="eyebrow">设计说明</span>
+                <p>「0 条结果」不是错误：搜索正常完成，只是没有命中。用中性空态表达，并给出放宽问法 / 换检索源两条出路；警告色的语义只留给真正的失败。</p>
+              </div>
+            </div>
+          </article>
+
+          <!-- ---------- 状态演示 · 搜索失败（错误与正文分离 + 重试） ---------- -->
+          <article class="msg msg-user">
+            <div class="msg-avatar me" aria-hidden="true">ME</div>
+            <div class="msg-body">
+              <p>再查一下 2026 年现制茶饮品牌出海东南亚的政策限制。</p>
+              <p class="msg-time">16:14:20</p>
+            </div>
+          </article>
+
+          <article class="msg msg-bot">
+            <div class="msg-avatar bot" aria-hidden="true">AG</div>
+            <div class="msg-body">
+
+              <div class="panel err">
+                <div class="panel-head">
+                  <h2>搜索失败</h2>
+                  <span class="badge badge-warn">
+                    <svg class="ic ic-sm" aria-hidden="true"><use href="#i-warn"></use></svg>
+                    SEARCH FAILED
+                  </span>
+                </div>
+                <div class="panel-body">
+                  <p>本次搜索调用失败，本轮调研已中止；错误只出现在这块面板里，不会被拼进任何结论。失败原因在检索服务一侧，与问法无关。</p>
+                  <dl class="kv kv-spaced">
+                    <dt>故障组件</dt>
+                    <dd>web_search · Tavily</dd>
+                    <dt>返回状态</dt>
+                    <dd class="mono">HTTP 502 · 自动退避重试 2 次后仍失败</dd>
+                    <dt>请求 ID</dt>
+                    <dd class="mono">rs-2026-10-14-7d21</dd>
+                    <dt>重试预期</dt>
+                    <dd>同一条问法直接重试，无需重新输入</dd>
+                  </dl>
+                  <div class="err-actions">
+                    <button type="button" class="btn btn-primary">重试这次搜索</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="note">
+                <span class="eyebrow">设计说明</span>
+                <p>搜索失败时答案区保持空白：错误与正文分属两块区域，重试按钮重发的就是用户刚问的那句，不需要回忆或重打。</p>
+              </div>
+            </div>
+          </article>
+
+          <!-- ---------- 状态演示 · Tavily 不可用（错误 + 重试 + 降级建议） ---------- -->
+          <article class="msg msg-user">
+            <div class="msg-avatar me" aria-hidden="true">ME</div>
+            <div class="msg-body">
+              <p>帮我看看最近有没有关于低温奶赛道的新政策。</p>
+              <p class="msg-time">16:16:44</p>
+            </div>
+          </article>
+
+          <article class="msg msg-bot">
+            <div class="msg-avatar bot" aria-hidden="true">AG</div>
+            <div class="msg-body">
+
+              <div class="panel err">
+                <div class="panel-head">
+                  <h2>联网检索服务不可用</h2>
+                  <span class="badge badge-warn">
+                    <svg class="ic ic-sm" aria-hidden="true"><use href="#i-warn"></use></svg>
+                    TAVILY UNREACHABLE
+                  </span>
+                </div>
+                <div class="panel-body">
+                  <p>联网检索工具（Tavily）连接失败，本轮调研没有执行，也没有生成结论。影响范围只有联网检索一条链路。</p>
+                  <dl class="kv kv-spaced">
+                    <dt>中断阶段</dt>
+                    <dd>web_search 调用前的连通性探测</dd>
+                    <dt>错误</dt>
+                    <dd class="mono">connect ECONNREFUSED · 等待 30 s 超时</dd>
+                    <dt>不受影响</dt>
+                    <dd>知识库检索 · 数据库查询</dd>
+                    <dt>建议</dt>
+                    <dd>暂用知识库检索，稍后再试联网</dd>
+                  </dl>
+                  <div class="err-actions">
+                    <button type="button" class="btn btn-primary">重试联网检索</button>
+                    <button type="button" class="btn btn-ghost">
+                      <svg class="ic" aria-hidden="true"><use href="#i-db"></use></svg>改用知识库检索
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="note">
+                <span class="eyebrow">设计说明</span>
+                <p>工具级故障要给降级出口：联网不可用时说明「什么还能用」，而不是让整条链路一起失败。重试与降级两个按钮并列，由用户决定先走哪条。</p>
+              </div>
+            </div>
+          </article>
+
+          <!-- ---------- 状态演示 · PDF 生成失败（Markdown 已保留 + 重试） ---------- -->
+          <article class="msg msg-user">
+            <div class="msg-avatar me" aria-hidden="true">ME</div>
+            <div class="msg-body">
+              <p>把结论压缩成一页纸，导出 PDF 给投委会。</p>
+              <p class="msg-time">16:18:31</p>
+            </div>
+          </article>
+
+          <article class="msg msg-bot">
+            <div class="msg-avatar bot" aria-hidden="true">AG</div>
+            <div class="msg-body">
+
+              <div class="panel err">
+                <div class="panel-head">
+                  <h2>PDF 报告生成失败</h2>
+                  <span class="badge badge-warn">
+                    <svg class="ic ic-sm" aria-hidden="true"><use href="#i-warn"></use></svg>
+                    COMPOSE FAILED
+                  </span>
+                </div>
+                <div class="panel-body">
+                  <p>排版引擎在压缩固定页高时分页失败，PDF 没有产出。这不是内容问题 —— 正文的 Markdown 版本已经生成完毕并保留在会话文件里，可以直接交付，或换模板重试。</p>
+                  <dl class="kv kv-spaced">
+                    <dt>失败阶段</dt>
+                    <dd>compose_pdf · 固定页高排版（一页纸模板）</dd>
+                    <dt>错误</dt>
+                    <dd class="mono">LayoutOverflowError · 表格溢出固定页高</dd>
+                    <dt>已保留产物</dt>
+                    <dd>调研笔记_数据来源.md · 38 KB</dd>
+                  </dl>
+                  <div class="err-actions">
+                    <button type="button" class="btn btn-primary">重试生成 PDF</button>
+                    <button type="button" class="btn btn-ghost">
+                      <svg class="ic" aria-hidden="true"><use href="#i-ext"></use></svg>先导出 Markdown
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="artifacts">
+                <div class="artifacts-hd">
+                  <span class="artifacts-title">
+                    <svg class="ic" aria-hidden="true"><use href="#i-doc"></use></svg>
+                    已保留 1 个文件
+                  </span>
+                  <span class="badge">PDF 失败不影响它</span>
+                </div>
+                <div class="artifact-row">
+                  <span class="file-kind">MD</span>
+                  <span class="file-name">调研笔记_数据来源.md</span>
+                  <span class="file-meta">38 KB · 11 条来源链接</span>
+                </div>
+              </div>
+
+              <div class="note">
+                <span class="eyebrow">设计说明</span>
+                <p>报告生成的失败只炸掉「PDF」这一步：Markdown 是上游产物，已经落盘就必须原样保留，并在这块卡里明确可见。重试只重跑 PDF 排版，不会连带重新检索或重写正文。</p>
+              </div>
+            </div>
+          </article>
+
+        </div>
+
+        <!-- ---------- 流式状态条 ---------- -->
+        <div class="streambar">
+          <div class="streambar-in">
+            <div class="streambar-left">
+              <span class="status-led is-busy" aria-hidden="true"></span>
+              <span class="streambar-text">正在生成结论段落</span>
+              <span class="streambar-stat mono">1,842 字 · 46 字/秒 · chunk 128</span>
+            </div>
+            <div class="streambar-actions">
+              <button type="button" class="btn btn-ghost">导出本轮</button>
+              <button type="button" class="btn">
+                <span class="stop-glyph" aria-hidden="true"></span>停止生成
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ============================ 右栏：会话文件 ============================ -->
+    <aside class="aside" aria-label="会话文件">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>会话文件</h2>
+          <span class="badge">3</span>
+        </div>
+        <div class="panel-body">
+          <ul class="file-list">
+            <li class="file-item">
+              <span class="file-kind">PDF</span>
+              <div class="file-body">
+                <span class="file-name">现制茶饮供应链格局_2026.pdf</span>
+                <span class="file-meta">2.4 MB · 18 页 · 11 条引用</span>
+                <span class="file-actions">
+                  <button type="button" class="btn btn-ghost btn-sm">
+                    <svg class="ic" aria-hidden="true"><use href="#i-ext"></use></svg>导出
+                  </button>
+                  <button type="button" class="btn btn-ghost btn-sm">
+                    <svg class="ic" aria-hidden="true"><use href="#i-doc"></use></svg>预览
+                  </button>
+                </span>
+              </div>
+            </li>
+
+            <li class="file-item">
+              <span class="file-kind">MD</span>
+              <div class="file-body">
+                <span class="file-name">调研笔记_数据来源.md</span>
+                <span class="file-meta">38 KB · 11 条来源链接</span>
+                <span class="file-actions">
+                  <button type="button" class="btn btn-ghost btn-sm">
+                    <svg class="ic" aria-hidden="true"><use href="#i-ext"></use></svg>导出
+                  </button>
+                </span>
+              </div>
+            </li>
+
+            <li class="file-item">
+              <span class="file-kind">CSV</span>
+              <div class="file-body">
+                <span class="file-name">品牌产区映射.csv</span>
+                <span class="file-meta">64 KB · 9 行 · 来自 ops_prod</span>
+                <span class="file-actions">
+                  <button type="button" class="btn btn-ghost btn-sm">
+                    <svg class="ic" aria-hidden="true"><use href="#i-ext"></use></svg>导出
+                  </button>
+                </span>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>文件规则</h2></div>
+        <div class="panel-body">
+          <div class="empty empty-compact">
+            <svg class="ic ic-lg" aria-hidden="true"><use href="#i-doc"></use></svg>
+            <h3>要求 AI 生成报告后会显示在这里</h3>
+            <p>新文件生成完成即时追加到本列表顶部，带类型、大小与导出入口。文件跟随会话保存，会话删除后一并清理。</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script src="icons.js" defer></script>
+<script>
+  (function () {
+    function sync() {
+      var el = document.getElementById('themeLabel');
+      if (!el) return;
+      el.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? 'LIGHT' : 'DARK';
+    }
+    document.addEventListener('click', function (e) {
+      if (e.target && e.target.closest && e.target.closest('#themeBtn')) setTimeout(sync, 0);
+    });
+    sync();
+  })();
+</script>
+</body>
+</html>

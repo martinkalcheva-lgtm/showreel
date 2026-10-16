@@ -1,10 +1,9 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import KbChatPanel from './KbChatPanel.vue'
 import ImportPanel from './ImportPanel.vue'
-import ChatPanel from './ChatPanel.vue'
 import {
   getSessionId,
-  newSessionId,
   submitQuery,
   openStream,
   fetchHistory,
@@ -16,28 +15,63 @@ import {
 const messages = ref([])
 const busy = ref(false)
 const health = ref(false)
-const sidebarOpen = ref(true)
+const streamOn = ref(true)
+const drawerOpen = ref(false)
+
+const THEME_KEY = 'kb-theme'
+const theme = ref('light')
 
 let es = null
 let sessionId = getSessionId()
 let healthTimer = null
 
 onMounted(() => {
+  try {
+    theme.value = localStorage.getItem(THEME_KEY) || 'light'
+  } catch (e) {
+    /* 隐私模式下 localStorage 不可用，保持默认 */
+  }
   checkHealth().then((v) => (health.value = v))
   healthTimer = setInterval(async () => {
     health.value = await checkHealth()
   }, 30000)
   loadHistory()
+  document.addEventListener('keydown', onKeydown)
 })
 
 onUnmounted(() => {
   if (es) es.close()
   if (healthTimer) clearInterval(healthTimer)
+  document.removeEventListener('keydown', onKeydown)
 })
+
+function onKeydown(e) {
+  if (e.key === 'Escape' && drawerOpen.value) drawerOpen.value = false
+}
+
+function toggleTheme() {
+  theme.value = theme.value === 'dark' ? 'light' : 'dark'
+  try {
+    localStorage.setItem(THEME_KEY, theme.value)
+  } catch (e) {
+    /* 忽略 */
+  }
+}
 
 async function loadHistory() {
   const items = await fetchHistory(sessionId)
   if (items.length) messages.value = items
+}
+
+async function onClear() {
+  if (!confirm('确定要清空当前会话的历史记录吗？这将无法恢复。')) return
+  if (es) {
+    es.close()
+    es = null
+  }
+  await clearHistory(sessionId)
+  messages.value = []
+  busy.value = false
 }
 
 function onSend(text) {
@@ -54,7 +88,6 @@ function onSend(text) {
     error: '',
     streaming: true,
     done: false,
-    markdown: true, // 智库回答走富渲染（粗体/图片），问数模块不受影响
   })
   messages.value.push(ai)
   handleQuery(text, ai)
@@ -62,11 +95,22 @@ function onSend(text) {
 
 async function handleQuery(text, ai) {
   try {
-    const data = await submitQuery(text, sessionId)
+    const data = await submitQuery(text, sessionId, streamOn.value)
     if (data && data.session_id) {
       sessionId = data.session_id
       localStorage.setItem(SESSION_KEY, sessionId)
     }
+
+    // 非流式：/query 直接回完整答案
+    if (!streamOn.value) {
+      ai.stages = Array.isArray(data.done_list) ? data.done_list.map((s) => String(s)) : []
+      ai.text = data.answer || ''
+      ai.error = data.error || ''
+      if (!ai.text && !ai.error) ai.error = '后端未返回答案'
+      finish(ai)
+      return
+    }
+
     es = openStream(sessionId, {
       onProgress(d) {
         const doneList = Array.isArray(d.done_list) ? d.done_list : []
@@ -106,113 +150,114 @@ function finish(ai) {
   ai.current = ''
   busy.value = false
 }
-
-function onNewSession() {
-  if (es) {
-    es.close()
-    es = null
-  }
-  // 先清旧会话历史（DELETE 打到旧 sessionId），再切换到新会话
-  const oldId = sessionId
-  sessionId = newSessionId()
-  messages.value = []
-  busy.value = false
-  clearHistory(oldId)
-}
 </script>
 
 <template>
-  <div class="boss">
-    <div class="boss-body">
-      <aside class="sidebar" :class="{ collapsed: !sidebarOpen }">
-        <div class="sidebar-inner">
+  <div class="kb-root" :data-theme="theme">
+    <header class="kb-top">
+      <div class="kb-brand">
+        <svg class="mark ic-lg" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+          <rect x="12" y="12" width="8" height="8" rx="2" />
+          <rect x="4" y="4" width="4" height="4" rx="1" />
+          <rect x="24" y="4" width="4" height="4" rx="1" />
+          <rect x="4" y="24" width="4" height="4" rx="1" />
+          <rect x="24" y="24" width="4" height="4" rx="1" />
+        </svg>
+        <h1>Boss智库</h1>
+        <span class="sub">KB AGENT · RAG</span>
+      </div>
+
+      <div class="kb-actions">
+        <span class="badge" :class="health ? 'badge-online' : 'badge-offline'">
+          <span class="status-led" :class="{ 'is-off': !health }"></span>
+          {{ health ? 'API 已连接' : 'API 未连接' }}
+        </span>
+
+        <button type="button" class="btn btn-sm" @click="drawerOpen = true">
+          <svg
+            class="ic ic-sm"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M14 3v5h5" />
+            <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+          </svg>
+          <span>文件导入</span>
+        </button>
+
+        <button type="button" class="btn btn-sm btn-ghost" @click="onClear">清空对话</button>
+
+        <button
+          type="button"
+          class="btn btn-sm btn-ghost"
+          :aria-label="theme === 'dark' ? '切换到浅色主题' : '切换到深色主题'"
+          @click="toggleTheme"
+        >
+          {{ theme === 'dark' ? '浅色' : '深色' }}
+        </button>
+      </div>
+    </header>
+
+    <div class="kb-body">
+      <aside class="kb-rail" aria-label="会话设置">
+        <section class="panel">
+          <div class="panel-head"><h2>输出设置</h2></div>
+          <div class="panel-body">
+            <label class="opt-row" for="kb-stream">
+              <input id="kb-stream" v-model="streamOn" type="checkbox" />
+              <span>流式输出</span>
+            </label>
+            <p class="rail-hint">开启后答案逐段推送、阶段进度实时更新；关闭后一次性返回完整答案。</p>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>使用提示</h2></div>
+          <div class="panel-body">
+            <p class="rail-hint">
+              先在「文件导入」上传资料，再回到本页提问。回答展开「阶段进度」可查看服务端处理链路；答案中的图片会随文附上原链接。
+            </p>
+          </div>
+        </section>
+      </aside>
+
+      <main class="kb-pane">
+        <KbChatPanel
+          :messages="messages"
+          :busy="busy"
+          placeholder="基于知识库提问，例如：退货政策是什么？"
+          empty-hint="提示：可以问「退货政策是什么？」"
+          @send="onSend"
+        />
+      </main>
+    </div>
+
+    <Transition name="kb-fade">
+      <div v-if="drawerOpen" class="kb-scrim" @click="drawerOpen = false"></div>
+    </Transition>
+
+    <Transition name="kb-drawer">
+      <aside v-if="drawerOpen" class="kb-drawer" aria-label="文件导入">
+        <div class="kb-drawer-head">
+          <h2>文件导入</h2>
+          <button
+            type="button"
+            class="btn btn-sm btn-ghost btn-icon"
+            aria-label="关闭导入面板"
+            @click="drawerOpen = false"
+          >
+            ✕
+          </button>
+        </div>
+        <div class="kb-drawer-body">
           <ImportPanel />
         </div>
       </aside>
-      <section class="chat-area">
-        <div class="mod-header">
-          <div class="mod-title">Boss智库</div>
-          <div class="header-actions">
-            <div class="conn" :class="health ? 'ok' : 'fail'">
-              <span class="dot"></span>{{ health ? '已连接' : '未连接' }}
-            </div>
-            <button class="btn-ghost" @click="onNewSession">新会话</button>
-            <button class="btn-ghost" @click="sidebarOpen = !sidebarOpen">
-              {{ sidebarOpen ? '收起导入' : '展开导入' }}
-            </button>
-          </div>
-        </div>
-        <div class="chat-card">
-          <ChatPanel
-            :messages="messages"
-            :busy="busy"
-            placeholder="基于知识库提问，例如：退货政策是什么？"
-            empty-hint="把手册、文档、PDF 灌进去，然后用自然语言把它问出来"
-            @send="onSend"
-          />
-        </div>
-      </section>
-    </div>
+    </Transition>
   </div>
 </template>
-
-<style scoped>
-.boss {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.boss-body {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-}
-
-.sidebar {
-  width: 340px;
-  overflow: hidden;
-  background: var(--bg-secondary);
-  border-right: 1px solid var(--border);
-  transition: width 240ms var(--ease);
-  flex: none;
-}
-.sidebar.collapsed {
-  width: 0;
-  border-right: none;
-}
-.sidebar-inner {
-  width: 340px;
-  height: 100%;
-  overflow-y: auto;
-  padding: 12px;
-}
-
-.chat-area {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-/* 聊天窗口卡片：白底圆角阴影，让"窗口"有明确视觉边界 */
-.chat-card {
-  flex: 1;
-  min-height: 0;
-  margin: 0 16px 16px 4px;
-  background: var(--bg-card);
-  border-radius: var(--radius-card);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-card);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.header-actions {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-</style>

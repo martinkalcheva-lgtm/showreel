@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>项目作品集 · 郭怡彤（iOS 版式预览稿）</title>
+<meta name="description" content="iOS 系统配色与分组布局的个人作品集版式预览。">
+<style>
+  /* ── iOS 系统色板 ───────────────────────── */
+  :root {
+    --bg: #F2F2F7;                    /* systemGroupedBackground */
+    --card: #FFFFFF;                  /* secondarySystemGroupedBackground */
+    --fill-2: rgba(118,118,128,.12);  /* systemFill / 分段控件底 */
+    --fill-3: rgba(118,118,128,.08);
+    --label: #1C1C1E;
+    --label-2: rgba(60,60,67,.6);
+    --label-3: rgba(60,60,67,.36);
+    --sep: rgba(60,60,67,.18);
+    --tint: #007AFF;                  /* systemBlue · 主色调 */
+    --tint-ink: #0040DD;
+    --green: #34C759; --orange: #FF9500; --indigo: #5856D6;
+    --red: #FF3B30; --teal: #30B0C7; --pink: #FF2D55;
+    --warn: #B25000; --warn-bg: #FFF4E5;
+    --nav-bg: rgba(249,249,249,.82);
+    --hairline: rgba(60,60,67,.29);
+    --shadow: 0 1px 2px rgba(0,0,0,.04), 0 6px 20px rgba(0,0,0,.05);
+    --r-card: 12px; --r-tile: 14px; --r-btn: 18px;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+      "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #000000; --card: #1C1C1E; --fill-2: rgba(118,118,128,.24); --fill-3: rgba(118,118,128,.18);
+    --label: #FFFFFF; --label-2: rgba(235,235,245,.6); --label-3: rgba(235,235,245,.3);
+    --sep: rgba(84,84,88,.6); --tint: #0A84FF; --tint-ink: #409CFF;
+    --green: #30D158; --orange: #FF9F0A; --indigo: #5E5CE6; --red: #FF453A; --teal: #40C8E0; --pink: #FF375F;
+    --warn: #FF9F0A; --warn-bg: rgba(255,159,10,.14);
+    --nav-bg: rgba(22,22,23,.82); --hairline: rgba(84,84,88,.6);
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.34);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    font-family: var(--font); background: var(--bg); color: var(--label);
+    font-size: 17px; line-height: 1.6; letter-spacing: -.015em;
+    -webkit-font-smoothing: antialiased; transition: background-color .3s ease, color .3s ease;
+  }
+  a { color: inherit; text-decoration: none; }
+  :focus-visible { outline: 3px solid var(--tint); outline-offset: 2px; border-radius: 6px; }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 0 20px; }
+  .cjk { letter-spacing: 0; }
+
+  /* ── 导航栏：毛玻璃 + 大标题收起 ─────────── */
+  .nav {
+    position: fixed; inset: 0 0 auto 0; z-index: 50;
+    background: var(--nav-bg); backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    transition: background-color .3s ease;
+  }
+  .nav::after {
+    content: ""; position: absolute; inset: auto 0 0 0; height: .5px;
+    background: var(--hairline); opacity: 0; transition: opacity .2s ease;
+  }
+  .nav.pinned::after { opacity: 1; }
+  .nav-inner { height: 44px; display: flex; align-items: center; gap: 12px; }
+  .nav-title {
+    font-size: 15px; font-weight: 600; opacity: 0; transform: translateY(6px);
+    transition: opacity .18s ease, transform .18s ease;
+  }
+  .nav.pinned .nav-title { opacity: 1; transform: none; }
+  .nav-right { margin-inline-start: auto; display: flex; align-items: center; gap: 10px; }
+  .nav-link { font-size: 14px; color: var(--tint); }
+  @media (max-width: 600px) { .nav-link.txt { display: none; } }
+
+  /* 分段控件（沿用你现有页面的 iOS 样式） */
+  .seg { display: flex; background: var(--fill-2); border-radius: 9px; padding: 2px; transition: background-color .3s ease; }
+  .seg button {
+    appearance: none; border: 0; cursor: pointer; font: inherit; font-size: 12px; letter-spacing: 0;
+    padding: 4px 11px; border-radius: 7px; color: var(--label-2); background: transparent;
+    transition: background-color .2s ease, color .2s ease, box-shadow .2s ease;
+  }
+  .seg button.active { background: var(--card); color: var(--label); box-shadow: 0 1px 3px rgba(0,0,0,.15); font-weight: 500; }
+  [data-theme="dark"] .seg button.active { background: #636366; color: #fff; }
+
+  /* ── 大标题区 ───────────────────────────── */
+  .titlebar { padding: 76px 0 8px; }
+  .overline { font-family: var(--mono); font-size: 12px; letter-spacing: .1em; color: var(--label-2); margin-bottom: 10px; }
+  .titlebar h1 { font-size: clamp(32px, 7vw, 40px); font-weight: 700; line-height: 1.2; letter-spacing: 0; }
+  .lede { margin-top: 12px; font-size: 17px; color: var(--label-2); max-width: 34em; letter-spacing: 0; }
+
+  /* ── 分组（iOS grouped list） ───────────── */
+  .group { padding-top: 30px; }
+  .g-head {
+    font-size: 13px; color: var(--label-2); letter-spacing: 0; text-transform: none;
+    padding: 0 20px 8px; font-weight: 400;
+  }
+  .g-head b { font-weight: 600; color: var(--label); }
+  .card { background: var(--card); border-radius: var(--r-card); box-shadow: var(--shadow); overflow: hidden; transition: background-color .3s ease; }
+  .pad { padding: 18px 20px; }
+  .pad p + p { margin-top: 12px; }
+  .foot-note { font-size: 13px; color: var(--label-2); padding: 0 20px; margin-top: 8px; letter-spacing: 0; }
+  .foot-note.warn { color: var(--warn); }
+
+  /* 列表行 */
+  .row { display: flex; align-items: center; gap: 14px; padding: 12px 20px; position: relative; min-height: 52px; }
+  .row + .row::before {
+    content: ""; position: absolute; inset: 0 0 auto 20px; height: 1px; background: var(--sep);
+  }
+  .row .lbl { font-size: 17px; color: var(--label); letter-spacing: 0; }
+  .row .val { margin-inline-start: auto; font-size: 17px; color: var(--label-2); text-align: end; letter-spacing: 0; }
+  .row .val a { color: var(--tint); }
+  .chev { color: var(--label-3); font-size: 15px; flex: none; }
+  a.row { transition: background-color .12s ease; }
+  a.row:hover { background: var(--fill-3); }
+
+  /* 图标砖（App 图标质感） */
+  .tile {
+    width: 40px; height: 40px; border-radius: 10px; flex: none;
+    display: grid; place-items: center; font-size: 12px; font-weight: 700; letter-spacing: .02em;
+    color: #fff; background: linear-gradient(180deg, var(--acc, var(--tint)), color-mix(in srgb, var(--acc, var(--tint)) 72%, #000));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.28);
+  }
+  .tile.big { width: 76px; height: 76px; border-radius: var(--r-tile); font-size: 19px; }
+
+  /* 按钮 */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    min-height: 40px; padding: 9px 22px; border: 0; cursor: pointer; font: inherit;
+    font-size: 15px; font-weight: 600; letter-spacing: 0; border-radius: var(--r-btn);
+    background: var(--acc, var(--tint)); color: #fff; transition: transform .15s ease, opacity .15s ease;
+  }
+  .btn:hover { opacity: .88; } .btn:active { transform: scale(.97); }
+  .btn.ghost { background: var(--fill-2); color: var(--acc, var(--tint)); }
+  .btn.ghost:hover { opacity: 1; background: var(--fill-2); filter: brightness(1.06); }
+  .btn.sm { min-height: 32px; padding: 5px 16px; font-size: 14px; border-radius: 14px; }
+  .btns { display: flex; flex-wrap: wrap; gap: 10px; }
+
+  /* 技术标签 */
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chips span {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0; color: var(--label-2);
+    background: var(--fill-2); border-radius: 999px; padding: 4px 11px;
+  }
+
+  /* ── 项目详情 ───────────────────────────── */
+  .project { padding-top: 44px; }
+  .project + .project { margin-top: 20px; border-top: 1px solid var(--sep); }
+  .p-head { display: flex; align-items: center; gap: 16px; padding: 0 20px 16px; }
+  .p-head h3 { font-size: 24px; font-weight: 700; line-height: 1.3; letter-spacing: 0; }
+  .p-head .sub { font-size: 14px; color: var(--label-2); letter-spacing: 0; margin-top: 2px; }
+  .p-head .num { font-family: var(--mono); font-size: 11px; color: var(--label-3); letter-spacing: .1em; }
+  .p-head .btn { margin-inline-start: auto; flex: none; }
+  @media (max-width: 560px) { .p-head { flex-wrap: wrap; } .p-head .btn { margin-inline-start: 0; width: 100%; } }
+
+  .work-list { list-style: none; }
+  .work-list li { display: flex; gap: 14px; padding: 14px 20px; position: relative; font-size: 16px; letter-spacing: 0; }
+  .work-list li + li::before { content: ""; position: absolute; inset: 0 0 auto 20px; height: 1px; background: var(--sep); }
+  .work-list .n { font-family: var(--mono); font-size: 12px; color: var(--acc, var(--tint)); flex: none; width: 20px; padding-top: 4px; font-weight: 600; }
+
+  /* ── 截图轮播（App Store 预览条） ───────── */
+  .rail {
+    display: flex; gap: 14px; overflow-x: auto; padding: 4px 20px 16px;
+    scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .rail::-webkit-scrollbar { display: none; }
+  .shot { flex: none; width: min(78%, 460px); scroll-snap-align: center; }
+  .shot button { display: block; width: 100%; border: 0; background: none; padding: 0; cursor: zoom-in; font: inherit; color: inherit; text-align: start; }
+  .frame {
+    display: block; position: relative; aspect-ratio: 16 / 10; border-radius: 10px; overflow: hidden;
+    background: var(--card); box-shadow: var(--shadow); transition: transform .2s ease;
+  }
+  .shot button:hover .frame { transform: translateY(-2px); }
+  .frame img { width: 100%; height: 100%; object-fit: cover; object-position: top left; display: block; }
+  .zoom {
+    position: absolute; right: 8px; bottom: 8px; font-size: 11px; letter-spacing: 0;
+    padding: 4px 10px; border-radius: 999px; background: rgba(0,0,0,.55); color: #fff;
+    opacity: 0; transition: opacity .18s ease; backdrop-filter: blur(6px);
+  }
+  .shot button:hover .zoom, .shot button:focus-visible .zoom { opacity: 1; }
+  .shot figcaption { font-size: 13px; color: var(--label-2); padding: 9px 2px 0; letter-spacing: 0; }
+  .hint { display: flex; justify-content: space-between; align-items: center; padding: 0 20px 10px; font-size: 13px; color: var(--label-3); letter-spacing: 0; }
+
+  /* 占位线框（换成真截图后整段删掉） */
+  .mock { position: absolute; inset: 0; background: var(--card); display: flex; }
+  .mock .side { width: 26%; background: var(--fill-3); border-inline-end: 1px solid var(--sep); padding: 12px; display: grid; align-content: start; gap: 8px; }
+  .mock .side i { display: block; height: 8px; border-radius: 4px; background: var(--fill-2); }
+  .mock .side i:nth-child(2) { width: 72%; background: var(--acc, var(--tint)); opacity: .55; }
+  .mock .side i:nth-child(4) { width: 86%; }
+  .mock .main { flex: 1; padding: 14px; display: grid; align-content: start; gap: 9px; }
+  .mock .main i { display: block; height: 8px; border-radius: 4px; background: var(--fill-2); }
+  .mock .main i:nth-child(1) { width: 38%; height: 12px; }
+  .mock .main b { display: block; width: 54%; margin-inline-start: auto; height: 26px; border-radius: 13px 13px 3px 13px; background: color-mix(in srgb, var(--acc, var(--tint)) 16%, transparent); }
+  .mock .main b + b { width: 68%; margin-inline-start: 0; background: var(--fill-2); }
+  .mock .tag {
+    position: absolute; left: 10px; top: 10px; font-family: var(--mono); font-size: 10px;
+    color: var(--warn); background: var(--warn-bg); border: 1px dashed var(--orange);
+    border-radius: 6px; padding: 2px 7px; letter-spacing: 0;
+  }
+
+  /* ── 全屏看图（iOS 图片查看器） ─────────── */
+  .lb { position: fixed; inset: 0; z-index: 80; display: none; place-items: center; background: #000; padding: 6vh 5vw; }
+  .lb.on { display: grid; }
+  .lb-box { width: 100%; max-width: 1000px; }
+  .lb-img { border-radius: 10px; overflow: hidden; background: #1c1c1e; }
+  .lb-img .frame { position: relative; aspect-ratio: 16 / 10; box-shadow: none; }
+  .lb-bar { display: flex; align-items: center; gap: 14px; margin-top: 16px; color: #fff; }
+  .lb-cap { font-size: 14px; letter-spacing: 0; }
+  .lb-idx { font-family: var(--mono); font-size: 12px; color: rgba(255,255,255,.5); margin-inline-start: auto; }
+  .lb button {
+    appearance: none; border: 0; background: rgba(255,255,255,.16); color: #fff; font: inherit;
+    font-size: 14px; letter-spacing: 0; border-radius: 14px; padding: 7px 16px; cursor: pointer;
+  }
+  .lb button:hover { background: rgba(255,255,255,.26); }
+
+  footer { margin-top: 56px; padding: 24px 0 48px; }
+  .foot { display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: center; font-size: 13px; color: var(--label-3); letter-spacing: 0; text-align: center; }
+  .foot a:hover { color: var(--tint); }
+
+  .reveal { opacity: 0; transform: translateY(16px); transition: opacity .24s ease-out, transform .24s ease-out; }
+  .reveal.in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } .shot button:hover .frame { transform: none; } }
+</style>
+</head>
+<body>
+
+<header class="nav" id="nav">
+  <div class="wrap nav-inner">
+    <span class="nav-title cjk">项目作品集</span>
+    <div class="nav-right">
+      <a class="nav-link" href="https://github.com/martinkalcheva-lgtm/showreel" target="_blank" rel="noopener">GitHub</a>
+      <div class="seg" role="group" aria-label="外观切换">
+        <button type="button" class="active" data-theme="light">浅色</button>
+        <button type="button" data-theme="dark">深色</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="titlebar" id="top">
+    <p class="overline">GUO YITONG · PORTFOLIO 2026</p>
+    <h1 class="cjk">项目作品集</h1>
+    <p class="lede cjk">以 Python 后端与 AI 应用编排为核心：知识库问答、电商运营智能体、客服会话系统，三个项目均已上线，可直接进入在线演示。</p>
+  </div>
+  <div id="titleSentinel"></div>
+
+  <!-- 概览 -->
+  <section class="group reveal" aria-labelledby="ov-h">
+    <h2 class="g-head cjk" id="ov-h">概览</h2>
+    <div class="card">
+      <div class="row"><span class="lbl cjk">方向</span><span class="val cjk">AI 应用 / 全栈开发</span></div>
+      <div class="row"><span class="lbl cjk">已上线项目</span><span class="val cjk">3 个</span></div>
+      <div class="row"><span class="lbl cjk">在线演示</span><span class="val cjk"><a href="http://62.234.56.90/" target="_blank" rel="noopener">62.234.56.90 ›</a></span></div>
+      <div class="row"><span class="lbl cjk">联系</span><span class="val cjk"><a href="mailto:you@example.com">you@example.com</a></span></div>
+    </div>
+    <p class="foot-note warn cjk">邮箱为占位，待你确认</p>
+  </section>
+
+  <!-- 项目导航 -->
+  <section class="group reveal" aria-labelledby="pj-h">
+    <h2 class="g-head cjk" id="pj-h">项目</h2>
+    <div class="card">
+      <a class="row" href="#p1">
+        <span class="tile" style="--acc: var(--tint)">BOSS</span>
+        <span><span class="lbl cjk" style="display:block">问数与智库</span><span class="sub cjk" style="font-size:13px;color:var(--label-2)">智能知识库 / 数据问答</span></span>
+        <span class="chev" aria-hidden="true">›</span>
+      </a>
+      <a class="row" href="#p2">
+        <span class="tile" style="--acc: var(--orange)">EC</span>
+        <span><span class="lbl cjk" style="display:block">电商运营助手</span><span class="sub cjk" style="font-size:13px;color:var(--label-2)">运营场景智能体</span></span>
+        <span class="chev" aria-hidden="true">›</span>
+      </a>
+      <a class="row" href="#p3">
+        <span class="tile" style="--acc: var(--green)">SK</span>
+        <span><span class="lbl cjk" style="display:block">智能客服系统</span><span class="sub cjk" style="font-size:13px;color:var(--label-2)">会话与话术管理</span></span>
+        <span class="chev" aria-hidden="true">›</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- ══════════ 01 ══════════ -->
+  <article class="project reveal" id="p1" style="--acc: var(--tint)">
+    <div class="card">
+      <div class="p-head">
+        <span class="tile big">BOSS</span>
+        <div>
+          <p class="num">01</p>
+          <h3 class="cjk">问数与智库</h3>
+          <p class="sub cjk">智能知识库 / 数据问答系统</p>
+        </div>
+        <a class="btn cjk" href="http://62.234.56.90:5173/" target="_blank" rel="noopener">打开演示</a>
+      </div>
+    </div>
+
+    <section class="group">
+      <h2 class="g-head cjk">项目介绍</h2>
+      <div class="card pad">
+        <p class="cjk">基于 LangGraph + FastAPI + SSE 的智能知识库系统：构建 meta 知识库，问答流程按节点流转，进度通过 SSE 实时流式推送到前端；底层接入 MySQL、Qdrant、Elasticsearch，统一以异步 repository 模式封装数据访问。</p>
+        <div class="chips" style="margin-top:16px"><span>Python</span><span>LangGraph</span><span>FastAPI</span><span>SSE</span><span>Qdrant</span><span>Elasticsearch</span><span>MySQL</span><span>Vue 3</span></div>
+      </div>
+      <p class="foot-note warn cjk">简介沿用现有页面草稿，定稿前需你确认</p>
+    </section>
+
+    <section class="group">
+      <h2 class="g-head cjk">主要工作</h2>
+      <div class="card">
+        <ul class="work-list">
+          <li><span class="n">01</span><span class="cjk">设计问答流程的节点化编排，把检索、改写、生成拆成可观测的图节点，单步失败可定位到节点而不是整条链路。</span></li>
+          <li><span class="n">02</span><span class="cjk">用 SSE 把阶段进度实时推给前端，答案逐段返回，首字等待时间明显下降。</span></li>
+          <li><span class="n">03</span><span class="cjk">按场景选型存储：结构化数据走 MySQL，向量召回走 Qdrant，关键词检索走 Elasticsearch，统一封装异步 repository 访问层。</span></li>
+          <li><span class="n">04</span><span class="cjk">实现文件导入与知识库构建闭环，支持文档上传、切分入库与问答来源回显。</span></li>
+        </ul>
+      </div>
+      <p class="foot-note warn cjk">以上四条为 AI 草拟，需你逐条核对再定稿</p>
+    </section>
+
+    <section class="group">
+      <h2 class="g-head cjk">界面演示</h2>
+      <div class="card">
+        <p class="hint cjk"><span>智能问数 · 3 张</span><span>左右滑动 ›</span></p>
+        <div class="rail" data-album="问数与智库 · 智能问数">
+          <figure class="shot"><button type="button" data-cap="智能问数 · 节点化流程进度与查询结果"><span class="frame" style="aspect-ratio: 1870/987"><img src="assets/p1-wenshu-sql.png" alt="Boss 工作台智能问数：抽取关键字到执行 SQL 的节点进度与五行的区域销量结果表" loading="eager" decoding="async" width="1870" height="987"><span class="zoom">查看大图</span></span></button><figcaption class="cjk">智能问数 · 节点化流程进度与查询结果</figcaption></figure>
+          <figure class="shot"><button type="button" data-cap="查询结果 · 分条结论与汇总"><span class="frame"><span class="mock"><span class="tag">截图位</span><span class="side"><i></i><i></i><i></i><i></i><i></i></span><span class="main"><i></i><i></i><b></b><b></b><i></i></span></span><span class="zoom">查看大图</span></span></button><figcaption class="cjk">查询结果 · 分条结论与汇总</figcaption></figure>
+          <figure class="shot"><button type="button" data-cap="历史会话与多轮追问"><span class="frame"><span class="mock"><span class="tag">截图位</span><span class="side"><i></i><i></i><i></i><i></i><i></i></span><span class="main"><i></i><b></b><b></b><i></i><i></i></span></span><span class="zoom">查看大图</span></span></button><figcaption class="cjk">历史会话与多轮追问</figcaption></figure>
+        </div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <p class="hint cjk"><span>智库问答 · 3 张</span><span>左右滑动 ›</span></p>
+        <div class="rail" data-album="问数与智库 · 智库问答">
+          <figure class="shot"><button type="button" data-cap="Boss 智库 · 流式问答与文件导入入口"><span class="frame" style="aspect-ratio: 1906/1010"><img src="assets/p1-zhiku-chat.png" alt="Boss 智库问答页：左侧输出设置与使用提示，右侧知识库客服欢迎语与提问输入框" loading="lazy" decoding="async" width="1906" height="1010"><span class="zoom">查看大图</span></span></button><figcaption class="cjk">Boss 智库 · 流式问答与文件导入入口</figcaption></figure>
+          <figure class="shot"><button type="button" data-cap="文件导入 · 知识库构建"><span class="frame"><span class="mock"><span class="tag">截图位</span><span class="side"><i></i><i></i><i></i><i></i><i></i></span><span class="main"><i></i><i></i><i></i><b></b><i></i></span></span><span class="zoom">查看大图</span></span></button><figcaption class="cjk">文件导入 · 知识库构建</figcaption></figure>
+          <figure class="shot"><button type="button" data-cap="答案来源回显与深色模式"><span class="frame"><span class="mock"><span class="tag">截图位</span><span class="side"><i></i><i></i><i></i><i></i><i></i></span><span class="main"><i></i><b></b><i></i><i></i><i></i></span></span><span class="zoom">查看大图</span></span></button><figcaption class="cjk">答案来源回显与深色模式</figcaption></figure>
+        </div>
+      </div>
+      <div class="btns" style="padding:14px 0 0">
+        <a class="btn ghost cjk" href="http://62.234.56.90:7954/chat.html" target="_blank" rel="noopener">智库问答</a>
+        <a class="btn ghost cjk" href="https://github.com/martinkalcheva-lgtm/showreel" target="_blank" rel="noopener">GitHub 源代码</a>
+      </div>
+    </section>
+  </article>
+
+  <!-- ══════════ 02 ══════════ -->
+  <article class="project reveal" id="p2" style="--acc: var(--orange)">
+    <div class="card">
+      <div class="p-head">
+        <span class="tile big">EC</span>
+        <div>
+          <p class="num">02</p>
+          <h3 class="cjk">电商运营助手</h3>
+          <p class="sub cjk">运营场景智能体</p>
+        </div>
+        <a class="btn cjk" href="http://62.234.56.90:3000/" target="_blank" rel="noopener">打开演示</a>
+      </div>
+    </div>
+
+    <section class="group">
+      <h2 class="g-head cjk">项目介绍</h2>
+      <div class="card pad">
+        <p class="cjk">面向电商日常运营场景的智能助手：整合商品、订单与客户数据，辅助运营人员做数据分析、话术生成与决策支持，减少重复劳动。</p>
+        <div class="chips" style="margin-top:16px"><span>Python</span><span>FastAPI</span><span>TypeScript</span><span>Next.js</span><span>Node.js</span><span>Docker</span></div>
+      </div>
+      <p class="foot-note warn cjk">简介沿用现有页面草稿，定稿前需你确认</p>
+    </section>
+
+    <section class="group">
+      <h2 class="g-head cjk">主要工作</h2>
+      <div class="card">
+        <ul class="work-list">
+          <li><span class="n">01</span><span class="cjk">把上线前的准备动作收敛成四步引导（建店建档 → 导入数据 → 配置模型 → Agent 中心），新店铺从空库到可用有明确路径。</span></li>
+          <li><span class="n">02</span><span class="cjk">实现商品与 SKU 库存导入，CSV 上传先预览校验、确认后只写入有效行，避免脏数据直接进库。</span></li>
+          <li><span class="n">03</span><span class="cjk">统一模型配置入口，按能力切换模型与参数，业务侧不感知底层差异。</span></li>
+          <li><span class="n">04</span><span class="cjk">搭建 Agent 中心，把日常运营动作沉淀为可复用、可审批的任务流。</span></li>
+        </ul>
+      </div>
+      <p class="foot-note warn cjk">以上四条为 AI 草拟，需你逐条核对再定稿</p>
+    </section>
+
+    <section class="group">
+      <h2 class="g-head cjk">界面演示</h2>
+      <div class="card">
+        <p class="hint cjk"><span>工作台与单品运营 · 4 张</span><span>左右滑动 ›</span></p>
+        <div class="rail" data-album="电商运营助手">
+          <figure class="shot"><button type="button" data-cap="单品运营 · 商品档案、竞品与 SKU 库存"><span class="frame" style="aspect-ratio: 1872/1015"><img src="assets/p2-danpin.png" alt="运营智能体单品运营页：低糖燕麦饼干的商品标签、售价竞品素材指标卡与运营流程闭环" loading="lazy" decoding="async" width="1872" height="1015"><span class="zoom">查看大图</span></span></button><figcaption class="cjk">单品运营 · 商品档案、竞品与 SKU 库存</figcaption></figure>
+          <figure class="shot"><button type="button" data-cap="导入中心 · CSV 预览校验"><span class="frame"><span class="mock"><span class="tag">截图位</span><span class="side"><i></i><i></i><i></i><i></i><i></i></span><span class="main"><i></i><i></i><b></b><b></b><i></i></span></span><span class="zoom">查看大图</span></span></button><figcaption class="cjk">导入中心 · CSV 预览校验</figcaption></figure>
+          <figure class="shot"><button type="button" data-cap="模型配置"><span class="frame"><span class="mock"><span class="tag">截图位</span><span class="side"><i></i><i></i><i></i><i></i><i></i></span><span class="main"><i></i><b></b><i></i><i></i><i></i></span></span><span class="zoom">查看大图</span></span></button><figcaption class="cjk">模型配置</figcaption></figure>
+          <figure class="shot"><button type="button" data-cap="Agent 中心 · 任务流"><span class="frame"><span class="mock"><span class="tag">截图位</span><span class="side"><i></i><i></i><i></i><i></i><i></i></span><span class="main"><i></i><i></i><i></i><b></b><b></b></span></span><span class="zoom">查看大图</span></span></button><figcaption class="cjk">Agent 中心 · 任务流</figcaption></figure>
+        </div>
+      </div>
+      <div class="btns" style="padding:14px 0 0">
+        <a class="btn ghost cjk" href="https://github.com/martinkalcheva-lgtm/showreel" target="_blank" rel="noopener">GitHub 源代码</a>
+      </div>
+    </section>
+  </article>
+
+  <!-- ══════════ 03 ══════════ -->
+  <article class="project reveal" id="p3" style="--acc: var(--green)">
+    <div class="card">
+      <div class="p-head">
+        <span class="tile big">SK</span>
+        <div>
+          <p class="num">03</p>
+          <h3 class="cjk">智能客服系统</h3>
+          <p class="sub cjk">客服会话与话术管理系统</p>
+        </div>
+        <a class="btn cjk" href="http://62.234.56.90:18082/" target="_blank" rel="noopener">打开演示</a>
+      </div>
+    </div>
+
+    <section class="group">
+      <h2 class="g-head cjk">项目介绍</h2>
+      <div class="card pad">
+        <p class="cjk">智能客服解决方案：包含客服后端服务与会话管理，支持话术辅助、会话流转与客户数据管理，帮助客服团队提效。</p>
+        <div class="chips" style="margin-top:16px"><span>Python</span><span>FastAPI</span><span>TypeScript</span><span>JavaScript</span><span>MySQL</span></div>
+      </div>
+      <p class="foot-note warn cjk">简介沿用现有页面草稿，定稿前需你确认</p>
+    </section>
+
+    <section class="group">
+      <h2 class="g-head cjk">主要工作</h2>
+      <div class="card">
+        <ul class="work-list">
+          <li><span class="n">01</span><span class="cjk">实现会话全生命周期管理：接入、排队、流转、关闭，坐席状态与接待量可实时查看。</span></li>
+          <li><span class="n">02</span><span class="cjk">话术库与智能推荐结合，客服在应答台一键取用，减少重复打字。</span></li>
+          <li><span class="n">03</span><span class="cjk">打通客户数据与订单上下文，进线即可看到历史订单与沟通记录。</span></li>
+          <li><span class="n">04</span><span class="cjk">前端按设计稿重构应答台与知识库页面，保持主题色与打印场景样式一致。</span></li>
+        </ul>
+      </div>
+      <p class="foot-note warn cjk">以上四条为 AI 草拟，需你逐条核对再定稿</p>
+    </section>
+
+    <section class="group">
+      <h2 class="g-head cjk">界面演示</h2>
+      <div class="card">
+        <p class="hint cjk"><span>应答台与知识库 · 3 张</span><span>左右滑动 ›</span></p>
+        <div class="rail" data-album="智能客服系统">
+          <figure class="shot"><button type="button" data-cap="应答台 · 会话与话术推荐"><span class="frame"><span class="mock"><span class="tag">截图位</span><span class="side"><i></i><i></i><i></i><i></i><i></i></span><span class="main"><i></i><b></b><b></b><i></i><i></i></span></span><span class="zoom">查看大图</span></span></button><figcaption class="cjk">应答台 · 会话与话术推荐</figcaption></figure>
+          <figure class="shot"><button type="button" data-cap="客户档案与订单上下文"><span class="frame"><span class="mock"><span class="tag">截图位</span><span class="side"><i></i><i></i><i></i><i></i><i></i></span><span class="main"><i></i><i></i><i></i><b></b><i></i></span></span><span class="zoom">查看大图</span></span></button><figcaption class="cjk">客户档案与订单上下文</figcaption></figure>
+          <figure class="shot"><button type="button" data-cap="知识库管理"><span class="frame"><span class="mock"><span class="tag">截图位</span><span class="side"><i></i><i></i><i></i><i></i><i></i></span><span class="main"><i></i><i></i><b></b><b></b><b></b></span></span><span class="zoom">查看大图</span></span></button><figcaption class="cjk">知识库管理</figcaption></figure>
+        </div>
+      </div>
+      <div class="btns" style="padding:14px 0 0">
+        <a class="btn ghost cjk" href="https://github.com/martinkalcheva-lgtm/showreel" target="_blank" rel="noopener">GitHub 源代码</a>
+      </div>
+    </section>
+  </article>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span>© 2026 郭怡彤</span>
+    <a href="https://github.com/martinkalcheva-lgtm/showreel" target="_blank" rel="noopener">GitHub：martinkalcheva-lgtm/showreel</a>
+    <span>版式预览稿 · 图片位为线框占位</span>
+  </div>
+</footer>
+
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="图片放大查看">
+  <div class="lb-box">
+    <div class="lb-img" id="lbImg"></div>
+    <div class="lb-bar">
+      <button type="button" id="lbPrev">‹</button>
+      <button type="button" id="lbNext">›</button>
+      <p class="lb-cap cjk" id="lbCap"></p>
+      <span class="lb-idx" id="lbIdx"></span>
+      <button type="button" id="lbClose">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var root = document.documentElement;
+
+  /* 浅色 / 深色 */
+  var segBtns = [].slice.call(document.querySelectorAll('.seg button'));
+  function setTheme(t) {
+    root.setAttribute('data-theme', t);
+    try { localStorage.setItem('portfolio-theme', t); } catch (e) {}
+    segBtns.forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-theme') === t); });
+  }
+  var saved = 'light';
+  try { saved = localStorage.getItem('portfolio-theme') || 'light'; } catch (e) {}
+  setTheme(saved);
+  segBtns.forEach(function (b) { b.addEventListener('click', function () { setTheme(b.getAttribute('data-theme')); }); });
+
+  /* 大标题滚起后收进导航栏 */
+  var nav = document.getElementById('nav'), sentinel = document.getElementById('titleSentinel');
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (es) {
+      es.forEach(function (en) { nav.classList.toggle('pinned', !en.isIntersecting && en.boundingClientRect.top < 0); });
+    }, { rootMargin: '44px 0px 0px 0px' }).observe(sentinel);
+  }
+
+  /* 进场 */
+  var items = [].slice.call(document.querySelectorAll('.reveal'));
+  var reduced = false;
+  try { reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+  if ('IntersectionObserver' in window && !reduced) {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } });
+    }, { threshold: .08 });
+    items.forEach(function (el) { io.observe(el); });
+  } else {
+    items.forEach(function (el) { el.classList.add('in'); });
+  }
+
+  /* 全屏看图 */
+  var lb = document.getElementById('lb'), lbImg = document.getElementById('lbImg'),
+      lbCap = document.getElementById('lbCap'), lbIdx = document.getElementById('lbIdx');
+  var list = [], idx = 0, lastFocus = null;
+
+  function paint() {
+    var btn = list[idx], fig = btn.closest('figure');
+    lbImg.innerHTML = '';
+    lbImg.appendChild(fig.querySelector('.frame').cloneNode(true));
+    lbCap.textContent = btn.getAttribute('data-cap');
+    lbIdx.textContent = (idx + 1) + ' / ' + list.length;
+  }
+  function step(d) { idx = (idx + d + list.length) % list.length; paint(); }
+  function open(btn) {
+    lastFocus = btn;
+    list = [].slice.call(btn.closest('.rail').querySelectorAll('button'));
+    idx = list.indexOf(btn);
+    paint();
+    lb.classList.add('on');
+    document.body.style.overflow = 'hidden';
+    document.getElementById('lbClose').focus();
+  }
+  function close() {
+    lb.classList.remove('on');
+    document.body.style.overflow = '';
+    if (lastFocus) lastFocus.focus();
+  }
+  [].slice.call(document.querySelectorAll('.rail button')).forEach(function (b) {
+    b.addEventListener('click', function () { open(b); });
+  });
+  document.getElementById('lbClose').addEventListener('click', close);
+  document.getElementById('lbPrev').addEventListener('click', function () { step(-1); });
+  document.getElementById('lbNext').addEventListener('click', function () { step(1); });
+  lb.addEventListener('click', function (e) { if (e.target === lb) close(); });
+  document.addEventListener('keydown', function (e) {
+    if (!lb.classList.contains('on')) return;
+    if (e.key === 'Escape') close();
+    if (e.key === 'ArrowLeft') step(-1);
+    if (e.key === 'ArrowRight') step(1);
+  });
+})();
+</script>
+</body>
+</html>

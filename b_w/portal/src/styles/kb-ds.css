@@ -1,0 +1,479 @@
+/* ==========================================================================
+   Boss智库 · 设计系统
+   提炼自 knowledge_base(:7954)/web/page/design-system.css 与其 chat.html 的页面级规则。
+   全部选择器收在 .kb-root 作用域内 —— 只影响工作台的「Boss智库」标签页，
+   不触碰问数模块与外层框架。
+
+   视觉语言：白底 + 石板墨 + 品牌绿；零渐变 / 零辉光 / 零玻璃拟态；
+   1px 发丝线；圆角统一 6px；全站无衬线（标题 = 正文同族），等宽标签。
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Tokens
+   -------------------------------------------------------------------------- */
+.kb-root {
+  /* 表面 */
+  --bg:             #ffffff;
+  --surface:        #ffffff;
+  --surface-subtle: #f8f9fa;
+  --surface-sunken: #f8f9fa;
+
+  /* 墨色 */
+  --fg:             #1a202c;
+  --fg-secondary:   #4a5568;
+  --muted:          #718096;
+  --faint:          #a0aec0;
+
+  /* 线 */
+  --border:         #e2e8f0;
+  --border-strong:  #2d3748;
+  --border-accent:  #42b983;
+  --border-success: oklch(72% 0.07 152);
+
+  /* 语义色 */
+  --accent:         #1f7a50;
+  --accent-solid:   #267a54;
+  --accent-hover:   #1f6a47;
+  --accent-tint:    #e7f6ef;
+  --on-accent:      #ffffff;
+  --success:        #38a16f;
+  --success-tint:   #e7f6ef;
+  --warn:           #d69e2e;
+  --warn-tint:      #fdf6e3;
+  --info:           #3182ce;
+  --info-tint:      #e8f1fb;
+
+  /* 兼容别名：抽屉里既有的导入组件用的 token 名 */
+  --blue:     var(--info);
+  --green:    var(--success);
+  --red:      #e53e3e;
+  --bg-card:  var(--surface);
+  --text-1:   var(--fg);
+  --text-2:   var(--fg-secondary);
+  --text-3:   var(--muted);
+
+  /* 字体 */
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Consolas, monospace;
+
+  /* 字阶 */
+  --fs-body: 1rem;
+  --fs-meta: 0.9375rem;
+  --fs-mini: 0.8125rem;
+
+  /* 间距：4px 网格 */
+  --sp-1: .25rem; --sp-2: .5rem;  --sp-3: .75rem;
+  --sp-4: 1rem;   --sp-5: 1.5rem; --sp-6: 2rem;
+  --pad-x: clamp(1rem, 2.4vw, 2rem);
+
+  /* 形状与动效 */
+  --radius: 6px;
+  --ease-state: cubic-bezier(0.2, 0, 0, 1);
+  --ease-loop:  cubic-bezier(0.45, 0.05, 0.55, 0.95);
+  --t-2: 160ms;
+  --t-3: 260ms;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.kb-root[data-theme="dark"] {
+  --bg:             #2d3748;
+  --surface:        #313e51;
+  --surface-subtle: #3a4657;
+  --surface-sunken: #3a4657;
+
+  --fg:             #edf2f7;
+  --fg-secondary:   #a0aec0;
+  --muted:          #718096;
+  --faint:          #64748b;
+
+  --border:         #3d4c63;
+  --border-strong:  #a0aec0;
+  --border-accent:  #48bb78;
+
+  --accent:         #48bb78;
+  --accent-solid:   #2f8f63;
+  --accent-hover:   #35a374;
+  --accent-tint:    #1d3a2a;
+  --on-accent:      #ffffff;
+  --success:        oklch(68% 0.145 152);
+  --success-tint:   oklch(23% 0.04 152);
+  --warn:           oklch(70% 0.12 70);
+  --warn-tint:      oklch(26% 0.04 70);
+  --info:           oklch(68% 0.12 245);
+  --info-tint:      oklch(24% 0.04 245);
+  --red:            #f09595;
+  --shadow-card:    0 1px 2px rgba(0, 0, 0, 0.28), 0 4px 12px rgba(0, 0, 0, 0.34);
+}
+
+/* --------------------------------------------------------------------------
+   2. Reset & base（作用域内）
+   -------------------------------------------------------------------------- */
+.kb-root, .kb-root *, .kb-root *::before, .kb-root *::after { box-sizing: border-box; }
+
+.kb-root {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: 1.75;
+  background: var(--bg);
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  -webkit-font-smoothing: antialiased;
+}
+
+.kb-root h1, .kb-root h2, .kb-root h3, .kb-root h4 {
+  font-weight: 700; color: var(--fg); line-height: 1.3; letter-spacing: 0; margin: 0;
+}
+.kb-root p { margin: 0; }
+.kb-root ul, .kb-root ol { list-style: none; margin: 0; padding: 0; }
+.kb-root a { color: inherit; text-decoration: none; }
+.kb-root button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+.kb-root textarea, .kb-root input, .kb-root select { font: inherit; color: inherit; }
+.kb-root :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* --------------------------------------------------------------------------
+   3. 图标 / 工具类
+   -------------------------------------------------------------------------- */
+.kb-root .ic { width: 1em; height: 1em; flex: none; vertical-align: -.125em; overflow: visible; }
+.kb-root .ic-sm { width: .875em; height: .875em; }
+.kb-root .ic-lg { width: 1.25em; height: 1.25em; }
+.kb-root .mark { width: 1em; height: 1em; flex: none; fill: currentColor; vertical-align: -.125em; }
+.kb-root .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.kb-root .sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* --------------------------------------------------------------------------
+   4. 按钮
+   -------------------------------------------------------------------------- */
+.kb-root .btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5em;
+  height: 36px; padding: 0 .875rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--fg);
+  font-size: var(--fs-meta); font-weight: 600;
+  letter-spacing: .01em; white-space: nowrap;
+  transition: background-color var(--t-2) var(--ease-state),
+              border-color var(--t-2) var(--ease-state),
+              color var(--t-2) var(--ease-state);
+}
+.kb-root .btn:hover:not(.btn-primary) { background: var(--surface-subtle); }
+.kb-root .btn-primary {
+  background: var(--accent-solid); border-color: var(--accent-solid); color: var(--on-accent);
+}
+.kb-root .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.kb-root .btn-ghost { border-color: var(--border); background: transparent; color: var(--fg-secondary); }
+.kb-root .btn-ghost:hover { color: var(--fg); background: var(--surface-subtle); }
+.kb-root .btn-sm { height: 32px; padding: 0 .625rem; font-size: var(--fs-mini); }
+.kb-root .btn:disabled, .kb-root .btn[aria-disabled="true"] { opacity: .45; pointer-events: none; }
+.kb-root .btn-icon { width: 36px; padding: 0; }
+.kb-root .btn-icon.btn-sm { width: 32px; }
+
+/* --------------------------------------------------------------------------
+   5. 徽标 / 状态灯
+   -------------------------------------------------------------------------- */
+.kb-root .badge {
+  display: inline-flex; align-items: center; gap: .4em;
+  padding: .2em .55em;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mini); font-weight: 600; letter-spacing: .04em;
+  color: var(--muted); white-space: nowrap;
+  transition: color var(--t-2) var(--ease-state),
+              border-color var(--t-2) var(--ease-state),
+              background var(--t-2) var(--ease-state);
+}
+.kb-root .badge-online  { color: var(--success); border-color: var(--border-success); background: var(--success-tint); }
+.kb-root .badge-offline { color: var(--warn);    border-color: var(--border);         background: var(--warn-tint); }
+
+.kb-root .status-led {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--success); flex: none;
+  transform-origin: 50% 50%;
+  animation: kb-led-breathe 2.8s var(--ease-loop) infinite;
+}
+.kb-root .status-led.is-off { background: var(--muted); animation: none; }
+@keyframes kb-led-breathe {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%      { opacity: .45; transform: scale(.82); }
+}
+
+/* --------------------------------------------------------------------------
+   6. 面板（左栏）
+   -------------------------------------------------------------------------- */
+.kb-root .panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+.kb-root .panel-head {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  padding: .5rem .75rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-subtle);
+}
+.kb-root .panel-head h2 {
+  font-family: var(--font-mono);
+  font-size: var(--fs-mini); font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted);
+}
+.kb-root .panel-body { padding: .75rem; }
+.kb-root .rail-hint { font-size: var(--fs-mini); color: var(--muted); line-height: 1.75; }
+.kb-root .opt-row {
+  display: flex; align-items: center; gap: .5rem; min-height: 36px;
+  font-size: var(--fs-meta); color: var(--fg-secondary); cursor: pointer;
+}
+.kb-root .opt-row input { width: 15px; height: 15px; accent-color: var(--accent); flex: none; }
+
+/* --------------------------------------------------------------------------
+   7. 消息流
+   -------------------------------------------------------------------------- */
+.kb-root .msg { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--sp-3); }
+.kb-root .msg.bot > .msg-main { min-width: 0; }
+.kb-root .msg.user { grid-template-columns: minmax(0, 1fr) auto; }
+.kb-root .msg.user > .msg-main {
+  display: flex; flex-direction: column; align-items: flex-end;
+  justify-self: end; /* 贴右：列是 1fr，不加这行气泡会离「我」头像空出一大截 */
+  min-width: 0; max-width: 42rem;
+}
+
+.kb-root .avatar {
+  min-width: 28px; height: 28px; padding: 0 .5rem;
+  border-radius: var(--radius);
+  display: grid; place-items: center;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+  white-space: nowrap; overflow: hidden;
+}
+.kb-root .avatar.bot { background: var(--fg); color: var(--bg); }
+.kb-root .avatar.me  { background: var(--surface-subtle); color: var(--fg-secondary); border: 1px solid var(--border); }
+
+.kb-root .bubble {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: .75rem 1rem;
+  line-height: 1.85; font-size: var(--fs-body); color: var(--fg);
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.kb-root .msg.user .bubble { background: var(--surface-subtle); }
+.kb-root .meta {
+  font-family: var(--font-mono); font-size: var(--fs-mini);
+  color: var(--faint); margin-top: .375rem;
+}
+.kb-root .msg.user .meta { text-align: right; }
+
+/* 富渲染（粗体 / 图片行） */
+.kb-root .rich-text .md-line { min-height: 1em; }
+.kb-root .rich-text strong { font-weight: 600; }
+
+/* 阶段进度（对齐设计稿 .trace 的形态） */
+.kb-root details.progress {
+  margin-top: var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-subtle);
+  padding: .5rem .75rem;
+}
+.kb-root details.progress summary {
+  cursor: pointer; user-select: none;
+  font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted);
+}
+.kb-root details.progress ul { margin: .5rem 0 0 1.25rem; padding: 0; }
+.kb-root details.progress li {
+  margin: .25rem 0; font-size: var(--fs-mini); line-height: 1.7;
+  color: var(--fg-secondary); overflow-wrap: anywhere;
+}
+
+/* 等待态：三点指示 */
+.kb-root .typing { display: inline-flex; gap: 6px; align-items: center; margin-bottom: .5rem; }
+.kb-root .dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--faint); flex: none;
+  animation: kb-dot-pulse 1.2s var(--ease-loop) infinite;
+}
+.kb-root .dot:nth-child(2) { animation-delay: .15s; }
+.kb-root .dot:nth-child(3) { animation-delay: .3s; }
+@keyframes kb-dot-pulse {
+  0%, 80%, 100% { transform: translateY(0);    opacity: .6; }
+  40%           { transform: translateY(-4px); opacity: 1;  }
+}
+
+/* 错误行 */
+.kb-root .err { color: var(--red); font-size: var(--fs-mini); margin-top: .5rem; }
+
+/* 答案图片 */
+.kb-root .answer-images { margin-top: var(--sp-3); display: flex; flex-direction: column; gap: var(--sp-3); }
+.kb-root .answer-images img {
+  display: block; max-width: min(100%, 600px); max-height: 600px;
+  width: auto; height: auto;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface);
+}
+.kb-root .answer-images a,
+.kb-root .img-fallback {
+  font-family: var(--font-mono); font-size: var(--fs-mini);
+  color: var(--muted); text-decoration: none; word-break: break-all;
+}
+.kb-root .answer-images a:hover { color: var(--accent); }
+
+/* --------------------------------------------------------------------------
+   8. 应用外壳
+   -------------------------------------------------------------------------- */
+.kb-root .kb-top {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4);
+  height: 56px; min-height: 56px;
+  padding: 0 var(--pad-x);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.kb-root .kb-brand { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+.kb-root .kb-brand .mark { font-size: 1.15rem; color: var(--accent); }
+.kb-root .kb-brand h1 { font-size: 1rem; font-weight: 700; white-space: nowrap; }
+.kb-root .kb-brand .sub {
+  font-family: var(--font-mono); font-size: var(--fs-mini);
+  font-weight: 400; color: var(--faint); white-space: nowrap;
+}
+.kb-root .kb-actions {
+  display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; justify-content: flex-end;
+}
+
+.kb-root .kb-body {
+  flex: 1; min-height: 0;
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+}
+.kb-root .kb-rail {
+  border-right: 1px solid var(--border);
+  padding: var(--sp-4);
+  display: flex; flex-direction: column; gap: var(--sp-4);
+  overflow-y: auto;
+  background: var(--bg);
+}
+.kb-root .kb-pane {
+  display: flex; flex-direction: column;
+  min-width: 0; min-height: 0;
+  padding: var(--sp-4) var(--pad-x) 0;
+}
+.kb-root .kb-pane-inner {
+  flex: 1; min-height: 0; display: flex; flex-direction: column;
+  width: 100%; min-width: 0; max-width: 58rem; margin-inline: auto;
+}
+.kb-root .stream {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  display: grid; gap: var(--sp-4); align-content: start;
+  padding: 2px 2px var(--sp-4);
+}
+
+/* --------------------------------------------------------------------------
+   9. 输入区
+   -------------------------------------------------------------------------- */
+.kb-root .composer-wrap {
+  position: sticky; bottom: 0; z-index: 20;
+  margin-top: var(--sp-3); padding-top: var(--sp-3);
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+.kb-root .composer {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--sp-2);
+  padding: .5rem .5rem .5rem .875rem;
+  transition: border-color var(--t-2) var(--ease-state);
+}
+.kb-root .composer:focus-within { border-color: var(--accent); }
+.kb-root .composer textarea {
+  border: 0; background: none; resize: none;
+  padding: .375rem 0; line-height: 1.7;
+  max-height: 160px; outline: none;
+}
+.kb-root .composer textarea::placeholder { color: var(--faint); }
+.kb-root .composer-actions { display: flex; align-items: center; gap: .5rem; }
+.kb-root .composer-foot {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: .25rem var(--sp-3);
+  margin-top: .5rem; padding-bottom: var(--sp-3);
+  font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint);
+}
+
+/* --------------------------------------------------------------------------
+   10. 导入抽屉
+   -------------------------------------------------------------------------- */
+.kb-root .kb-scrim {
+  position: absolute; inset: 0; z-index: 25;
+  background: rgba(0, 0, 0, 0.3);
+}
+.kb-root .kb-drawer {
+  position: absolute; top: 0; right: 0; bottom: 0; z-index: 30;
+  width: min(380px, 92%);
+  display: flex; flex-direction: column;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.12);
+}
+.kb-root .kb-drawer-head {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  height: 56px; min-height: 56px;
+  padding: 0 var(--sp-4);
+  border-bottom: 1px solid var(--border);
+}
+.kb-root .kb-drawer-head h2 { font-size: var(--fs-meta); font-weight: 700; }
+.kb-root .kb-drawer-body {
+  flex: 1; min-height: 0; overflow-y: auto;
+  padding: var(--sp-4);
+}
+.kb-root .kb-drawer-enter-active,
+.kb-root .kb-drawer-leave-active { transition: transform var(--t-3) var(--ease-state); }
+.kb-root .kb-drawer-enter-from,
+.kb-root .kb-drawer-leave-to { transform: translateX(100%); }
+.kb-root .kb-fade-enter-active,
+.kb-root .kb-fade-leave-active { transition: opacity var(--t-3) var(--ease-state); }
+.kb-root .kb-fade-enter-from,
+.kb-root .kb-fade-leave-to { opacity: 0; }
+
+/* --------------------------------------------------------------------------
+   11. 响应式
+   -------------------------------------------------------------------------- */
+@media (max-width: 1023px) {
+  .kb-root .kb-body { grid-template-columns: 200px minmax(0, 1fr); }
+}
+@media (max-width: 899px) {
+  .kb-root .kb-body { grid-template-columns: minmax(0, 1fr); }
+  .kb-root .kb-rail {
+    border-right: 0; border-bottom: 1px solid var(--border);
+    flex-direction: row; overflow-x: auto; gap: var(--sp-2);
+    overscroll-behavior-x: contain;
+  }
+  .kb-root .kb-rail > * { flex: 0 0 auto; min-width: 220px; }
+  .kb-root .kb-top { height: auto; min-height: 56px; flex-wrap: wrap; row-gap: .25rem; padding-block: .5rem; }
+  .kb-root .kb-actions { width: 100%; justify-content: flex-start; }
+}
+@media (max-width: 640px) {
+  .kb-root .composer { grid-template-columns: minmax(0, 1fr); }
+  .kb-root .composer-actions { justify-content: flex-end; }
+  .kb-root .msg.user > .msg-main { max-width: none; }
+}
+
+/* --------------------------------------------------------------------------
+   12. 减弱动效
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .kb-root *, .kb-root *::before, .kb-root *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+  .kb-root .status-led { animation: none !important; opacity: 1 !important; }
+}

@@ -1,0 +1,2581 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <!-- 品牌标志《收束》：1 个 2×2 主核 + 4 个 1×1 子模块，纯轴对齐、四重旋转对称。
+       从拓扑图降维成模数比例 —— 原始「1 大节点 + 4 小节点 + 4 连线」在 16px 下连线只有
+       0.5px 必然糊掉，所以删掉连线，改用网格对齐承担关系表达。≤16px 圆角归零。
+       实测对比度：纸底 #f8f7f4 上墨 #0d1218 = 8.62:1，远超图形标准 3:1。 -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f8f7f4'/%3E%3Cg fill='%230d1218'%3E%3Crect x='12' y='12' width='8' height='8'/%3E%3Crect x='4' y='4' width='4' height='4'/%3E%3Crect x='24' y='4' width='4' height='4'/%3E%3Crect x='4' y='24' width='4' height='4'/%3E%3Crect x='24' y='24' width='4' height='4'/%3E%3C/g%3E%3C/svg%3E">
+  <title>赵豪杰 · 多智能体运营平台 | AI 应用开发 / FDE</title>
+  <meta name="description" content="赵豪杰 - AI 应用开发 / FDE（Forward Deployed Engineer）。基于 deepagents（LangGraph）构建的多平台电商运营平台，1 个主智能体 + 4 个子智能体，4 套系统全部真实部署、线上运行。">
+  <style>
+    :root {
+      --bg: oklch(97.6% 0.004 85);
+      --surface: oklch(99.3% 0.002 85);
+      --surface-subtle: oklch(94.8% 0.006 85);
+      --fg: oklch(18% 0.014 250);
+      --fg-secondary: oklch(32% 0.014 250);
+      --muted: oklch(41% 0.012 250);
+      --border: oklch(86% 0.007 85);
+      --border-strong: oklch(20% 0.014 250);
+      --accent: oklch(48% 0.165 28);
+      --accent-solid: oklch(48% 0.165 28); /* 实心按钮底：浅色档与 --accent 同值，配 --on-accent 实测 6.9:1 */
+      --accent-hover: oklch(40% 0.165 28);
+      --accent-tint: oklch(95% 0.025 28);
+      --on-accent: oklch(99% 0 0); /* 实心按钮上的文字：近白纸色 */
+      --success: oklch(46% 0.135 152);
+      --success-tint: oklch(94.5% 0.03 152);
+      /* 反色面板（.main-agent-panel）内的半透明底 / 描边：双主题同值，原为组件规则里的裸 oklch 字面量 */
+      --overlay-border: oklch(50% 0.01 250 / 0.45);
+      --overlay-bg: oklch(25% 0.015 250 / 0.25);
+
+      --font-display: 'Songti SC', 'STSong', 'Source Han Serif SC', 'Noto Serif CJK SC', 'SimSun', 'Iowan Old Style', 'Charter', Georgia, serif;
+      --font-body: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Source Han Sans SC', 'Noto Sans CJK SC', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', 'IBM Plex Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+
+      --max-w: 1320px;
+      --radius: 2px;
+      --ease-out: cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    [data-theme="dark"] {
+      --bg: oklch(15.5% 0.01 250);
+      --surface: oklch(19% 0.012 250);
+      --surface-subtle: oklch(22.5% 0.014 250);
+      --fg: oklch(93.5% 0.005 85);
+      --fg-secondary: oklch(82% 0.008 250);
+      --muted: oklch(74% 0.01 250);
+      --border: oklch(28% 0.012 250);
+      --border-strong: oklch(84% 0.006 85);
+      --accent: oklch(70% 0.15 30);
+      --accent-solid: oklch(57% 0.17 30); /* 实心按钮底：配 --on-accent 实测 4.7:1 */
+      --accent-hover: oklch(62% 0.16 30);
+      --on-accent: oklch(99% 0 0);
+      --accent-tint: oklch(24% 0.045 28);
+      --success: oklch(68% 0.145 152);
+      --success-tint: oklch(23% 0.04 152);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      font-size: 16px;
+      scroll-behavior: smooth;
+      -webkit-text-size-adjust: 100%;
+      background-color: var(--bg);
+      color: var(--fg);
+    }
+
+    body {
+      font-family: var(--font-body);
+      background-color: var(--bg);
+      color: var(--fg);
+      line-height: 1.75;
+      font-variant-numeric: tabular-nums;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out);
+    }
+
+    /* CJK punctuation refinement where supported */
+    p, li, dd, td, .cjk-text {
+      text-spacing-trim: trim-start;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    ul, ol {
+      list-style: none;
+    }
+
+    button {
+      font: inherit;
+      color: inherit;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--fg);
+      outline-offset: 3px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 clamp(1.25rem, 4vw, 3rem);
+    }
+
+    /* ==========================================================================
+       TOP NAVIGATION / SPECIFICATION MASTHEAD
+       ========================================================================== */
+    .masthead {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      height: 64px;
+      background-color: var(--bg);
+      border-bottom: 1px solid var(--border);
+      transition: background-color 150ms var(--ease-out), border-color 150ms var(--ease-out);
+    }
+
+    .masthead-inner {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+    }
+
+    .masthead-brand {
+      display: flex;
+      align-items: baseline;
+      gap: 0.875rem;
+      min-width: 0;
+    }
+
+    .masthead-name {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.125rem;
+      letter-spacing: 0;
+      white-space: nowrap;
+      /* 窄屏时品牌名优先收缩并省略，避免文字溢出压到相邻导航项上（flex 自动最小尺寸会放行溢出） */
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .masthead-role {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .masthead-nav {
+      display: flex;
+      align-items: center;
+      gap: 1.75rem;
+    }
+
+    .nav-link {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--muted);
+      padding: 0.25rem 0;
+      position: relative;
+      white-space: nowrap;
+      transition: color 120ms var(--ease-out);
+    }
+
+    .nav-link:hover,
+    .nav-link.is-active {
+      color: var(--fg);
+    }
+
+    .nav-link.is-active::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -2px;
+      height: 2px;
+      background-color: var(--fg);
+    }
+
+    .masthead-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-shrink: 0;
+    }
+
+    .host-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 0.3rem 0.625rem;
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--fg-secondary);
+      white-space: nowrap;
+    }
+
+    .status-led {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: var(--success);
+      display: inline-block;
+      flex-shrink: 0;
+      /* 呼吸灯：只动 transform / opacity，绝不用 box-shadow
+         —— box-shadow 不是合成器属性，每帧触发 paint，弱 GPU 投屏必掉帧。
+         周期 2.8s 是刻意选的：低于 2s 变背景噪音，高于 4s 在阅读速度下会被完全忽略。 */
+      transform-origin: 50% 50%;
+      animation: led-breathe 2.8s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+    }
+    @keyframes led-breathe {
+      0%, 100% { opacity: 1;   transform: scale(1); }
+      50%      { opacity: .45; transform: scale(.82); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .status-led { animation: none; opacity: 1; }
+    }
+
+    /* ---------- 图标 ---------- */
+    .ic {
+      width: 1em; height: 1em;
+      flex: none;
+      vertical-align: -.125em;
+      overflow: visible;
+    }
+    .ic-sm { width: .875em; height: .875em; }
+    .ic-lg { width: 1.25em; height: 1.25em; }
+    /* 品牌标志：1 主 + 4 子，从拓扑图降维成模数比例。
+       删掉连线、只用网格对齐承担关系表达 —— 四条连线在 16px 下只有 0.5px，必然糊。 */
+    .mark {
+      width: 1em; height: 1em;
+      flex: none;
+      fill: currentColor;
+      vertical-align: -.125em;
+    }
+
+    .theme-toggle,
+    .repo-top-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.375rem;
+      height: 34px;
+      padding: 0 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      border: 1px solid var(--border);
+      background-color: var(--surface);
+      color: var(--fg);
+      border-radius: var(--radius);
+      white-space: nowrap;
+      transition: background-color 120ms var(--ease-out), border-color 120ms var(--ease-out);
+    }
+
+    .theme-toggle:hover,
+    .repo-top-link:hover {
+      background-color: var(--surface-subtle);
+      border-color: var(--fg);
+    }
+
+    /* ==========================================================================
+       HERO SECTION — ASYMMETRIC TECHNICAL DOSSIER + LIVE CONSOLE
+       ========================================================================== */
+    .hero {
+      padding-top: clamp(2.5rem, 5vw, 4.5rem);
+      padding-bottom: clamp(3rem, 6vw, 5.5rem);
+      border-bottom: 2px solid var(--border-strong);
+    }
+
+    .hero-meta-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding-bottom: 1.25rem;
+      margin-bottom: clamp(2rem, 4vw, 3.25rem);
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      color: var(--muted);
+    }
+
+    .hero-meta-left,
+    .hero-meta-right {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem 1.5rem;
+    }
+
+    .meta-kv {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 0.5rem;
+    }
+
+    .meta-k {
+      color: var(--muted);
+    }
+
+    .meta-v {
+      color: var(--fg);
+      font-weight: 500;
+    }
+
+    .meta-link {
+      color: var(--fg);
+      border-bottom: 1px solid var(--border-strong);
+      padding-bottom: 1px;
+      transition: color 120ms var(--ease-out), background-color 120ms var(--ease-out);
+    }
+
+    .meta-link:hover {
+      background-color: var(--surface-subtle);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 7fr 5fr;
+      gap: clamp(2rem, 4.5vw, 4.5rem);
+      align-items: start;
+    }
+
+    .hero-main {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .hero-sub-badge {
+      display: inline-flex;
+      align-items: center;
+      align-self: flex-start;
+      gap: 0.625rem;
+      padding: 0.35rem 0.75rem;
+      border-left: 3px solid var(--accent);
+      background-color: var(--surface);
+      font-family: var(--font-mono);
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--fg);
+      letter-spacing: 0.01em;
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.5rem, 5vw, 4.25rem);
+      font-weight: 700;
+      line-height: 1.32;
+      letter-spacing: 0;
+      color: var(--fg);
+    }
+
+    .hero-lead {
+      font-size: clamp(1rem, 1.35vw, 1.1875rem);
+      line-height: 1.8;
+      color: var(--fg-secondary);
+      max-width: 62ch;
+    }
+
+    .hero-cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 1rem;
+      padding-top: 0.5rem;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.625rem;
+      height: 46px;
+      padding: 0 1.375rem;
+      background-color: var(--accent-solid);
+      color: var(--on-accent);
+      font-weight: 600;
+      font-size: 0.9375rem;
+      letter-spacing: 0.02em;
+      border-radius: var(--radius);
+      border: 1px solid var(--accent-solid);
+      white-space: nowrap;
+      transition: background-color 120ms var(--ease-out), transform 100ms var(--ease-out);
+    }
+
+    .btn-primary:hover {
+      background-color: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+
+    .btn-primary:active {
+      transform: translateY(1px);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      height: 46px;
+      padding: 0 1.25rem;
+      background-color: var(--surface);
+      color: var(--fg);
+      font-weight: 500;
+      font-size: 0.9375rem;
+      letter-spacing: 0.01em;
+      border-radius: var(--radius);
+      border: 1px solid var(--border-strong);
+      white-space: nowrap;
+      transition: background-color 120ms var(--ease-out), transform 100ms var(--ease-out);
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--surface-subtle);
+    }
+
+    .btn-secondary:active {
+      transform: translateY(1px);
+    }
+
+    /* Key Metrics — Asymmetric Architectural Specification Ledger */
+    .metrics-ledger {
+      margin-top: clamp(2.5rem, 5vw, 4rem);
+      padding-top: 2rem;
+      border-top: 1px solid var(--border-strong);
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr 1.35fr 1.35fr;
+      gap: 1.5rem;
+    }
+
+    .metric-cell {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding-right: 1.25rem;
+      border-right: 1px solid var(--border);
+    }
+
+    .metric-cell:last-child {
+      border-right: none;
+      padding-right: 0;
+    }
+
+    .metric-idx {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 0.375rem;
+    }
+
+    .metric-val {
+      font-family: var(--font-display);
+      font-size: clamp(1.75rem, 2.8vw, 2.5rem);
+      font-weight: 700;
+      line-height: 1.3;
+      color: var(--fg);
+      font-variant-numeric: tabular-nums;
+      margin-bottom: 0.375rem;
+    }
+
+    .metric-desc {
+      font-size: 0.875rem;
+      line-height: 1.55;
+      color: var(--fg-secondary);
+    }
+
+    .metric-raw-sep {
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      margin-right: 0.25rem;
+    }
+
+    /* Right Column: Live Production Dispatch Board */
+    .live-console {
+      background-color: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius);
+    }
+
+    .console-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.875rem 1.25rem;
+      border-bottom: 1px solid var(--border-strong);
+      background-color: var(--surface-subtle);
+    }
+
+    .console-title {
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--fg);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .console-host {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .console-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .console-item {
+      display: grid;
+      grid-template-columns: 36px 1fr auto;
+      align-items: center;
+      gap: 0.875rem;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      transition: background-color 120ms var(--ease-out);
+    }
+
+    .console-item:last-child {
+      border-bottom: none;
+    }
+
+    .console-item:hover {
+      background-color: var(--surface-subtle);
+    }
+
+    .console-num {
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .console-info {
+      min-width: 0;
+    }
+
+    .console-name-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .console-name {
+      font-weight: 600;
+      font-size: 0.9375rem;
+      color: var(--fg);
+    }
+
+    .console-role {
+      font-size: 0.8125rem;
+      color: var(--muted);
+      margin-top: 0.125rem;
+    }
+
+    .console-port-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.25rem;
+    }
+
+    .console-port-badge {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.15rem 0.5rem;
+      background-color: var(--success-tint);
+      color: var(--success);
+      border: 1px solid var(--success);
+      border-radius: var(--radius);
+    }
+
+    .console-enter {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--fg);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .console-item:hover .console-enter {
+      text-decoration: underline;
+    }
+
+    .console-footer {
+      padding: 0.75rem 1.25rem;
+      border-top: 1px solid var(--border);
+      background-color: var(--surface-subtle);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    /* ==========================================================================
+       SECTION COMMON HEADINGS
+       ========================================================================== */
+    .section-block {
+      padding: clamp(4rem, 7vw, 6.5rem) 0;
+      border-bottom: 2px solid var(--border-strong);
+    }
+
+    .section-head {
+      margin-bottom: clamp(2.5rem, 4.5vw, 3.75rem);
+      max-width: 68ch;
+    }
+
+    .section-index-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      color: var(--muted);
+      margin-bottom: 0.625rem;
+    }
+
+    .section-rule-short {
+      width: 28px;
+      height: 1px;
+      background-color: var(--border-strong);
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.875rem, 3.4vw, 2.75rem);
+      font-weight: 700;
+      line-height: 1.35;
+      letter-spacing: 0;
+      color: var(--fg);
+      margin-bottom: 0.75rem;
+    }
+
+    .section-subtitle {
+      font-size: 1rem;
+      line-height: 1.75;
+      color: var(--fg-secondary);
+    }
+
+    /* ==========================================================================
+       SECTION 1: 1 + 4 ARCHITECTURE & CALL CHAIN TOPOLOGY
+       ========================================================================== */
+    .arch-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 2.5rem;
+    }
+
+    /* Call Chain Pipeline */
+    .pipeline-box {
+      background-color: var(--surface);
+      border: 1px solid var(--border-strong);
+      padding: clamp(1.25rem, 2.5vw, 2rem);
+    }
+
+    .pipeline-label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .pipeline-title {
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--fg);
+    }
+
+    .pipeline-raw {
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      color: var(--muted);
+    }
+
+    .pipeline-steps {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0.75rem;
+    }
+
+    .pipeline-step {
+      position: relative;
+      padding: 0.875rem 1rem;
+      background-color: var(--bg);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      transition: border-color 150ms var(--ease-out), background-color 150ms var(--ease-out);
+    }
+
+    .pipeline-step:hover {
+      border-color: var(--fg);
+      background-color: var(--surface-subtle);
+    }
+
+    .step-num {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .step-name {
+      font-weight: 600;
+      font-size: 0.9375rem;
+      color: var(--fg);
+    }
+
+    /* Main Agent + 4 Sub-Agents Topology */
+    .topology-board {
+      display: grid;
+      grid-template-columns: 5fr 7fr;
+      gap: clamp(1.5rem, 3vw, 3rem);
+      align-items: stretch;
+    }
+
+    .main-agent-panel {
+      background-color: var(--fg);
+      color: var(--bg);
+      padding: clamp(1.75rem, 3vw, 2.5rem);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border: 1px solid var(--border-strong);
+      position: relative;
+    }
+
+    .main-agent-kicker {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.75;
+      margin-bottom: 0.75rem;
+    }
+
+    .main-agent-heading {
+      font-family: var(--font-display);
+      font-size: clamp(1.5rem, 2.4vw, 2rem);
+      font-weight: 700;
+      line-height: 1.35;
+      margin-bottom: 1.25rem;
+    }
+
+    .main-agent-cap-label {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      opacity: 0.75;
+      margin-bottom: 0.5rem;
+    }
+
+    .main-agent-cap-text {
+      font-size: 0.9375rem;
+      line-height: 1.75;
+      opacity: 0.95;
+      padding: 1rem;
+      border: 1px solid var(--overlay-border);
+      background-color: var(--overlay-bg);
+      margin-bottom: 1.75rem;
+    }
+
+    .main-agent-bus {
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--overlay-border);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      opacity: 0.85;
+    }
+
+    .sub-agents-list {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .sub-agent-node {
+      background-color: var(--surface);
+      border: 1px solid var(--border-strong);
+      padding: 1.25rem 1.5rem;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 1.25rem;
+      align-items: start;
+      transition: background-color 120ms var(--ease-out), transform 120ms var(--ease-out);
+    }
+
+    .sub-agent-node:hover {
+      background-color: var(--surface-subtle);
+      transform: translateX(4px);
+    }
+
+    .node-index {
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--muted);
+      padding-top: 0.15rem;
+    }
+
+    .node-content {
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+    }
+
+    .node-header-line {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.625rem;
+    }
+
+    .node-title {
+      font-family: var(--font-display);
+      font-size: 1.1875rem;
+      font-weight: 700;
+      line-height: 1.35;
+      color: var(--fg);
+    }
+
+    .node-tag {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--fg-secondary);
+      background-color: var(--surface-subtle);
+      border: 1px solid var(--border);
+      padding: 0.1rem 0.5rem;
+    }
+
+    .node-desc {
+      font-size: 0.9375rem;
+      color: var(--fg-secondary);
+      line-height: 1.65;
+    }
+
+    .node-jump {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--fg);
+      border: 1px solid var(--border);
+      padding: 0.35rem 0.625rem;
+      background-color: var(--bg);
+      white-space: nowrap;
+      align-self: center;
+      transition: border-color 120ms var(--ease-out), background-color 120ms var(--ease-out);
+    }
+
+    .node-jump:hover {
+      border-color: var(--fg);
+      background-color: var(--surface-subtle);
+    }
+
+    /* ==========================================================================
+       SECTION 2: FOUR PRODUCTION PROJECTS — ASYMMETRIC SPECIFICATION DOSSIER
+       ========================================================================== */
+    .dossier-wrapper {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: clamp(2rem, 4vw, 4rem);
+      align-items: start;
+    }
+
+    .dossier-rail {
+      position: sticky;
+      top: 88px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      border-left: 2px solid var(--border-strong);
+      padding-left: 1rem;
+    }
+
+    .rail-caption {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .rail-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.5rem 0.625rem;
+      font-size: 0.875rem;
+      color: var(--muted);
+      border-radius: var(--radius);
+      transition: background-color 120ms var(--ease-out), color 120ms var(--ease-out);
+    }
+
+    .rail-item:hover,
+    .rail-item.is-active {
+      color: var(--fg);
+      background-color: var(--surface-subtle);
+      font-weight: 600;
+    }
+
+    .rail-port {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--success);
+    }
+
+    .dossier-list {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(3rem, 5vw, 4.5rem);
+    }
+
+    .project-spec {
+      background-color: var(--surface);
+      border-top: 3px solid var(--border-strong);
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      border-left: 1px solid var(--border);
+      padding: clamp(1.5rem, 3.2vw, 2.75rem);
+      scroll-margin-top: 84px;
+    }
+
+    .project-spec-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.75rem;
+    }
+
+    .project-title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .project-id-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+    }
+
+    .project-num {
+      font-weight: 700;
+      color: var(--fg);
+      background-color: var(--surface-subtle);
+      padding: 0.15rem 0.5rem;
+      border: 1px solid var(--border-strong);
+    }
+
+    .project-role-badge {
+      color: var(--fg-secondary);
+      font-weight: 500;
+    }
+
+    .project-port-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      color: var(--success);
+      background-color: var(--success-tint);
+      border: 1px solid var(--success);
+      padding: 0.1rem 0.5rem;
+      font-weight: 600;
+    }
+
+    .project-heading {
+      font-family: var(--font-display);
+      font-size: clamp(1.5rem, 2.5vw, 2.125rem);
+      font-weight: 700;
+      line-height: 1.35;
+      color: var(--fg);
+    }
+
+    .project-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .action-launch {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      height: 42px;
+      padding: 0 1.125rem;
+      background-color: var(--fg);
+      color: var(--bg);
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      border: 1px solid var(--fg);
+      border-radius: var(--radius);
+      white-space: nowrap;
+      transition: background-color 120ms var(--ease-out), color 120ms var(--ease-out), transform 100ms var(--ease-out);
+    }
+
+    .action-launch:hover {
+      background-color: var(--bg);
+      color: var(--fg);
+    }
+
+    .action-launch:active {
+      transform: translateY(1px);
+    }
+
+    .action-source {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      height: 42px;
+      padding: 0 1rem;
+      background-color: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius);
+      white-space: nowrap;
+      transition: background-color 120ms var(--ease-out);
+    }
+
+    .action-source:hover {
+      background-color: var(--surface-subtle);
+    }
+
+    /* Asymmetric Body inside each Project Spec */
+    .project-spec-body {
+      display: grid;
+      grid-template-columns: 6.5fr 5.5fr;
+      gap: clamp(1.5rem, 3vw, 3rem);
+      align-items: start;
+    }
+
+    .project-spec:nth-child(even) .project-spec-body {
+      grid-template-columns: 5.5fr 6.5fr;
+    }
+
+    .spec-col-title {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .spec-solution-text {
+      font-size: 1rem;
+      line-height: 1.8;
+      color: var(--fg);
+      margin-bottom: 1.5rem;
+      padding: 1.25rem;
+      background-color: var(--bg);
+      border-left: 2px solid var(--border-strong);
+    }
+
+    .spec-meta-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .spec-meta-table th,
+    .spec-meta-table td {
+      padding: 0.5rem 0.625rem;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      word-break: break-all;
+    }
+
+    .spec-meta-table th {
+      color: var(--muted);
+      width: 84px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .spec-meta-table td a {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .spec-tags-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .tech-tag {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 0.25rem 0.625rem;
+      background-color: var(--surface-subtle);
+      border: 1px solid var(--border);
+      color: var(--fg);
+      border-radius: var(--radius);
+    }
+
+    .keypoints-list {
+      display: flex;
+      flex-direction: column;
+      border-top: 1px solid var(--border-strong);
+    }
+
+    .keypoint-item {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 0.75rem;
+      padding: 0.875rem 0;
+      border-bottom: 1px solid var(--border);
+      align-items: baseline;
+    }
+
+    .keypoint-idx {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .keypoint-text {
+      font-size: 0.9375rem;
+      line-height: 1.65;
+      color: var(--fg);
+    }
+
+    /* Upcoming Projects Strip */
+    .upcoming-banner {
+      margin-top: 2.5rem;
+      padding: 1.25rem 1.5rem;
+      background-color: var(--surface-subtle);
+      border: 1px solid var(--border-strong);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .upcoming-text {
+      font-family: var(--font-display);
+      font-size: 1.0625rem;
+      font-weight: 700;
+      color: var(--fg);
+    }
+
+    .upcoming-status {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    /* ==========================================================================
+       SECTION 3: TECH STACK SPECIFICATION MATRIX
+       ========================================================================== */
+    .stack-ledger {
+      border-top: 2px solid var(--border-strong);
+    }
+
+    .stack-row {
+      display: grid;
+      grid-template-columns: 3.5fr 8.5fr;
+      gap: clamp(1.25rem, 3vw, 2.5rem);
+      padding: 1.75rem 0;
+      border-bottom: 1px solid var(--border);
+      align-items: baseline;
+    }
+
+    .stack-domain {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .stack-domain-code {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .stack-domain-name {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--fg);
+      line-height: 1.35;
+    }
+
+    .stack-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.625rem;
+    }
+
+    .stack-chip {
+      font-family: var(--font-mono);
+      font-size: 0.875rem;
+      padding: 0.4rem 0.875rem;
+      background-color: var(--surface);
+      border: 1px solid var(--border-strong);
+      color: var(--fg);
+      border-radius: var(--radius);
+      transition: background-color 120ms var(--ease-out), color 120ms var(--ease-out);
+    }
+
+    .stack-chip:hover {
+      background-color: var(--fg);
+      color: var(--bg);
+    }
+
+    /* ==========================================================================
+       FOOTER
+       ========================================================================== */
+    .site-footer {
+      padding: clamp(2.5rem, 5vw, 4rem) 0;
+      background-color: var(--surface);
+    }
+
+    .footer-grid {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 2rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .footer-primary {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .footer-line-1 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.0625rem;
+      color: var(--fg);
+    }
+
+    .footer-line-2 {
+      font-family: var(--font-mono);
+      font-size: 0.875rem;
+      color: var(--fg-secondary);
+    }
+
+    .footer-endpoints {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.625rem;
+    }
+
+    .footer-ep-link {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 0.35rem 0.625rem;
+      border: 1px solid var(--border);
+      background-color: var(--bg);
+      color: var(--fg-secondary);
+      transition: border-color 120ms var(--ease-out), color 120ms var(--ease-out);
+    }
+
+    .footer-ep-link:hover {
+      border-color: var(--fg);
+      color: var(--fg);
+    }
+
+    .footer-bottom {
+      padding-top: 1.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    /* ==========================================================================
+       SCROLL REVEAL ANIMATION & REDUCED MOTION
+       ========================================================================== */
+    @media (prefers-reduced-motion: no-preference) {
+      .reveal {
+        opacity: 0;
+        transform: translateY(16px);
+        transition: opacity 380ms var(--ease-out), transform 380ms var(--ease-out);
+      }
+      .reveal.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* ==========================================================================
+       RESPONSIVE BREAKPOINTS (MOBILE 375-414PX ZERO HORIZONTAL OVERFLOW)
+       ========================================================================== */
+    @media (max-width: 1024px) {
+      .hero-grid {
+        grid-template-columns: 1fr;
+      }
+      .metrics-ledger {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.25rem;
+      }
+      .metric-cell:nth-child(2) {
+        border-right: none;
+        padding-right: 0;
+      }
+      .pipeline-steps {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .topology-board {
+        grid-template-columns: 1fr;
+      }
+      .dossier-wrapper {
+        grid-template-columns: 1fr;
+      }
+      .dossier-rail {
+        position: static;
+        flex-direction: row;
+        flex-wrap: wrap;
+        border-left: none;
+        border-bottom: 1px solid var(--border-strong);
+        padding-left: 0;
+        padding-bottom: 0.75rem;
+      }
+      .rail-caption {
+        width: 100%;
+        margin-bottom: 0.25rem;
+      }
+      .project-spec-body,
+      .project-spec:nth-child(even) .project-spec-body {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .masthead-role,
+      .host-badge {
+        display: none;
+      }
+      .masthead-nav {
+        gap: 1rem;
+      }
+      .nav-link {
+        font-size: 0.8125rem;
+      }
+      .pipeline-steps {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .stack-row {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+      }
+      .sub-agent-node {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+      }
+      .node-jump {
+        align-self: flex-start;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 0 1rem;
+      }
+      .masthead-inner {
+        gap: 0.5rem;
+      }
+      .repo-top-link {
+        display: none;
+      }
+      /* 保持 2×2 而非降到 1 列：这 4 格的全部价值就是并列比较，
+         拉成 4 行等于把「1+4 / 4 / RAG / 7类」的对照关系拆散 */
+      .metrics-ledger {
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem 1.25rem;
+      }
+      .metric-cell {
+        border-right: 1px solid var(--border);
+        border-bottom: 0;
+        padding-right: 1.25rem;
+        padding-bottom: 0;
+      }
+      .metric-cell:nth-child(even) {
+        border-right: none;
+        padding-right: 0;
+      }
+      .metric-cell:nth-child(-n + 2) {
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 1rem;
+      }
+      .pipeline-steps {
+        grid-template-columns: 1fr;
+      }
+      .console-item {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+      }
+      .console-port-wrap {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding-top: 0.375rem;
+        border-top: 1px dashed var(--border);
+      }
+      .project-actions {
+        width: 100%;
+      }
+      .action-launch,
+      .action-source {
+        flex: 1 1 auto;
+        justify-content: center;
+      }
+    }
+
+    /* ==========================================================================
+       点击目标尺寸（无障碍）：页面内所有 a / button 的命中盒 ≥ 44×44
+       --------------------------------------------------------------------------
+       手法只有两种，都不改盒子尺寸、不改视觉：
+         · padding-block + 负 margin-block：命中区（border box）变高，
+           外边距盒高度不变 —— 用于没有背景/边框的元素（顶栏品牌名）
+         · ::before / ::after + inset 负值：命中区向外扩一圈，
+           元素自身盒子与所有视觉属性完全不动 —— 用于其余全部元素
+       ========================================================================== */
+    /* 顶栏品牌名 76.5×31.5 → 76.5×45.5（无背景/边框，撑高不可见） */
+    .masthead-name {
+      padding-block: 7px;
+      margin-block: -7px;
+    }
+
+    /* 顶栏导航锚点 32.5 → 44.5（.is-active 的下划线用 ::after，这里用 ::before） */
+    .nav-link::before {
+      content: "";
+      position: absolute;
+      inset: -6px -8px;
+    }
+
+    /* 顶栏两个方按钮 34 → 44 */
+    .theme-toggle,
+    .repo-top-link {
+      position: relative;
+    }
+    .theme-toggle::after,
+    .repo-top-link::after {
+      content: "";
+      position: absolute;
+      inset: -5px -4px;
+    }
+
+    /* 正文/页脚里的行内链接（24.8 / 23 / 14 / 35）→ ≥44 */
+    .meta-link {
+      position: relative;
+    }
+    .meta-link::after {
+      content: "";
+      position: absolute;
+      inset: -11px -6px;
+    }
+    .spec-meta-table td a {
+      position: relative;
+    }
+    .spec-meta-table td a::after {
+      content: "";
+      position: absolute;
+      inset: -15px -6px;
+    }
+
+    /* 架构区「规格 & :端口」跳转 34.2 → 44.2 */
+    .node-jump {
+      position: relative;
+    }
+    .node-jump::after {
+      content: "";
+      position: absolute;
+      inset: -5px -4px;
+    }
+
+    /* 项目目录左侧吸顶导航 40.5 → 44.5 */
+    .rail-item {
+      position: relative;
+    }
+    .rail-item::after {
+      content: "";
+      position: absolute;
+      inset: -2px 0;
+    }
+
+    /* 项目卡主行动 / 源码按钮 42 → 44 */
+    .action-launch,
+    .action-source {
+      position: relative;
+    }
+    .action-launch::after,
+    .action-source::after {
+      content: "";
+      position: absolute;
+      inset: -1px 0;
+    }
+
+    /* 页脚端口直连 34.2 → 44.2 */
+    .footer-ep-link {
+      position: relative;
+    }
+    .footer-ep-link::after {
+      content: "";
+      position: absolute;
+      inset: -5px -4px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     图标精灵 · 24 网格 / 描边 1.5 / round cap+join / currentColor
+     线宽全集合统一 1.5（不按图形单独加粗），重量差靠"延展到安全区"
+     而非线宽解决 —— 并排时线宽不一致比尺寸不一致更刺眼。
+     ============================================================ -->
+<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true" focusable="false"><defs>
+<symbol id="i-ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6.5"/><path d="M12 12 20 4"/><path d="M15.5 4H20v4.5"/></symbol>
+<symbol id="i-arrow-r" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"/><path d="M14 6l6 6-6 6"/></symbol>
+<symbol id="i-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 4H6a2 2 0 0 0-2 2v10"/></symbol>
+<symbol id="i-repo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6 3.5 12 9 18"/><path d="M15 6 20.5 12 15 18"/></symbol>
+<symbol id="i-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5" width="13" height="5.5" rx="1.5"/><rect x="5.5" y="13.5" width="13" height="5.5" rx="1.5"/></symbol>
+<symbol id="i-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6.5" rx="7" ry="3"/><path d="M5 6.5V17a7 3 0 0 0 14 0V6.5"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5.5h17l-6 7.5h-5L3.5 5.5Z"/><path d="M10.25 13v5.5M13.75 13v5.5"/></symbol>
+<symbol id="i-agent" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="4.2" r="1.75"/><circle cx="5.25" cy="15.9" r="1.75"/><circle cx="18.75" cy="15.9" r="1.75"/></symbol>
+<symbol id="i-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="2"/><path d="M8 9l3 3-3 3"/><path d="M13.5 15h4"/></symbol>
+<symbol id="i-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h5l7 7v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="M8.5 13.5h7M8.5 17h4.5"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12 9.5 17 19.5 7"/></symbol>
+<symbol id="i-warn" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 20 19H4L12 4Z" fill="none"/><path d="M12 8.75v4" fill="none"/><circle cx="12" cy="16" r="1.35" fill="currentColor" stroke="none"/></symbol>
+</defs></svg>
+
+  <!-- TOP SPECIFICATION MASTHEAD -->
+  <header class="masthead" data-od-id="masthead">
+    <div class="container masthead-inner">
+      <div class="masthead-brand">
+        <a href="#top" class="masthead-name">
+          <svg class="mark ic-lg" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+            <rect x="12" y="12" width="8" height="8" rx="2"/>
+            <rect x="4" y="4" width="4" height="4" rx="1"/>
+            <rect x="24" y="4" width="4" height="4" rx="1"/>
+            <rect x="4" y="24" width="4" height="4" rx="1"/>
+            <rect x="24" y="24" width="4" height="4" rx="1"/>
+          </svg>
+          <span>赵豪杰</span>
+        </a>
+        <span class="masthead-role">AI 应用开发 / FDE（Forward Deployed Engineer）</span>
+      </div>
+
+      <nav class="masthead-nav" aria-label="主导航">
+        <a href="#architecture" class="nav-link" data-nav-link="architecture">平台架构</a>
+        <a href="#projects" class="nav-link" data-nav-link="projects">线上项目 (01-04)</a>
+        <a href="#tech-stack" class="nav-link" data-nav-link="tech-stack">技术栈</a>
+        <a href="designs/index.html" class="nav-link">UI 设计稿</a>
+      </nav>
+
+      <div class="masthead-actions">
+        <span class="host-badge" title="腾讯云实机运行节点">
+          <span class="status-led" aria-hidden="true"></span>
+          <span>49.233.198.106 · ONLINE</span>
+        </span>
+        <a href="https://github.com/haojiezhao343-code" target="_blank" rel="noopener noreferrer" class="repo-top-link" data-od-id="header-github-link">
+          GitHub
+        </a>
+        <button type="button" class="theme-toggle" id="themeToggle" aria-label="切换明暗主题" data-od-id="theme-toggle">
+          <span id="themeToggleText">DARK</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- HERO SECTION -->
+    <section class="hero" data-od-id="hero-section">
+      <div class="container">
+        <!-- Candidate & Repository Metadata Bar -->
+        <div class="hero-meta-bar">
+          <div class="hero-meta-left">
+            <span class="meta-kv">
+              <span class="meta-k">姓名：</span><strong class="meta-v">赵豪杰</strong>
+            </span>
+            <span class="meta-kv">
+              <span class="meta-k">身份：</span><span class="meta-v">AI 应用开发 / FDE（Forward Deployed Engineer）</span>
+            </span>
+          </div>
+          <div class="hero-meta-right">
+            <span class="meta-kv">
+              <span class="meta-k">GitHub：</span><a href="https://github.com/haojiezhao343-code" target="_blank" rel="noopener noreferrer" class="meta-link">https://github.com/haojiezhao343-code</a>
+            </span>
+            <span class="meta-kv">
+              <span class="meta-k">作品集仓库：</span><span class="meta-v">haojiezhao343-code/maike-hanbao，部署于 GitHub Pages</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Asymmetric Hero Split: Left Manifesto & Architecture Pitch / Right Live System Dispatch -->
+        <div class="hero-grid">
+          <div class="hero-main">
+            <div class="hero-sub-badge" data-od-id="hero-sub-badge">
+              副标识：1 个主智能体 + 4 个子智能体，统一入口
+            </div>
+
+            <h1 class="hero-title" data-od-id="hero-title">多智能体运营平台</h1>
+
+            <p class="hero-lead cjk-text" data-od-id="hero-lead">
+              基于 deepagents（LangGraph）构建的多平台电商运营平台。意图识别 → 任务路由 → 子智能体协作执行 → 结果聚合，执行过程实时推送前端。4 套系统全部真实部署、线上运行。
+            </p>
+
+            <div class="hero-cta-row">
+              <a href="#projects" class="btn-primary" data-od-id="hero-cta-primary">
+                查阅 4 套线上系统规格
+              </a>
+              <a href="#architecture" class="btn-secondary" data-od-id="hero-cta-secondary">
+                检视 1 + 4 调度架构
+              </a>
+            </div>
+          </div>
+
+          <!-- Right Column: 30-Second Live Deployment Verification Matrix -->
+          <aside class="live-console" aria-label="线上系统直达控制台" data-od-id="live-console">
+            <div class="console-header">
+              <div class="console-title">
+                <span class="status-led" aria-hidden="true"></span>
+                <span>线上系统直达控制台 (LIVE DEPLOYMENTS)</span>
+              </div>
+              <span class="console-host">HOST: 49.233.198.106</span>
+            </div>
+
+            <div class="console-list">
+              <a href="http://49.233.198.106:7954/" target="_blank" rel="noopener noreferrer" class="console-item js-port-link" data-port="7954" data-od-id="console-link-7954">
+                <span class="console-num">01</span>
+                <div class="console-info">
+                  <div class="console-name-row">
+                    <span class="console-name">知识库智能体</span>
+                  </div>
+                  <div class="console-role">知识供给 · RAG 全链路</div>
+                </div>
+                <div class="console-port-wrap">
+                  <span class="console-port-badge">:7954 ONLINE</span>
+                  <span class="console-enter js-url-label">http://49.233.198.106:7954/ ↗</span>
+                </div>
+              </a>
+
+              <a href="http://49.233.198.106:8000/" target="_blank" rel="noopener noreferrer" class="console-item js-port-link" data-port="8000" data-od-id="console-link-8000">
+                <span class="console-num">02</span>
+                <div class="console-info">
+                  <div class="console-name-row">
+                    <span class="console-name">联网调研智能体</span>
+                  </div>
+                  <div class="console-role">联网调研 · 多智能体协作</div>
+                </div>
+                <div class="console-port-wrap">
+                  <span class="console-port-badge">:8000 ONLINE</span>
+                  <span class="console-enter js-url-label">http://49.233.198.106:8000/ ↗</span>
+                </div>
+              </a>
+
+              <a href="http://49.233.198.106:18082/" target="_blank" rel="noopener noreferrer" class="console-item js-port-link" data-port="18082" data-od-id="console-link-18082">
+                <span class="console-num">03</span>
+                <div class="console-info">
+                  <div class="console-name-row">
+                    <span class="console-name">智能应答台</span>
+                  </div>
+                  <div class="console-role">售前售后 · 三轨路由 + 流程编排</div>
+                </div>
+                <div class="console-port-wrap">
+                  <span class="console-port-badge">:18082 ONLINE</span>
+                  <span class="console-enter js-url-label">http://49.233.198.106:18082/ ↗</span>
+                </div>
+              </a>
+
+              <a href="http://49.233.198.106/" target="_blank" rel="noopener noreferrer" class="console-item js-port-link" data-port="80" data-od-id="console-link-80">
+                <span class="console-num">04</span>
+                <div class="console-info">
+                  <div class="console-name-row">
+                    <span class="console-name">运营智能体</span>
+                  </div>
+                  <div class="console-role">店铺经营 · 竞品监控 + 素材生成</div>
+                </div>
+                <div class="console-port-wrap">
+                  <span class="console-port-badge">:80 ONLINE</span>
+                  <span class="console-enter js-url-label">http://49.233.198.106/ ↗</span>
+                </div>
+              </a>
+            </div>
+
+            <div class="console-footer">
+              <span>部署于腾讯云 · 点击任意条目直达实机运行环境</span>
+              <span>80 端口默认直连不带 :80</span>
+            </div>
+          </aside>
+        </div>
+
+        <!-- 4 Key Metrics Ledger -->
+        <dl class="metrics-ledger" data-od-id="metrics-ledger">
+          <div class="metric-cell" data-od-id="metric-1">
+            <span class="metric-idx">01 / ARCHITECTURE</span>
+            <dt class="metric-val">1 + 4</dt>
+            <dd class="metric-desc"><span class="metric-raw-sep">——</span>主智能体 + 子智能体，统一入口</dd>
+          </div>
+
+          <div class="metric-cell" data-od-id="metric-2">
+            <span class="metric-idx">02 / PRODUCTION</span>
+            <dt class="metric-val">4</dt>
+            <dd class="metric-desc"><span class="metric-raw-sep">——</span>线上系统全部可用</dd>
+          </div>
+
+          <div class="metric-cell" data-od-id="metric-3">
+            <span class="metric-idx">03 / RETRIEVAL</span>
+            <dt class="metric-val">RAG</dt>
+            <dd class="metric-desc"><span class="metric-raw-sep">——</span>全链路 · 三路召回精排</dd>
+          </div>
+
+          <div class="metric-cell" data-od-id="metric-4">
+            <span class="metric-idx">04 / GOVERNANCE</span>
+            <dt class="metric-val">7 类</dt>
+            <dd class="metric-desc"><span class="metric-raw-sep">——</span>运营工具 · 统一网关管控</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <!-- SECTION 1: PLATFORM ARCHITECTURE (1 MAIN + 4 SUB-AGENTS) -->
+    <section id="architecture" class="section-block reveal" data-od-id="architecture-section">
+      <div class="container">
+        <div class="section-head">
+          <div class="section-index-row">
+            <span class="section-rule-short"></span>
+            <span>SECTION 01 · SYSTEM TOPOLOGY</span>
+          </div>
+          <h2 class="section-title">平台架构</h2>
+          <p class="section-subtitle">
+            由 1 个主智能体作为统一调度与实时流式网关中枢，向下编排 4 个领域专用子智能体协同完成复杂电商运营闭环。
+          </p>
+        </div>
+
+        <div class="arch-layout">
+          <!-- Call Chain Bar -->
+          <div class="pipeline-box" data-od-id="call-chain-box">
+            <div class="pipeline-label-row">
+              <span class="pipeline-title">调用链：用户请求 → 意图识别 → 任务路由 → 子智能体协作执行 → 结果聚合 → 实时推送前端</span>
+              <span class="pipeline-raw">6-STAGE REALTIME PIPELINE</span>
+            </div>
+            <ol class="pipeline-steps">
+              <li class="pipeline-step">
+                <span class="step-num"><span>01</span><span>→</span></span>
+                <span class="step-name">用户请求</span>
+              </li>
+              <li class="pipeline-step">
+                <span class="step-num"><span>02</span><span>→</span></span>
+                <span class="step-name">意图识别</span>
+              </li>
+              <li class="pipeline-step">
+                <span class="step-num"><span>03</span><span>→</span></span>
+                <span class="step-name">任务路由</span>
+              </li>
+              <li class="pipeline-step">
+                <span class="step-num"><span>04</span><span>→</span></span>
+                <span class="step-name">子智能体协作执行</span>
+              </li>
+              <li class="pipeline-step">
+                <span class="step-num"><span>05</span><span>→</span></span>
+                <span class="step-name">结果聚合</span>
+              </li>
+              <li class="pipeline-step">
+                <span class="step-num"><span>06</span><span>SSE / WS</span></span>
+                <span class="step-name">实时推送前端</span>
+              </li>
+            </ol>
+          </div>
+
+          <!-- 1 Main Agent + 4 Sub Nodes -->
+          <div class="topology-board" data-od-id="topology-board">
+            <div class="main-agent-panel" data-od-id="main-agent-panel">
+              <div>
+                <div class="main-agent-kicker">MAIN ORCHESTRATOR</div>
+                <h3 class="main-agent-heading">主智能体（MAIN AGENT）= 多智能体运营平台</h3>
+                <p class="main-agent-cap-text">
+                  能力：统一入口 · 意图识别 · 任务编排路由 · 多智能体协作调度 · WebSocket / SSE 实时推送
+                </p>
+              </div>
+              <div class="main-agent-bus">
+                <span>ENGINE: deepagents（LangGraph）</span>
+                <span>四个子节点 · REALTIME DISPATCH</span>
+              </div>
+            </div>
+
+            <div class="sub-agents-list">
+              <!-- Node 1 -->
+              <article class="sub-agent-node" data-od-id="arch-node-1">
+                <span class="node-index">01</span>
+                <div class="node-content">
+                  <div class="node-header-line">
+                    <h4 class="node-title">知识库智能体</h4>
+                    <span class="node-tag">标签「RAG 全链路」</span>
+                  </div>
+                  <p class="node-desc">描述：MinerU 解析 / 三路并发召回 / RRF 融合精排，答案可溯源</p>
+                </div>
+                <a href="#project-01" class="node-jump">规格 &amp; :7954 ↓</a>
+              </article>
+
+              <!-- Node 2 -->
+              <article class="sub-agent-node" data-od-id="arch-node-2">
+                <span class="node-index">02</span>
+                <div class="node-content">
+                  <div class="node-header-line">
+                    <h4 class="node-title">联网调研智能体</h4>
+                    <span class="node-tag">标签「Tavily · RAGFlow」</span>
+                  </div>
+                  <p class="node-desc">描述：联网搜索 + 知识库问答，调研结果自动生成 PDF 报告</p>
+                </div>
+                <a href="#project-02" class="node-jump">规格 &amp; :8000 ↓</a>
+              </article>
+
+              <!-- Node 3 -->
+              <article class="sub-agent-node" data-od-id="arch-node-3">
+                <span class="node-index">03</span>
+                <div class="node-content">
+                  <div class="node-header-line">
+                    <h4 class="node-title">智能应答台</h4>
+                    <span class="node-tag">标签「三轨路由 · 流程编排」</span>
+                  </div>
+                  <p class="node-desc">描述：订单查询 / 物流跟踪 / 退换政策，高风险自动转人工</p>
+                </div>
+                <a href="#project-03" class="node-jump">规格 &amp; :18082 ↓</a>
+              </article>
+
+              <!-- Node 4 -->
+              <article class="sub-agent-node" data-od-id="arch-node-4">
+                <span class="node-index">04</span>
+                <div class="node-content">
+                  <div class="node-header-line">
+                    <h4 class="node-title">运营智能体</h4>
+                    <span class="node-tag">标签「竞品监控 · 素材生成」</span>
+                  </div>
+                  <p class="node-desc">描述：竞品监控 / 创意 / 广告推荐 / 库存建议，图文视频生成</p>
+                </div>
+                <a href="#project-04" class="node-jump">规格 &amp; :80 ↓</a>
+              </article>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: FOUR PRODUCTION SYSTEMS SPECIFICATION DOSSIER -->
+    <section id="projects" class="section-block" data-od-id="projects-section">
+      <div class="container">
+        <div class="section-head">
+          <div class="section-index-row">
+            <span class="section-rule-short"></span>
+            <span>SECTION 02 · PRODUCTION SYSTEMS</span>
+          </div>
+          <h2 class="section-title">四个线上项目</h2>
+          <p class="section-subtitle">
+            4 套系统均已独立完成工程化部署并在线运行于腾讯云（主机 49.233.198.106），包含完整的技术链路方案与 16 条核心实现要点。
+          </p>
+        </div>
+
+        <div class="dossier-wrapper">
+          <!-- Left Sticky Index Rail -->
+          <aside class="dossier-rail" aria-label="线上系统索引">
+            <div class="rail-caption">SYSTEM INDEX</div>
+            <a href="#project-01" class="rail-item is-active" data-rail-link="project-01">
+              <span>项目 01 知识库智能体</span>
+              <span class="rail-port">:7954</span>
+            </a>
+            <a href="#project-02" class="rail-item" data-rail-link="project-02">
+              <span>项目 02 联网调研智能体</span>
+              <span class="rail-port">:8000</span>
+            </a>
+            <a href="#project-03" class="rail-item" data-rail-link="project-03">
+              <span>项目 03 智能应答台</span>
+              <span class="rail-port">:18082</span>
+            </a>
+            <a href="#project-04" class="rail-item" data-rail-link="project-04">
+              <span>项目 04 运营智能体</span>
+              <span class="rail-port">:80</span>
+            </a>
+          </aside>
+
+          <!-- Right Specification Dossiers -->
+          <div class="dossier-list">
+
+            <!-- PROJECT 01 -->
+            <article id="project-01" class="project-spec reveal" data-od-id="project-card-01">
+              <div class="project-spec-head">
+                <div class="project-title-group">
+                  <div class="project-id-row">
+                    <span class="project-num">项目 01 知识库智能体</span>
+                    <span class="project-role-badge">角色：知识供给 · RAG 全链路</span>
+                    <span class="project-port-indicator">
+                      <span class="status-led" aria-hidden="true"></span>
+                      <span>端口：7954</span>
+                    </span>
+                  </div>
+                  <h3 class="project-heading">多智能体运营平台 · 知识库智能体</h3>
+                </div>
+
+                <div class="project-actions">
+                  <a href="http://49.233.198.106:7954/" target="_blank" rel="noopener noreferrer" class="action-launch js-port-link" data-port="7954" data-od-id="launch-btn-01">
+                    <span>访问线上系统 (:7954)</span>
+                    <svg class="ic" aria-hidden="true" focusable="false"><use href="#i-ext"></use></svg>
+                  </a>
+                  <a href="https://github.com/haojiezhao343-code" target="_blank" rel="noopener noreferrer" class="action-source" data-od-id="source-btn-01">
+                    <span>源码仓库</span>
+                    <svg class="ic" aria-hidden="true" focusable="false"><use href="#i-ext"></use></svg>
+                  </a>
+                </div>
+              </div>
+
+              <div class="project-spec-body">
+                <div class="spec-left">
+                  <div class="spec-col-title">技术方案：</div>
+                  <p class="spec-solution-text cjk-text">
+                    MinerU 云 API 解析 PDF / Word / 扫描件，按标题层级切分并保留段落定位；BGE-M3 生成稠密 + 稀疏双向量、Milvus 混合索引；向量 + HyDE + 联网三路并发召回，RRF 融合后由 rerank 精排并断崖截断，答案可溯源、证据不足主动拒答或反问澄清。
+                  </p>
+
+                  <table class="spec-meta-table" aria-label="项目 01 部署与源码元数据">
+                    <tbody>
+                      <tr>
+                        <th>线上直达</th>
+                        <td><a href="http://49.233.198.106:7954/" target="_blank" rel="noopener noreferrer" class="js-port-link js-url-text" data-port="7954">http://49.233.198.106:7954/</a></td>
+                      </tr>
+                      <tr>
+                        <th>端口：</th>
+                        <td>7954</td>
+                      </tr>
+                      <tr>
+                        <th>源码：</th>
+                        <td><a href="https://github.com/haojiezhao343-code" target="_blank" rel="noopener noreferrer">https://github.com/haojiezhao343-code</a></td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <div class="spec-col-title">技术标签</div>
+                  <div class="spec-tags-wrap">
+                    <span class="tech-tag">RAG</span>
+                    <span class="tech-tag">MinerU</span>
+                    <span class="tech-tag">BGE-M3</span>
+                    <span class="tech-tag">Milvus</span>
+                    <span class="tech-tag">RRF 融合</span>
+                    <span class="tech-tag">FastAPI</span>
+                  </div>
+                </div>
+
+                <div class="spec-right">
+                  <div class="spec-col-title">实现要点（4 条）：</div>
+                  <ul class="keypoints-list">
+                    <li class="keypoint-item">
+                      <span class="keypoint-idx">01.1</span>
+                      <span class="keypoint-text cjk-text">PDF / Word / 扫描件智能解析入库，原文档与图片对象存储</span>
+                    </li>
+                    <li class="keypoint-item">
+                      <span class="keypoint-idx">01.2</span>
+                      <span class="keypoint-text cjk-text">向量 + HyDE + 联网三路并发召回，RRF 融合（k=60）</span>
+                    </li>
+                    <li class="keypoint-item">
+                      <span class="keypoint-idx">01.3</span>
+                      <span class="keypoint-text cjk-text">qwen3-rerank 精排并断崖截断，答案可溯源</span>
+                    </li>
+                    <li class="keypoint-item">
+                      <span class="keypoint-idx">01.4</span>
+                      <span class="keypoint-text cjk-text">证据不足主动拒答或反问澄清，流式打字机输出</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- PROJECT 02 -->
+            <article id="project-02" class="project-spec reveal" data-od-id="project-card-02">
+              <div class="project-spec-head">
+                <div class="project-title-group">
+                  <div class="project-id-row">
+                    <span class="project-num">项目 02 联网调研智能体</span>
+                    <span class="project-role-badge">角色：联网调研 · 多智能体协作</span>
+                    <span class="project-port-indicator">
+                      <span class="status-led" aria-hidden="true"></span>
+                      <span>端口：8000</span>
+                    </span>
+                  </div>
+                  <h3 class="project-heading">多智能体运营平台 · 联网调研智能体</h3>
+                </div>
+
+                <div class="project-actions">
+                  <a href="http://49.233.198.106:8000/" target="_blank" rel="noopener noreferrer" class="action-launch js-port-link" data-port="8000" data-od-id="launch-btn-02">
+                    <span>访问线上系统 (:8000)</span>
+                    <svg class="ic" aria-hidden="true" focusable="false"><use href="#i-ext"></use></svg>
+                  </a>
+                  <a href="https://github.com/haojiezhao343-code" target="_blank" rel="noopener noreferrer" class="action-source" data-od-id="source-btn-02">
+                    <span>源码仓库</span>
+                    <svg class="ic" aria-hidden="true" focusable="false"><use href="#i-ext"></use></svg>
+                  </a>
+                </div>
+              </div>
+
+              <div class="project-spec-body">
+                <div class="spec-left">
+                  <div class="spec-col-title">技术方案：</div>
+                  <p class="spec-solution-text cjk-text">
+                    集成 Tavily 联网搜索与 RAGFlow 知识库问答子智能体，按需检索外部信息与既有知识；支持读取上传的 Markdown / Word / PDF / Excel 文件，并将调研结果自动生成 Markdown → PDF 报告。
+                  </p>
+
+                  <table class="spec-meta-table" aria-label="项目 02 部署与源码元数据">
+                    <tbody>
+                      <tr>
+                        <th>线上直达</th>
+                        <td><a href="http://49.233.198.106:8000/" target="_blank" rel="noopener noreferrer" class="js-port-link js-url-text" data-port="8000">http://49.233.198.106:8000/</a></td>
+                      </tr>
+                      <tr>
+                        <th>端口：</th>
+                        <td>8000</td>
+                      </tr>
+                      <tr>
+                        <th>源码：</th>
+                        <td><a href="https://github.com/haojiezhao343-code" target="_blank" rel="noopener noreferrer">https://github.com/haojiezhao343-code</a></td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <div class="spec-col-title">技术标签</div>
+                  <div class="spec-tags-wrap">
+                    <span class="tech-tag">LangGraph</span>
+                    <span class="tech-tag">multi-agent</span>
+                    <span class="tech-tag">Tavily</span>
+                    <span class="tech-tag">RAGFlow</span>
+                    <span class="tech-tag">报告生成</span>
+                    <span class="tech-tag">SSE</span>
+                  </div>
+                </div>
+
+                <div class="spec-right">
+                  <div class="spec-col-title">实现要点（4 条）：</div>
+                  <ul class="keypoints-list">
+                    <li class="keypoint-item">
+                      <span class="keypoint-idx">02.1</span>
+                      <span class="keypoint-text cjk-text">Tavily 联网搜索 + RAGFlow 知识库问答双源检索</span>
+                    </li>
+                    <li class="keypoint-item">
+                      <span class="keypoint-idx">02.2</span>
+                      <span class="keypoint-text cjk-text">支持读取上传的 Markdown / Word / PDF / Excel 文件</span>
+                    </li>
+                    <li class="keypoint-item">
+                      <span class="keypoint-idx">02.3</span>
+                      <span class="keypoint-text cjk-text">调研结果自动生成 Markdown → PDF 报告</span>
+                    </li>
+                    <li class="keypoint-item">
+                      <span class="keypoint-idx">02.4</span>
+                      <span class="keypoint-text cjk-text">推理过程实时可见，决策可解释</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- PROJECT 03 -->
+            <article id="project-03" class="project-spec reveal" data-od-id="project-card-03">
+              <div class="project-spec-head">
+                <div class="project-title-group">
+                  <div class="project-id-row">
+                    <span class="project-num">项目 03 智能应答台</span>
+                    <span class="project-role-badge">角色：售前售后 · 三轨路由 + 流程编排</span>
+                    <span class="project-port-indicator">
+                      <span class="status-led" aria-hidden="true"></span>
+                      <span>端口：18082</span>
+                    </span>
+                  </div>
+                  <h3 class="project-heading">智能应答台</h3>
+                </div>
+
+                <div class="project-actions">
+                  <a href="http://49.233.198.106:18082/" target="_blank" rel="noopener noreferrer" class="action-launch js-port-link" data-port="18082" data-od-id="launch-btn-03">
+                    <span>访问线上系统 (:18082)</span>
+                    <svg class="ic" aria-hidden="true" focusable="false"><use href="#i-ext"></use></svg>
+                  </a>
+                  <a href="https://github.com/haojiezhao343-code" target="_blank" rel="noopener noreferrer" class="action-source" data-od-id="source-btn-03">
+                    <span>源码仓库</span>
+                    <svg class="ic" aria-hidden="true" focusable="false"><use href="#i-ext"></use></svg>
+                  </a>
+                </div>
+              </div>
+
+              <div class="project-spec-body">
+                <div class="spec-left">
+                  <div class="spec-col-title">技术方案：</div>
+                  <p class="spec-solution-text cjk-text">
+                    售前售后咨询集中在订单状态、物流跟踪、退换政策与投诉处理：LLM 以 temperature=0 作为确定性决策中枢，将用户消息路由至「业务办理 / 知识咨询 / 闲聊」三轨；YAML 定义 6 个业务流程按 DAG 推进，命令白名单校验约束输出，退款审批等高风险场景自动转人工。
+                  </p>
+
+                  <table class="spec-meta-table" aria-label="项目 03 部署与源码元数据">
+                    <tbody>
+                      <tr>
+                        <th>线上直达</th>
+                        <td><a href="http://49.233.198.106:18082/" target="_blank" rel="noopener noreferrer" class="js-port-link js-url-text" data-port="18082">http://49.233.198.106:18082/</a></td>
+                      </tr>
+                      <tr>
+                        <th>端口：</th>
+                        <td>18082</td>
+                      </tr>
+                      <tr>
+                        <th>源码：</th>
+                        <td><a href="https://github.com/haojiezhao343-code" target="_blank" rel="noopener noreferrer">https://github.com/haojiezhao343-code</a></td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <div class="spec-col-title">技术标签</div>
+                  <div class="spec-tags-wrap">
+                    <span class="tech-tag">LangChain</span>
+                    <span class="tech-tag">FastAPI</span>
+                    <span class="tech-tag">流程编排</span>
+                    <span class="tech-tag">MySQL</span>
+                    <span class="tech-tag">httpx</span>
+                  </div>
+                </div>
+
+                <div class="spec-right">
+                  <div class="spec-col-title">实现要点（4 条）：</div>
+                  <ul class="keypoints-list">
+                    <li class="keypoint-item">
+                      <span class="keypoint-idx">03.1</span>
+                      <span class="keypoint-text cjk-text">三轨对话路由 + 多轨歧义自动生成澄清话术</span>
+                    </li>
+                    <li class="keypoint-item">
+                      <span class="keypoint-idx">03.2</span>
+                      <span class="keypoint-text cjk-text">YAML 定义 6 个业务流程，FlowExecutor 按 DAG 推进</span>
+                    </li>
+                    <li class="keypoint-item">
+                      <span class="keypoint-idx">03.3</span>
+                      <span class="keypoint-text cjk-text">查订单 / 查物流 / 退款申请等业务动作异步调用下游服务</span>
+                    </li>
+                    <li class="keypoint-item">
+                      <span class="keypoint-idx">03.4</span>
+                      <span class="keypoint-text cjk-text">对话状态 JSON 持久化，支持断点续聊与自动转人工</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <!-- PROJECT 04 -->
+            <article id="project-04" class="project-spec reveal" data-od-id="project-card-04">
+              <div class="project-spec-head">
+                <div class="project-title-group">
+                  <div class="project-id-row">
+                    <span class="project-num">项目 04 运营智能体</span>
+                    <span class="project-role-badge">角色：店铺经营 · 竞品监控 + 素材生成</span>
+                    <span class="project-port-indicator">
+                      <span class="status-led" aria-hidden="true"></span>
+                      <span>端口：80</span>
+                    </span>
+                  </div>
+                  <h3 class="project-heading">多智能体运营平台 · 运营智能体</h3>
+                </div>
+
+                <div class="project-actions">
+                  <a href="http://49.233.198.106/" target="_blank" rel="noopener noreferrer" class="action-launch js-port-link" data-port="80" data-od-id="launch-btn-04">
+                    <span>访问线上系统 (:80)</span>
+                    <svg class="ic" aria-hidden="true" focusable="false"><use href="#i-ext"></use></svg>
+                  </a>
+                  <a href="https://github.com/haojiezhao343-code/ecommerce-operation-assistant" target="_blank" rel="noopener noreferrer" class="action-source" data-od-id="source-btn-04">
+                    <span>独立源码仓库</span>
+                    <svg class="ic" aria-hidden="true" focusable="false"><use href="#i-ext"></use></svg>
+                  </a>
+                </div>
+              </div>
+
+              <div class="project-spec-body">
+                <div class="spec-left">
+                  <div class="spec-col-title">技术方案：</div>
+                  <p class="spec-solution-text cjk-text">
+                    以 LangGraph 编排「商品上下文 → 诊断 → 创意策略 → 质量审核 → 人工审核」工作流，经 ToolGateway 收敛竞品监控、创意方案、广告推荐、库存建议等 7 类运营工具；竞品监控覆盖抖音 / 淘宝天猫 / 拼多多 / Amazon 平台适配器，多模态素材生成打通「文案 → 图片 → 视频」链路。
+                  </p>
+
+                  <table class="spec-meta-table" aria-label="项目 04 部署与源码元数据">
+                    <tbody>
+                      <tr>
+                        <th>线上直达</th>
+                        <td><a href="http://49.233.198.106/" target="_blank" rel="noopener noreferrer" class="js-port-link js-url-text" data-port="80">http://49.233.198.106/</a></td>
+                      </tr>
+                      <tr>
+                        <th>端口：</th>
+                        <td>80</td>
+                      </tr>
+                      <tr>
+                        <th>源码：</th>
+                        <td><a href="https://github.com/haojiezhao343-code/ecommerce-operation-assistant" target="_blank" rel="noopener noreferrer">https://github.com/haojiezhao343-code/ecommerce-operation-assistant</a></td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <div class="spec-col-title">技术标签</div>
+                  <div class="spec-tags-wrap">
+                    <span class="tech-tag">LangGraph</span>
+                    <span class="tech-tag">FastAPI</span>
+                    <span class="tech-tag">Next.js</span>
+                    <span class="tech-tag">竞品监控</span>
+                    <span class="tech-tag">文生图</span>
+                    <span class="tech-tag">视频</span>
+                  </div>
+                </div>
+
+                <div class="spec-right">
+                  <div class="spec-col-title">实现要点（4 条）：</div>
+                  <ul class="keypoints-list">
+                    <li class="keypoint-item">
+                      <span class="keypoint-idx">04.1</span>
+                      <span class="keypoint-text cjk-text">ToolGateway 收敛 7 类运营工具，租户 / 角色 / 租约 / 幂等四重管控</span>
+                    </li>
+                    <li class="keypoint-item">
+                      <span class="keypoint-idx">04.2</span>
+                      <span class="keypoint-text cjk-text">抖音 / 淘宝天猫 / 拼多多 / Amazon 四平台竞品适配器，快照对比变化</span>
+                    </li>
+                    <li class="keypoint-item">
+                      <span class="keypoint-idx">04.3</span>
+                      <span class="keypoint-text cjk-text">多模态素材生成对接 DashScope / 即梦双供应商</span>
+                    </li>
+                    <li class="keypoint-item">
+                      <span class="keypoint-idx">04.4</span>
+                      <span class="keypoint-text cjk-text">登录即用的运营工作台，RBAC 权限隔离</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+          </div>
+        </div>
+
+        <!-- Other Projects Banner -->
+        <div class="upcoming-banner reveal" data-od-id="other-projects-banner">
+          <div class="upcoming-text">更多项目：员工办公助手 · 智能供应链系统 —— 敬请期待</div>
+          <div class="upcoming-status">ROADMAP · IN DEVELOPMENT</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: TECH STACK MATRIX -->
+    <section id="tech-stack" class="section-block reveal" data-od-id="tech-stack-section">
+      <div class="container">
+        <div class="section-head">
+          <div class="section-index-row">
+            <span class="section-rule-short"></span>
+            <span>SECTION 03 · ENGINEERING STACK</span>
+          </div>
+          <h2 class="section-title">技术栈</h2>
+          <p class="section-subtitle">
+            围绕智能体编排、全链路混合检索、高可靠后端网关及工程化交付构建的四层技术矩阵。
+          </p>
+        </div>
+
+        <div class="stack-ledger">
+          <!-- Group 1 -->
+          <div class="stack-row" data-od-id="stack-group-1">
+            <div class="stack-domain">
+              <span class="stack-domain-code">LAYER 01 / AGENT &amp; MODEL</span>
+              <h3 class="stack-domain-name">智能体编排与模型底座</h3>
+            </div>
+            <div class="stack-items">
+              <span class="stack-chip">Python</span>
+              <span class="stack-chip">LangChain</span>
+              <span class="stack-chip">LangGraph</span>
+              <span class="stack-chip">Multi-Agent</span>
+              <span class="stack-chip">Function Calling</span>
+              <span class="stack-chip">MCP</span>
+              <span class="stack-chip">deepagents</span>
+              <span class="stack-chip">TEI</span>
+            </div>
+          </div>
+
+          <!-- Group 2 -->
+          <div class="stack-row" data-od-id="stack-group-2">
+            <div class="stack-domain">
+              <span class="stack-domain-code">LAYER 02 / RETRIEVAL &amp; DATA</span>
+              <h3 class="stack-domain-name">RAG 全链路与数据存储</h3>
+            </div>
+            <div class="stack-items">
+              <span class="stack-chip">RAG</span>
+              <span class="stack-chip">MinerU</span>
+              <span class="stack-chip">BGE-M3</span>
+              <span class="stack-chip">Milvus</span>
+              <span class="stack-chip">Elasticsearch</span>
+              <span class="stack-chip">Qdrant</span>
+              <span class="stack-chip">RRF 融合</span>
+              <span class="stack-chip">rerank</span>
+              <span class="stack-chip">HyDE</span>
+              <span class="stack-chip">Tavily</span>
+              <span class="stack-chip">RAGFlow</span>
+              <span class="stack-chip">MySQL</span>
+              <span class="stack-chip">PostgreSQL</span>
+              <span class="stack-chip">Redis</span>
+              <span class="stack-chip">MinIO</span>
+            </div>
+          </div>
+
+          <!-- Group 3 -->
+          <div class="stack-row" data-od-id="stack-group-3">
+            <div class="stack-domain">
+              <span class="stack-domain-code">LAYER 03 / SERVICE &amp; GOVERNANCE</span>
+              <h3 class="stack-domain-name">服务架构与网关管控</h3>
+            </div>
+            <div class="stack-items">
+              <span class="stack-chip">FastAPI</span>
+              <span class="stack-chip">SSE</span>
+              <span class="stack-chip">WebSocket</span>
+              <span class="stack-chip">Celery</span>
+              <span class="stack-chip">SQLAlchemy</span>
+              <span class="stack-chip">Alembic</span>
+              <span class="stack-chip">OpenTelemetry</span>
+              <span class="stack-chip">Docker</span>
+              <span class="stack-chip">流程编排</span>
+              <span class="stack-chip">RBAC</span>
+              <span class="stack-chip">ToolGateway</span>
+            </div>
+          </div>
+
+          <!-- Group 4 -->
+          <div class="stack-row" data-od-id="stack-group-4">
+            <div class="stack-domain">
+              <span class="stack-domain-code">LAYER 04 / FULLSTACK &amp; TOOLING</span>
+              <h3 class="stack-domain-name">全栈研发与多模态工程</h3>
+            </div>
+            <div class="stack-items">
+              <span class="stack-chip">Next.js 16</span>
+              <span class="stack-chip">React 19</span>
+              <span class="stack-chip">TypeScript 5</span>
+              <span class="stack-chip">Tailwind 4</span>
+              <span class="stack-chip">HTML / CSS</span>
+              <span class="stack-chip">多模态生成</span>
+              <span class="stack-chip">Claude Code</span>
+              <span class="stack-chip">Codex</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="site-footer" data-od-id="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-primary">
+          <div class="footer-line-1">© 2026 · 多智能体运营平台 · 1 主智能体 + 4 子智能体 · 部署于腾讯云</div>
+          <div class="footer-line-2">haojiezhao343-code · AI 应用开发 / FDE</div>
+        </div>
+
+        <div class="footer-endpoints" aria-label="线上系统直达地址">
+          <a href="http://49.233.198.106:7954/" target="_blank" rel="noopener noreferrer" class="footer-ep-link js-port-link" data-port="7954">
+            7954 → http://49.233.198.106:7954/
+          </a>
+          <a href="http://49.233.198.106:8000/" target="_blank" rel="noopener noreferrer" class="footer-ep-link js-port-link" data-port="8000">
+            8000 → http://49.233.198.106:8000/
+          </a>
+          <a href="http://49.233.198.106:18082/" target="_blank" rel="noopener noreferrer" class="footer-ep-link js-port-link" data-port="18082">
+            18082 → http://49.233.198.106:18082/
+          </a>
+          <a href="http://49.233.198.106/" target="_blank" rel="noopener noreferrer" class="footer-ep-link js-port-link" data-port="80">
+            80 → http://49.233.198.106/
+          </a>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <span>作品集仓库：haojiezhao343-code/maike-hanbao，部署于 GitHub Pages</span>
+        <a href="designs/index.html" class="meta-link">UI 设计稿</a>
+        <a href="https://github.com/haojiezhao343-code" target="_blank" rel="noopener noreferrer" class="meta-link">https://github.com/haojiezhao343-code</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // 1. Dynamic Port URL Construction (Host: 49.233.198.106, Port 80 omits :80)
+      var PROD_HOST = '49.233.198.106';
+
+      function buildEndpointUrl(host, port) {
+        var normalized = String(port).trim();
+        if (normalized === '80') {
+          return 'http://' + host + '/';
+        }
+        return 'http://' + host + ':' + normalized + '/';
+      }
+
+      var portLinks = document.querySelectorAll('.js-port-link[data-port]');
+      for (var i = 0; i < portLinks.length; i++) {
+        var link = portLinks[i];
+        var port = link.getAttribute('data-port');
+        var finalUrl = buildEndpointUrl(PROD_HOST, port);
+        link.setAttribute('href', finalUrl);
+
+        var urlLabel = link.querySelector('.js-url-label');
+        if (urlLabel) {
+          urlLabel.textContent = finalUrl + ' \u2197';
+        }
+        if (link.classList.contains('js-url-text')) {
+          link.textContent = finalUrl;
+        }
+      }
+
+      // 2. Theme Toggle with System Preference & LocalStorage Persistence
+      var rootEl = document.documentElement;
+      var themeBtn = document.getElementById('themeToggle');
+      var themeText = document.getElementById('themeToggleText');
+
+      function applyTheme(theme) {
+        rootEl.setAttribute('data-theme', theme);
+        if (themeText) {
+          themeText.textContent = theme === 'dark' ? 'LIGHT' : 'DARK';
+        }
+      }
+
+      var savedTheme = null;
+      try {
+        savedTheme = localStorage.getItem('hzj_portfolio_theme');
+      } catch (e) {}
+
+      if (savedTheme === 'dark' || savedTheme === 'light') {
+        applyTheme(savedTheme);
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        applyTheme('dark');
+      }
+
+      if (themeBtn) {
+        themeBtn.addEventListener('click', function () {
+          var current = rootEl.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+          var next = current === 'dark' ? 'light' : 'dark';
+          applyTheme(next);
+          try {
+            localStorage.setItem('hzj_portfolio_theme', next);
+          } catch (e) {}
+        });
+      }
+
+      // 3. IntersectionObserver for Scroll Reveal & Active Navigation Highlighting
+      if ('IntersectionObserver' in window) {
+        var revealEls = document.querySelectorAll('.reveal');
+        var revealObserver = new IntersectionObserver(function (entries, obs) {
+          for (var j = 0; j < entries.length; j++) {
+            if (entries[j].isIntersecting) {
+              entries[j].target.classList.add('is-visible');
+              obs.unobserve(entries[j].target);
+            }
+          }
+        }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+
+        for (var k = 0; k < revealEls.length; k++) {
+          revealObserver.observe(revealEls[k]);
+        }
+
+        // Top Navigation Active State
+        var sections = document.querySelectorAll('main section[id]');
+        var navLinks = document.querySelectorAll('[data-nav-link]');
+        var sectionObserver = new IntersectionObserver(function (entries) {
+          for (var m = 0; m < entries.length; m++) {
+            if (entries[m].isIntersecting) {
+              var id = entries[m].target.getAttribute('id');
+              for (var n = 0; n < navLinks.length; n++) {
+                var navItem = navLinks[n];
+                if (navItem.getAttribute('data-nav-link') === id) {
+                  navItem.classList.add('is-active');
+                } else {
+                  navItem.classList.remove('is-active');
+                }
+              }
+            }
+          }
+        }, { threshold: 0.2, rootMargin: '-80px 0px -55% 0px' });
+
+        for (var s = 0; s < sections.length; s++) {
+          sectionObserver.observe(sections[s]);
+        }
+
+        // Dossier Rail Active State
+        var projectArticles = document.querySelectorAll('.project-spec[id]');
+        var railLinks = document.querySelectorAll('[data-rail-link]');
+        var railObserver = new IntersectionObserver(function (entries) {
+          for (var p = 0; p < entries.length; p++) {
+            if (entries[p].isIntersecting) {
+              var pid = entries[p].target.getAttribute('id');
+              for (var q = 0; q < railLinks.length; q++) {
+                var rLink = railLinks[q];
+                if (rLink.getAttribute('data-rail-link') === pid) {
+                  rLink.classList.add('is-active');
+                } else {
+                  rLink.classList.remove('is-active');
+                }
+              }
+            }
+          }
+        }, { threshold: 0.35, rootMargin: '-100px 0px -45% 0px' });
+
+        for (var r = 0; r < projectArticles.length; r++) {
+          railObserver.observe(projectArticles[r]);
+        }
+      } else {
+        var fallbackEls = document.querySelectorAll('.reveal');
+        for (var f = 0; f < fallbackEls.length; f++) {
+          fallbackEls[f].classList.add('is-visible');
+        }
+      }
+    })();
+  </script>
+</body>
+</html>

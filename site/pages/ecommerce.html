@@ -69,12 +69,16 @@
     display: inline-flex; align-items: center; gap: 6px;
     border-radius: 999px; padding: 10px 20px;
     font-size: 14px; font-weight: 500; text-decoration: none;
-    transition: transform 0.15s ease, opacity 0.15s ease;
+    transition: transform 0.15s ease, opacity 0.15s ease, background-color 0.3s ease, color 0.3s ease;
   }
   .btn:hover { transform: scale(1.03); opacity: 0.9; }
   .btn:active { transform: scale(0.97); }
   .btn.primary { background: var(--gh-bg); color: var(--gh-fg); }
   .btn.ghost { background: var(--surface); color: var(--text); border: 0.5px solid var(--border); }
+  .btn.demo { background: var(--accent); color: #FFFFFF; }
+  .btn.demo.off { background: var(--seg-bg); color: var(--text-2); cursor: not-allowed; }
+  .btn.demo.off:hover, .btn.demo.off:active { transform: none; opacity: 1; }
+  .btn.demo-off { background: var(--seg-bg); color: var(--text-2); cursor: default; }
 </style>
 </head>
 <body>
@@ -112,6 +116,7 @@
   </div>
 
     <div class="actions">
+    <a class="btn demo" data-demo="1" href="http://62.234.56.90:3000/" target="_blank" rel="noopener">进入在线演示</a>
     <a class="btn primary" href="https://github.com/martinkalcheva-lgtm/showreel" target="_blank" rel="noopener">GitHub | 源代码</a>
     <a class="btn ghost" href="../index.html">返回作品集</a>
   </div>
@@ -130,6 +135,62 @@
     try { saved = localStorage.getItem('portfolio-theme') || 'light'; } catch (e) {}
     setTheme(saved);
     btns.forEach(function (b) { b.addEventListener('click', function () { setTheme(b.getAttribute('data-theme')); }); });
+  })();
+
+  /* 演示按钮连通检测：服务在 = 蓝色可点，服务停 = 灰色不可点。
+     探测目标就是按钮自己的公网地址；起页测一次，之后每 5 秒复测，
+     所以你把服务启动起来后不用刷新页面，按钮会自己变蓝。
+     灰按钮点一下 = 立刻重新检测。 */
+  (function () {
+    var btn = document.querySelector(".btn.demo[data-demo]");
+    if (!btn) return;
+    var target = btn.getAttribute("href");
+    var LABEL  = "进入在线演示";   // 进入在线演示
+    var TIP    = "演示服务未启动：请先双击“一键打开全部项目.bat”，再启动 frpc";
+    var TESTING = "检测中…";
+    // file:// 直接双击打开时浏览器不允许跨源探测，此时保持蓝色可点
+    var canProbe = (location.protocol === "http:" || location.protocol === "https:");
+    var running = false;
+
+    function paint(up, testing) {
+      btn.classList.toggle("off", !up);
+      btn.textContent = testing ? TESTING : LABEL;
+      btn.title = testing ? "" : (up ? "" : TIP);
+    }
+
+    function probe(testing) {
+      if (!canProbe) { paint(true, false); return; }
+      if (running) return;
+      running = true;
+      if (testing) paint(true, true);
+      var settled = false, ctl = null, timer = null;
+      function finish(up) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        running = false;
+        paint(up, false);
+      }
+      timer = setTimeout(function () {
+        try { if (ctl) ctl.abort(); } catch (e) {}
+        finish(false);
+      }, 2500);
+      try {
+        ctl = window.AbortController ? new AbortController() : null;
+        var opt = { mode: "no-cors", cache: "no-store" };
+        if (ctl) opt.signal = ctl.signal;
+        fetch(target, opt).then(function () { finish(true); }, function () { finish(false); });
+      } catch (e) { finish(false); }
+    }
+
+    btn.addEventListener("click", function (e) {
+      if (!btn.classList.contains("off")) return;   // 蓝色：正常跳转
+      e.preventDefault();
+      probe(true);                                  // 灰色：点一下重新检测
+    });
+
+    probe(true);
+    setInterval(function () { probe(false); }, 5000);
   })();
 </script>
 

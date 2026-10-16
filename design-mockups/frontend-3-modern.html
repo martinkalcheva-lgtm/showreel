@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>作品集 · 现代简约渐变</title>
+
+<!--
+  ============================================================
+  Version 3：现代简约渐变风
+  设计参考：
+    - GeraldYa/portfolio-template     卡片交错渐现动画
+    - yashrajnayak/developer-portfolio 干净利落
+    - ashariftikhar/Professionals-portfolio 大量留白、精致排版
+  风格特征：
+    - 干净浅灰白背景 (#F8F9FA)，纯净留白
+    - 无边框卡片、大圆角 24px、柔和弥散阴影
+    - 大尺寸渐变图标块 (60x60 / 圆角 16px)
+    - 大号粗体标题、精致排版
+    - 每项目不同柔和渐变（蓝紫 / 绿青 / 橙粉）
+    - 响应式：桌面 3 列 / 平板 2 列 / 手机 1 列
+    - hover 上浮 + 阴影加深 + 渐变块微旋转
+    - 入场动画：staggered fade-in + translateY
+  ============================================================
+-->
+
+<style>
+  /* ==========================================================
+     Design Tokens — 极简 + 8pt 网格
+     ========================================================== */
+  :root {
+    --bg: #F8F9FA;                 /* 干净浅灰白 */
+    --surface: #FFFFFF;            /* 卡片表面 */
+    --text-primary: #18181B;       /* 近黑主文字 */
+    --text-secondary: #71717A;     /* 柔和次要文字 */
+
+    /* 圆角（大圆角 + 8pt 网格） */
+    --r-card: 24px;
+    --r-icon: 16px;
+    --r-pill: 999px;
+
+    /* 柔和弥散阴影 */
+    --shadow-card: 0 1px 2px rgba(16,24,40,0.04),
+                   0 8px 24px rgba(16,24,40,0.06);
+    --shadow-card-hover: 0 2px 4px rgba(16,24,40,0.05),
+                         0 20px 48px rgba(16,24,40,0.12);
+
+    /* 间距 — 8pt 网格（留白充裕） */
+    --sp-3: 16px;
+    --sp-4: 24px;
+    --sp-6: 32px;
+    --sp-9: 48px;
+    --sp-12: 64px;
+
+    /* 字体 */
+    --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+                  "SF Pro Text", "PingFang SC", "Helvetica Neue",
+                  "Segoe UI", "Microsoft YaHei", sans-serif;
+
+    /* 项目图标柔和渐变 */
+    --grad-blue:   linear-gradient(135deg, #A5B4FC 0%, #6366F1 55%, #7C3AED 100%); /* 蓝紫 */
+    --grad-green:  linear-gradient(135deg, #99F6E4 0%, #2DD4BF 55%, #0EA5E9 100%); /* 绿青 */
+    --grad-orange: linear-gradient(135deg, #FDE68A 0%, #FB923C 55%, #EC4899 100%); /* 橙粉 */
+  }
+
+  /* 暗色降级 */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111113;
+      --surface: #1A1A1D;
+      --text-primary: #F4F4F5;
+      --text-secondary: #A1A1AA;
+      --shadow-card: 0 8px 24px rgba(0,0,0,0.35);
+      --shadow-card-hover: 0 20px 48px rgba(0,0,0,0.5);
+    }
+  }
+
+  /* ==========================================================
+     基础重置
+     ========================================================== */
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-stack);
+    color: var(--text-primary);
+    background-color: var(--bg);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ==========================================================
+     顶栏 — 极简，几乎隐形
+     ========================================================== */
+  .nav {
+    position: sticky; top: 0; z-index: 20;
+    background: rgba(248,249,250,0.8);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+  }
+  @media (prefers-color-scheme: dark) { .nav { background: rgba(17,17,19,0.8); } }
+
+  .nav__in {
+    max-width: 1200px; margin: 0 auto;
+    padding: 16px var(--sp-6);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo {
+    font-size: 20px; font-weight: 800;
+    letter-spacing: -0.02em; text-decoration: none; color: inherit;
+    display: inline-flex; align-items: center; gap: 10px;
+  }
+  .logo__dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--grad-blue);
+    display: inline-block;
+  }
+  .nav__links { display: flex; align-items: center; gap: var(--sp-6); }
+  .nav__links a {
+    color: var(--text-secondary); text-decoration: none;
+    font-size: 15px; transition: color 0.25s ease;
+  }
+  .nav__links a:hover { color: var(--text-primary); }
+
+  /* ==========================================================
+     主体容器 — 大量留白
+     ========================================================== */
+  .page {
+    position: relative; z-index: 5;
+    max-width: 1120px; margin: 0 auto;
+    padding: var(--sp-12) var(--sp-6) var(--sp-9);
+  }
+
+  /* Hero — 精致排版 */
+  .hero { max-width: 720px; padding-bottom: var(--sp-12); }
+  .hero__count {
+    display: inline-flex; align-items: baseline; gap: 12px;
+    margin-bottom: var(--sp-4);
+    color: var(--text-secondary); font-size: 15px;
+  }
+  .hero__count b { font-size: 44px; font-weight: 800; color: var(--text-primary); line-height: 1; }
+  .hero h1 {
+    font-size: clamp(38px, 6vw, 60px);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.15;
+  }
+  .hero h1 em {
+    font-style: normal;
+    background: linear-gradient(120deg, #6366F1 0%, #EC4899 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .hero p {
+    margin-top: var(--sp-4);
+    max-width: 520px;
+    color: var(--text-secondary);
+    font-size: 17px;
+  }
+
+  /* 项目区标题行 */
+  .section-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    border-top: 1px solid rgba(0,0,0,0.08);
+    padding-top: var(--sp-6); margin-bottom: var(--sp-6);
+  }
+  @media (prefers-color-scheme: dark) {
+    .section-head { border-top-color: rgba(255,255,255,0.08); }
+  }
+  .section-head h2 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+  .section-head span { font-size: 13px; color: var(--text-secondary); }
+
+  /* ==========================================================
+     项目网格 — 3 / 2 / 1 列
+     ========================================================== */
+  .grid {
+    display: grid;
+    gap: var(--sp-4);
+    grid-template-columns: repeat(3, 1fr);
+  }
+  @media (max-width: 900px)  { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 620px)  { .grid { grid-template-columns: 1fr; } }
+
+  /* ==========================================================
+     卡片 — 无边框、大圆角、柔和弥散阴影
+     ========================================================== */
+  .card {
+    display: flex; flex-direction: column; gap: var(--sp-4);
+    padding: var(--sp-6);
+    border-radius: var(--r-card);
+    background: var(--surface);
+    box-shadow: var(--shadow-card);
+    text-decoration: none; color: inherit;
+    /* 入场动画：staggered fade-in + translateY */
+    opacity: 0; transform: translateY(28px);
+    animation: rise 0.7s cubic-bezier(.2,.7,.3,1) forwards;
+    transition: transform 0.4s cubic-bezier(.2,.7,.3,1),
+                box-shadow 0.4s ease;
+  }
+  /* 交错延迟 */
+  .card:nth-child(2) { animation-delay: 0.14s; }
+  .card:nth-child(3) { animation-delay: 0.28s; }
+  .card:nth-child(4) { animation-delay: 0.42s; }
+  .card:nth-child(5) { animation-delay: 0.56s; }
+  .card:nth-child(6) { animation-delay: 0.70s; }
+
+  /* hover 上浮 + 阴影加深 */
+  .card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-card-hover);
+  }
+  .card:focus-visible { outline: 2px solid #6366F1; outline-offset: 3px; }
+
+  /* ==========================================================
+     渐变图标块 — 大尺寸 60x60 / 圆角 16px
+     ========================================================== */
+  .ico {
+    width: 60px; height: 60px;
+    display: grid; place-items: center;
+    border-radius: var(--r-icon);
+    color: #fff;
+    font-size: 26px;
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.4),
+                0 10px 24px rgba(0,0,0,0.18);
+    transition: transform 0.4s cubic-bezier(.2,.7,.3,1);
+  }
+  .ico--blue   { background: var(--grad-blue); }
+  .ico--green  { background: var(--grad-green); }
+  .ico--orange { background: var(--grad-orange); }
+
+  /* hover 渐变块微旋转 */
+  .card:hover .ico { transform: rotate(-8deg) scale(1.08); }
+
+  /* 卡片序号（极简排版细节） */
+  .card__num {
+    position: absolute; top: var(--sp-6); right: var(--sp-6);
+    font-size: 13px; font-weight: 700;
+    color: rgba(0,0,0,0.25);
+    letter-spacing: 0.04em;
+  }
+  @media (prefers-color-scheme: dark) {
+    .card__num { color: rgba(255,255,255,0.3); }
+  }
+
+  .card__title { font-size: 20px; font-weight: 700; letter-spacing: -0.015em; }
+  .card__desc {
+    flex: 1;
+    font-size: 15px; color: var(--text-secondary); line-height: 1.7;
+  }
+
+  /* meta 标签行 */
+  .card__meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    font-size: 12px; font-weight: 600;
+    padding: 5px 12px; border-radius: var(--r-pill);
+    background: rgba(0,0,0,0.045); color: var(--text-secondary);
+  }
+  @media (prefers-color-scheme: dark) { .chip { background: rgba(255,255,255,0.06); } }
+
+  /* "查看项目 →" */
+  .card__link {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 14px; font-weight: 600;
+    color: #6366F1;
+    margin-top: auto;
+  }
+  .card:hover .card__link .arr { transform: translateX(4px); }
+  .arr { display: inline-block; transition: transform 0.25s ease; }
+
+  /* ==========================================================
+     入场动画 & 动效体验
+     ========================================================== */
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(28px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* 尊重系统减少动效偏好 */
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    .card { opacity: 1; transform: none; }
+  }
+
+  /* ==========================================================
+     页脚 — 极简
+     ========================================================== */
+  .footer {
+    max-width: 1120px; margin: 0 auto;
+    padding: var(--sp-6) var(--sp-6) var(--sp-9);
+    display: flex; align-items: center; justify-content: space-between;
+    color: var(--text-secondary); font-size: 13px;
+    border-top: 1px solid rgba(0,0,0,0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    .footer { border-top-color: rgba(255,255,255,0.08); }
+  }
+  .footer nav { display: flex; gap: var(--sp-4); }
+  .footer a { color: var(--text-secondary); text-decoration: none; transition: color 0.25s ease; }
+  .footer a:hover { color: #6366F1; }
+
+  /* 移动端 */
+  @media (max-width: 620px) {
+    .nav__in { padding: 14px var(--sp-4); }
+    .nav__links { gap: var(--sp-3); }
+    .page { padding: var(--sp-9) var(--sp-4) var(--sp-6); }
+    .hero { padding-bottom: var(--sp-9); }
+    .card { padding: var(--sp-4); }
+  }
+</style>
+</head>
+
+<body>
+
+  <!-- ============ 顶栏 ============ -->
+  <header class="nav">
+    <div class="nav__in">
+      <a class="logo" href="#"><span class="logo__dot"></span>G.</a>
+      <nav class="nav__links">
+        <a href="#featured">项目</a>
+        <a href="#">关于</a>
+        <a href="#">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ============ 主体 ============ -->
+  <main class="page">
+
+    <!-- Hero — 精致排版 -->
+    <section class="hero">
+      <div class="hero__count"><b>03</b> 精选项目 · B 端体验 / 数据 / AI</div>
+      <h1>把复杂，<br/>做进<em>干净</em>里。</h1>
+      <p>专注企业级产品的前端体验与工程化实践，用克制的设计与可靠的代码，让每一次交互都简净有力。</p>
+    </section>
+
+    <!-- 项目区 -->
+    <div class="section-head">
+      <h2 id="featured">精选项目</h2>
+      <span>Projects</span>
+    </div>
+
+    <section class="grid" aria-label="项目列表">
+
+      <!-- 项目 1：问数与智库 (BOSS) — 蓝紫渐变 -->
+      <a class="card" href="#">
+        <span class="card__num">01</span>
+        <span class="ico ico--blue" aria-hidden="true">
+          <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+        </span>
+        <h3 class="card__title">问数与智库</h3>
+        <p class="card__desc">面向数据决策场景的分析助手，将查询、可视化与洞察沉淀为可复用智库，让取数与解读更省心。</p>
+        <div class="card__meta"><span class="chip">数据可视化</span><span class="chip">AI 助手</span></div>
+        <span class="card__link">查看项目 <span class="arr">→</span></span>
+      </a>
+
+      <!-- 项目 2：电商运营助手 (EC) — 绿青渐变 -->
+      <a class="card" href="#">
+        <span class="card__num">02</span>
+        <span class="ico ico--green" aria-hidden="true">
+          <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        </span>
+        <h3 class="card__title">电商运营助手</h3>
+        <p class="card__desc">聚合店铺数据与营销动作的运营工作台，让爆品诊断、活动配置与日报生成高效直观。</p>
+        <div class="card__meta"><span class="chip">运营工作台</span><span class="chip">报表</span></div>
+        <span class="card__link">查看项目 <span class="arr">→</span></span>
+      </a>
+
+      <!-- 项目 3：智能客服系统 (SK) — 橙粉渐变 -->
+      <a class="card" href="#">
+        <span class="card__num">03</span>
+        <span class="ico ico--orange" aria-hidden="true">
+          <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        </span>
+        <h3 class="card__title">智能客服系统</h3>
+        <p class="card__desc">基于大模型的智能接待体系，支持知识库问答、多轮引导与人工无缝切换，提升响应与满意度。</p>
+        <div class="card__meta"><span class="chip">LLM</span><span class="chip">对话机器人</span></div>
+        <span class="card__link">查看项目 <span class="arr">→</span></span>
+      </a>
+
+    </section>
+  </main>
+
+  <!-- ============ 页脚 ============ -->
+  <footer class="footer">
+    <span>© 2026 G. · 现代简约渐变 · 干净利落</span>
+    <nav>
+      <a href="#featured">项目</a>
+      <a href="#">GitHub</a>
+      <a href="#">关于</a>
+    </nav>
+  </footer>
+
+</body>
+</html>

@@ -9,6 +9,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse, StreamingResponse
 
 from processor.query_processor.main_graph import KBQueryWorkflow
@@ -175,6 +176,13 @@ async def health():
     检查服务是否正常
     """
     return {"ok": True}
+
+# 4. 静态资源目录（design-system.css / icons.js / import.html 等页面依赖）
+#    必须放在所有 @app 路由之后：Starlette 按注册顺序匹配，
+#    mount("/") 只作兜底，不会盖住上面的 /query、/stream/{id}、/history/{id}、/health。
+_PAGE_DIR = Path(__file__).absolute().parent.parent / "page"
+if _PAGE_DIR.exists():
+    app.mount("/", StaticFiles(directory=str(_PAGE_DIR)), name="page")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8001)

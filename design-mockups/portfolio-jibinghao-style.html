@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>项目作品集 · 郭怡彤（版式预览稿）</title>
+<meta name="description" content="参考 jibinghao.com 的单页长滚动作品集版式，配色沿用现有绿色主题。">
+<style>
+  :root {
+    --accent: #42b983;
+    --accent-ink: #0F6E56;
+    --accent-deep: #0B5140;
+    --accent-wash: #E6F4EE;
+    --ink: #16211c;
+    --ink-2: #4a5852;
+    --ink-3: #7b8a84;
+    --surface: #ffffff;
+    --bg: #f2f6f3;
+    --line: #dde6e0;
+    --radius: 10px;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto,
+      "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "Cascadia Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body { font-family: var(--font); background: var(--bg); color: var(--ink-2); font-size: 16px; line-height: 1.75; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 28px; }
+  a { color: inherit; text-decoration: none; }
+  :focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; border-radius: 4px; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 12px; font-weight: 500;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-ink);
+  }
+
+  /* ── 顶栏 ───────────────────────────── */
+  .head {
+    position: sticky; top: 0; z-index: 20;
+    background: rgba(255,255,255,.86); backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .head-inner { height: 62px; display: flex; align-items: center; gap: 26px; }
+  .brand { font-family: var(--mono); font-size: 13px; letter-spacing: .06em; color: var(--ink); font-weight: 600; }
+  .brand i { color: var(--accent); font-style: normal; }
+  .head nav { margin-inline-start: auto; display: flex; align-items: center; gap: 22px; }
+  .head nav a { font-size: 14px; color: var(--ink-2); padding: 6px 2px; transition: color .15s ease-out; }
+  .head nav a:hover { color: var(--accent-ink); }
+  .pill {
+    font-size: 13px; padding: 7px 16px; border-radius: 999px;
+    background: var(--accent-deep); color: #fff; transition: opacity .15s ease-out, transform .15s ease-out;
+  }
+  .pill:hover { opacity: .9; color: #fff; }
+  .pill:active { transform: scale(.98); }
+  @media (max-width: 680px) { .head nav a:not(.pill) { display: none; } }
+
+  /* ── 开篇 ───────────────────────────── */
+  .intro { padding: 96px 0 64px; }
+  .intro h1 {
+    font-size: clamp(40px, 6.4vw, 60px); font-weight: 600; line-height: 1.28;
+    letter-spacing: 0; color: var(--ink); margin: 18px 0 20px;
+  }
+  .intro-sum { font-size: 17px; max-width: 42em; color: var(--ink-2); }
+  .intro-meta {
+    margin-top: 44px; display: grid; grid-template-columns: repeat(3, 1fr);
+    border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); overflow: hidden;
+  }
+  .intro-meta div { padding: 20px 24px; border-inline-start: 1px solid var(--line); }
+  .intro-meta div:first-child { border-inline-start: 0; }
+  .intro-meta span { display: block; font-size: 12px; color: var(--ink-3); letter-spacing: .06em; margin-bottom: 6px; }
+  .intro-meta p { font-size: 15px; color: var(--ink); }
+  .intro-meta a:hover { color: var(--accent-ink); }
+  @media (max-width: 780px) { .intro { padding: 64px 0 40px; } .intro-meta { grid-template-columns: 1fr; } .intro-meta div { border-inline-start: 0; border-block-start: 1px solid var(--line); } .intro-meta div:first-child { border-block-start: 0; } }
+
+  /* ── 区块标题 ───────────────────────── */
+  .sec-head { padding: 40px 0 8px; }
+  .sec-head h2 { font-size: clamp(28px, 4vw, 38px); font-weight: 600; line-height: 1.3; letter-spacing: 0; color: var(--ink); margin: 14px 0 10px; }
+  .sec-head p { max-width: 52em; }
+
+  /* ── 项目卡 ─────────────────────────── */
+  .project { padding: 72px 0 8px; }
+  .project + .project { border-top: 1px solid var(--line); margin-top: 72px; }
+  .p-num { font-family: var(--mono); font-size: 13px; color: var(--ink-3); letter-spacing: .1em; }
+  .p-title { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin: 10px 0 14px; }
+  .p-title h3 { font-size: clamp(24px, 3.4vw, 32px); font-weight: 600; line-height: 1.3; letter-spacing: 0; color: var(--ink); }
+  .p-title em { font-style: normal; font-size: 14px; color: var(--ink-3); }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 34px; }
+  .chips span {
+    font-family: var(--mono); font-size: 12px; color: var(--accent-ink);
+    background: var(--accent-wash); border-radius: 999px; padding: 4px 11px;
+  }
+  .p-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 44px; }
+  @media (max-width: 860px) { .p-body { grid-template-columns: 1fr; gap: 28px; } }
+  .p-body h4 { font-size: 13px; font-weight: 600; letter-spacing: .1em; color: var(--ink); margin-bottom: 12px; }
+  .p-body h4::before { content: ""; display: inline-block; width: 14px; height: 2px; background: var(--accent); vertical-align: middle; margin-inline-end: 8px; }
+  .p-desc p { font-size: 15px; }
+  .p-todo { margin-top: 12px; font-size: 12px; color: #9a6b00; background: #fdf6e3; border-left: 2px solid #e0b64a; padding: 6px 12px; border-radius: 0 6px 6px 0; }
+  .p-work ul { list-style: none; display: grid; gap: 12px; }
+  .p-work li { font-size: 15px; padding-inline-start: 18px; position: relative; }
+  .p-work li::before { content: ""; position: absolute; left: 0; top: .72em; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+  .p-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+  .p-links a {
+    font-size: 13px; padding: 7px 15px; border-radius: 999px;
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink-2);
+    transition: border-color .15s ease-out, color .15s ease-out;
+  }
+  .p-links a:hover { border-color: var(--accent); color: var(--accent-ink); }
+  .p-links a.on { background: var(--accent-deep); border-color: var(--accent-deep); color: #fff; }
+  .p-links a.on:hover { color: #fff; opacity: .9; }
+
+  /* ── 截图区 ─────────────────────────── */
+  .gallery { margin-top: 44px; display: grid; gap: 34px; }
+  .g-group h5 { font-size: 14px; font-weight: 600; color: var(--ink); display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .g-group h5 b { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--ink-3); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; }
+  .g-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .g-grid--wide { grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); }
+  @media (max-width: 620px) { .g-grid, .g-grid--wide { grid-template-columns: 1fr; } }
+
+  figure.shot { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  figure.shot button {
+    display: block; width: 100%; border: 0; background: none; cursor: zoom-in; padding: 0;
+    font: inherit; color: inherit; text-align: start;
+  }
+  .frame { position: relative; aspect-ratio: 16 / 10; overflow: hidden; }
+  .frame img { width: 100%; height: 100%; object-fit: cover; object-position: top left; display: block; }
+  .zoom {
+    position: absolute; right: 10px; bottom: 10px; opacity: 0;
+    font-size: 12px; padding: 5px 12px; border-radius: 999px;
+    background: rgba(11,81,64,.92); color: #fff; transition: opacity .18s ease-out;
+  }
+  figure.shot:hover .zoom, figure.shot button:focus-visible .zoom { opacity: 1; }
+  figure.shot figcaption { font-size: 13px; color: var(--ink-3); padding: 11px 14px; border-top: 1px solid var(--line); }
+
+  /* 占位线框（真实截图接入后可整段删除） */
+  .mock { position: absolute; inset: 0; background: var(--surface); display: flex; font-size: 0; }
+  .mock .side { width: 26%; background: #eef3f0; border-inline-end: 1px solid var(--line); padding: 12px; display: grid; align-content: start; gap: 8px; }
+  .mock .side i { display: block; height: 8px; border-radius: 4px; background: #d3ded8; }
+  .mock .side i:nth-child(2) { width: 70%; background: var(--accent); }
+  .mock .side i:nth-child(4) { width: 85%; }
+  .mock .side i:nth-child(5) { width: 60%; }
+  .mock .main { flex: 1; padding: 14px; display: grid; align-content: start; gap: 9px; }
+  .mock .main i { display: block; height: 8px; border-radius: 4px; background: #e2e9e5; }
+  .mock .main i:nth-child(1) { width: 38%; height: 12px; background: #c9d6cf; }
+  .mock .main i:nth-child(2) { width: 92%; }
+  .mock .main i:nth-child(3) { width: 76%; }
+  .mock .main b { display: block; width: 55%; margin-inline-start: auto; height: 26px; border-radius: 12px 12px 3px 12px; background: var(--accent-wash); }
+  .mock .main b + b { width: 70%; background: #f4f6f5; margin-inline-start: 0; }
+  .mock .tag {
+    position: absolute; left: 10px; top: 10px; font-family: var(--mono);
+    font-size: 10px; letter-spacing: .06em; color: #9a6b00;
+    background: #fdf6e3; border: 1px dashed #e0b64a; border-radius: 6px; padding: 3px 7px;
+  }
+
+  /* ── 灯箱 ───────────────────────────── */
+  .lb { position: fixed; inset: 0; z-index: 60; display: none; place-items: center; background: rgba(9,20,16,.9); padding: 4vh 4vw; }
+  .lb.on { display: grid; }
+  .lb-box { max-width: 1100px; width: 100%; }
+  .lb-img { background: var(--surface); border-radius: var(--radius); overflow: hidden; }
+  .lb-img img { display: block; width: 100%; max-height: 74vh; object-fit: contain; }
+  .lb-cap { color: #d7e5df; font-size: 14px; margin-top: 14px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .lb-cap span { font-family: var(--mono); font-size: 12px; color: #8fa79c; }
+  .lb button {
+    appearance: none; border: 1px solid rgba(255,255,255,.28); background: rgba(255,255,255,.08);
+    color: #fff; font: inherit; font-size: 14px; border-radius: 999px; padding: 7px 16px; cursor: pointer;
+  }
+  .lb button:hover { background: rgba(255,255,255,.18); }
+  .lb-bar { display: flex; gap: 10px; }
+
+  /* ── 页脚 ───────────────────────────── */
+  footer { margin-top: 96px; border-top: 1px solid var(--line); background: var(--surface); }
+  .foot { display: flex; flex-wrap: wrap; gap: 14px; justify-content: space-between; padding: 30px 0; font-size: 13px; color: var(--ink-3); }
+  .foot a:hover { color: var(--accent-ink); }
+
+  .reveal { opacity: 0; transform: translateY(14px); transition: opacity .2s ease-out, transform .2s ease-out; }
+  .reveal.in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) { .reveal { transform: none; transition: opacity .2s ease-out; } .zoom { transition: none; } }
+</style>
+</head>
+<body>
+
+<header class="head">
+  <div class="wrap head-inner">
+    <a class="brand" href="#top"><i>//</i> GUO YITONG · PORTFOLIO</a>
+    <nav aria-label="页面导航">
+      <a href="#projects">项目</a>
+      <a href="https://github.com/martinkalcheva-lgtm/showreel" target="_blank" rel="noopener">GitHub</a>
+      <a class="pill" href="index.html">返回当前首页</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="intro wrap" id="top">
+    <p class="eyebrow">AI Application · Full-stack</p>
+    <h1>项目作品集</h1>
+    <p class="intro-sum">以 Python 后端与 AI 应用编排为核心，覆盖知识库问答、电商运营智能体与客服会话系统。三个项目均已部署上线，可直接进入在线演示。</p>
+    <div class="intro-meta">
+      <div><span>方向</span><p>AI 应用 / 全栈开发</p></div>
+      <div><span>已上线</span><p>3 个 · 全部可访问</p></div>
+      <div><span>联系</span><p><a href="mailto:you@example.com">you@example.com</a></p></div>
+    </div>
+  </section>
+
+  <div class="sec-head wrap">
+    <p class="eyebrow">Selected work</p>
+    <h2>项目展示</h2>
+    <p>每个项目按「介绍 → 主要工作 → 界面演示」展开，图片点击可放大。</p>
+  </div>
+
+  <!-- ══ 01 ══ -->
+  <article class="project wrap reveal">
+    <p class="p-num">01</p>
+    <div class="p-title"><h3>问数与智库</h3><em>智能知识库 / 数据问答系统</em></div>
+    <div class="chips"><span>Python</span><span>LangGraph</span><span>FastAPI</span><span>SSE</span><span>Qdrant</span><span>Elasticsearch</span><span>MySQL</span><span>Vue 3</span></div>
+
+    <div class="p-body">
+      <div class="p-desc">
+        <h4>项目介绍</h4>
+        <p>基于 LangGraph + FastAPI + SSE 的智能知识库系统：构建 meta 知识库，问答流程按节点流转，进度通过 SSE 实时流式推送到前端；底层接入 MySQL、Qdrant、Elasticsearch，统一以异步 repository 模式封装数据访问。</p>
+        <p class="p-todo">简介沿用现有页面草稿，定稿前需你确认</p>
+      </div>
+      <div class="p-work">
+        <h4>主要工作</h4>
+        <ul>
+          <li>设计问答流程的节点化编排，把检索、改写、生成拆成可观测的图节点，单步失败可定位到节点而不是整条链路。</li>
+          <li>用 SSE 把阶段进度实时推给前端，答案逐段返回，首字等待时间明显下降。</li>
+          <li>按场景选型存储：结构化数据走 MySQL，向量召回走 Qdrant，关键词检索走 Elasticsearch，统一封装异步 repository 访问层。</li>
+          <li>实现文件导入与知识库构建闭环，支持文档上传、切分入库与问答来源回显。</li>
+        </ul>
+        <p class="p-todo">以上四条为 AI 草拟，需你逐条核对再定稿</p>
+      </div>
+    </div>
+
+    <div class="p-links">
+      <a class="on" href="http://62.234.56.90:5173/" target="_blank" rel="noopener">在线演示 · Boss 工作台 →</a>
+      <a href="http://62.234.56.90:7954/chat.html" target="_blank" rel="noopener">智库问答</a>
+      <a href="https://github.com/martinkalcheva-lgtm/showreel" target="_blank" rel="noopener">GitHub 源代码</a>
+    </div>
+
+    <div class="gallery">
+      <section class="g-group">
+        <h5>智能问数 <b>3 张</b></h5>
+        <div class="g-grid" data-album="问数与智库 · 智能问数">
+          <figure class="shot"><button type="button" data-cap="工作台 · 自然语言问数"><span class="frame"><span class="mock"><span class="tag">截图位</span><span class="side"><i></i><i></i><i></i><i></i><i></i></span><span class="main"><i></i><i></i><i></i><b></b><b></b></span></span><span class="zoom">查看大图</span></span></button><figcaption>工作台 · 自然语言问数</figcaption></figure>
+          <figure class="shot"><button type="button" data-cap="查询结果 · 分条结论与汇总"><span class="frame"><span class="mock"><span class="tag">截图位</span><span class="side"><i></i><i></i><i></i><i></i><i></i></span><span class="main"><i></i><i></i><b></b><b></b><i></i></span></span><span class="zoom">查看大图</span></span></button><figcaption>查询结果 · 分条结论与汇总</figcaption></figure>
+          <figure class="shot"><button type="button" data-cap="历史会话与多轮追问"><span class="frame"><span class="mock"><span class="tag">截图位</span><span class="side"><i></i><i></i><i></i><i></i><i></i></span><span class="main"><i></i><b></b><b></b><i></i><i></i></span></span><span class="zoom">查看大图</span></span></button><figcaption>历史会话与多轮追问</figcaption></figure>
+        </div>
+      </section>
+      <section class="g-group">
+        <h5>智库问答 <b>3 张</b></h5>
+        <div class="g-grid" data-album="问数与智库 · 智库问答">
+          <figure class="shot"><button type="button" data-cap="流式输出 · 阶段进度实时展示"><span class="frame"><span class="mock"><span class="tag">截图位</span><span class="side"><i></i><i></i><i></i><i></i><i></i></span><span class="main"><i></i><i></i><b></b><b></b><b></b></span></span><span class="zoom">查看大图</span></span></button><figcaption>流式输出 · 阶段进度实时展示</figcaption></figure>
+          <figure class="shot"><button type="button" data-cap="文件导入 · 知识库构建"><span class="frame"><span class="mock"><span class="tag">截图位</span><span class="side"><i></i><i></i><i></i><i></i><i></i></span><span class="main"><i></i><i></i><i></i><i></i><b></b></span></span><span class="zoom">查看大图</span></span></button><figcaption>文件导入 · 知识库构建</figcaption></figure>
+          <figure class="shot"><button type="button" data-cap="答案来源回显与深色模式"><span class="frame"><span class="mock"><span class="tag">截图位</span><span class="side"><i></i><i></i><i></i><i></i><i></i></span><span class="main"><i></i><b></b><i></i><i></i><i></i></span></span><span class="zoom">查看大图</span></span></button><figcaption>答案来源回显与深色模式</figcaption></figure>
+        </div>
+      </section>
+    </div>
+  </article>
+
+  <!-- ══ 02 ══ -->
+  <article class="project wrap reveal">
+    <p class="p-num">02</p>
+    <div class="p-title"><h3>电商运营助手</h3><em>运营场景智能体</em></div>
+    <div class="chips"><span>Python</span><span>FastAPI</span><span>TypeScript</span><span>Next.js</span><span>Node.js</span><span>Docker</span></div>
+
+    <div class="p-body">
+      <div class="p-desc">
+        <h4>项目介绍</h4>
+        <p>面向电商日常运营场景的智能助手：整合商品、订单与客户数据，辅助运营人员做数据分析、话术生成与决策支持，减少重复劳动。</p>
+        <p class="p-todo">简介沿用现有页面草稿，定稿前需你确认</p>
+      </div>
+      <div class="p-work">
+        <h4>主要工作</h4>
+        <ul>
+          <li>把上线前的准备动作收敛成四步引导（建店建档 → 导入数据 → 配置模型 → Agent 中心），新店铺从空库到可用有明确路径。</li>
+          <li>实现商品与 SKU 库存导入，CSV 上传先预览校验、确认后只写入有效行，避免脏数据直接进库。</li>
+          <li>统一模型配置入口，按能力切换模型与参数，业务侧不感知底层差异。</li>
+          <li>搭建 Agent 中心，把日常运营动作沉淀为可复用、可审批的任务流。</li>
+        </ul>
+        <p class="p-todo">以上四条为 AI 草拟，需你逐条核对再定稿</p>
+      </div>
+    </div>
+
+    <div class="p-links">
+      <a class="on" href="http://62.234.56.90:3000/" target="_blank" rel="noopener">在线演示 · 运营智能体 →</a>
+      <a href="https://github.com/martinkalcheva-lgtm/showreel" target="_blank" rel="noopener">GitHub 源代码</a>
+    </div>
+
+    <div class="gallery">
+      <section class="g-group">
+        <h5>工作台与数据导入 <b>4 张</b></h5>
+        <div class="g-grid" data-album="电商运营助手">
+          <figure class="shot"><button type="button" data-cap="工作台 · 上线前四步引导"><span class="frame"><span class="mock"><span class="tag">截图位</span><span class="side"><i></i><i></i><i></i><i></i><i></i></span><span class="main"><i></i><i></i><i></i><b></b><i></i></span></span><span class="zoom">查看大图</span></span></button><figcaption>工作台 · 上线前四步引导</figcaption></figure>
+          <figure class="shot"><button type="button" data-cap="导入中心 · CSV 预览校验"><span class="frame"><span class="mock"><span class="tag">截图位</span><span class="side"><i></i><i></i><i></i><i></i><i></i></span><span class="main"><i></i><i></i><b></b><b></b><i></i></span></span><span class="zoom">查看大图</span></span></button><figcaption>导入中心 · CSV 预览校验</figcaption></figure>
+          <figure class="shot"><button type="button" data-cap="模型配置"><span class="frame"><span class="mock"><span class="tag">截图位</span><span class="side"><i></i><i></i><i></i><i></i><i></i></span><span class="main"><i></i><b></b><i></i><i></i><i></i></span></span><span class="zoom">查看大图</span></span></button><figcaption>模型配置</figcaption></figure>
+          <figure class="shot"><button type="button" data-cap="Agent 中心 · 任务流"><span class="frame"><span class="mock"><span class="tag">截图位</span><span class="side"><i></i><i></i><i></i><i></i><i></i></span><span class="main"><i></i><i></i><i></i><b></b><b></b></span></span><span class="zoom">查看大图</span></span></button><figcaption>Agent 中心 · 任务流</figcaption></figure>
+        </div>
+      </section>
+    </div>
+  </article>
+
+  <!-- ══ 03 ══ -->
+  <article class="project wrap reveal">
+    <p class="p-num">03</p>
+    <div class="p-title"><h3>智能客服系统</h3><em>客服会话与话术管理</em></div>
+    <div class="chips"><span>Python</span><span>FastAPI</span><span>TypeScript</span><span>JavaScript</span><span>MySQL</span></div>
+
+    <div class="p-body">
+      <div class="p-desc">
+        <h4>项目介绍</h4>
+        <p>智能客服解决方案：包含客服后端服务与会话管理，支持话术辅助、会话流转与客户数据管理，帮助客服团队提效。</p>
+        <p class="p-todo">简介沿用现有页面草稿，定稿前需你确认</p>
+      </div>
+      <div class="p-work">
+        <h4>主要工作</h4>
+        <ul>
+          <li>实现会话全生命周期管理：接入、排队、流转、关闭，坐席状态与接待量可实时查看。</li>
+          <li>话术库与智能推荐结合，客服在应答台一键取用，减少重复打字。</li>
+          <li>打通客户数据与订单上下文，进线即可看到历史订单与沟通记录。</li>
+          <li>前端按设计稿重构应答台与知识库页面，保持绿色主题与打印场景样式一致。</li>
+        </ul>
+        <p class="p-todo">以上四条为 AI 草拟，需你逐条核对再定稿</p>
+      </div>
+    </div>
+
+    <div class="p-links">
+      <a class="on" href="http://62.234.56.90:18082/" target="_blank" rel="noopener">在线演示 · 应答台 →</a>
+      <a href="https://github.com/martinkalcheva-lgtm/showreel" target="_blank" rel="noopener">GitHub 源代码</a>
+    </div>
+
+    <div class="gallery">
+      <section class="g-group">
+        <h5>应答台与知识库 <b>3 张</b></h5>
+        <div class="g-grid" data-album="智能客服系统">
+          <figure class="shot"><button type="button" data-cap="应答台 · 会话与话术推荐"><span class="frame"><span class="mock"><span class="tag">截图位</span><span class="side"><i></i><i></i><i></i><i></i><i></i></span><span class="main"><i></i><b></b><b></b><i></i><i></i></span></span><span class="zoom">查看大图</span></span></button><figcaption>应答台 · 会话与话术推荐</figcaption></figure>
+          <figure class="shot"><button type="button" data-cap="客户档案与订单上下文"><span class="frame"><span class="mock"><span class="tag">截图位</span><span class="side"><i></i><i></i><i></i><i></i><i></i></span><span class="main"><i></i><i></i><i></i><b></b><i></i></span></span><span class="zoom">查看大图</span></span></button><figcaption>客户档案与订单上下文</figcaption></figure>
+          <figure class="shot"><button type="button" data-cap="知识库管理"><span class="frame"><span class="mock"><span class="tag">截图位</span><span class="side"><i></i><i></i><i></i><i></i><i></i></span><span class="main"><i></i><i></i><b></b><b></b><b></b></span></span><span class="zoom">查看大图</span></span></button><figcaption>知识库管理</figcaption></figure>
+        </div>
+      </section>
+    </div>
+  </article>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span>© 2026 郭怡彤 · 项目作品集</span>
+    <a href="https://github.com/martinkalcheva-lgtm/showreel" target="_blank" rel="noopener">GitHub：martinkalcheva-lgtm/showreel</a>
+  </div>
+</footer>
+
+<!-- 灯箱 -->
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="图片放大查看">
+  <div class="lb-box">
+    <div class="lb-img" id="lbImg"></div>
+    <div class="lb-cap">
+      <p id="lbCap"></p>
+      <div class="lb-bar">
+        <span id="lbIdx"></span>
+        <button type="button" id="lbPrev">← 上一张</button>
+        <button type="button" id="lbNext">下一张 →</button>
+        <button type="button" id="lbClose">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var reduced = false;
+  try { reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+
+  var io = null;
+  if ('IntersectionObserver' in window && !reduced) {
+    io = new IntersectionObserver(function (es) {
+      es.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } });
+    }, { threshold: .12 });
+    document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
+  } else {
+    document.querySelectorAll('.reveal').forEach(function (el) { el.classList.add('in'); });
+  }
+
+  var shots = [].slice.call(document.querySelectorAll('figure.shot'));
+  var lb = document.getElementById('lb'), lbImg = document.getElementById('lbImg'),
+      lbCap = document.getElementById('lbCap'), lbIdx = document.getElementById('lbIdx');
+  var cur = 0, lastFocus = null;
+
+  function groupOf(btn) {
+    var grid = btn.closest('.g-grid');
+    return [].slice.call(grid.querySelectorAll('figure.shot button'));
+  }
+  function show(i) {
+    var list = groupOf(shots[cur].querySelector('button'));
+    cur = list.indexOf(shots[cur].querySelector('button'));
+    cur = (cur + i + list.length) % list.length;
+    paint(list[cur]);
+  }
+  function paint(btn) {
+    var fig = btn.closest('figure');
+    shots = [].slice.call(document.querySelectorAll('figure.shot'));
+    var frame = fig.querySelector('.frame');
+    lbImg.innerHTML = '';
+    lbImg.appendChild(frame.cloneNode(true));
+    lbCap.textContent = btn.getAttribute('data-cap');
+    var list = groupOf(btn);
+    lbIdx.textContent = (list.indexOf(btn) + 1) + ' / ' + list.length;
+  }
+  function open(btn) {
+    lastFocus = document.activeElement;
+    shots = [].slice.call(document.querySelectorAll('figure.shot'));
+    var fig = btn.closest('figure');
+    shots = [].slice.call(document.querySelectorAll('figure.shot'));
+    paint(btn);
+    lb.classList.add('on');
+    document.body.style.overflow = 'hidden';
+    document.getElementById('lbClose').focus();
+  }
+  function close() {
+    lb.classList.remove('on');
+    document.body.style.overflow = '';
+    if (lastFocus) lastFocus.focus();
+  }
+  document.querySelectorAll('figure.shot button').forEach(function (b) {
+    b.addEventListener('click', function () { open(b); });
+  });
+  document.getElementById('lbClose').addEventListener('click', close);
+  document.getElementById('lbPrev').addEventListener('click', function () { show(-1); });
+  document.getElementById('lbNext').addEventListener('click', function () { show(1); });
+  lb.addEventListener('click', function (e) { if (e.target === lb) close(); });
+  document.addEventListener('keydown', function (e) {
+    if (!lb.classList.contains('on')) return;
+    if (e.key === 'Escape') close();
+    if (e.key === 'ArrowLeft') show(-1);
+    if (e.key === 'ArrowRight') show(1);
+  });
+})();
+</script>
+</body>
+</html>

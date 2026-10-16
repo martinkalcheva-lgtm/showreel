@@ -1,3 +1,7 @@
+# 客服（电商小二）专用 MySQL
+# 2026-10-16：加项目名 kefu。此前项目名默认取文件夹名 "docker"，与 Boss 问数那份 compose 同名，
+#            两份都声明 service=mysql，导致每次 docker compose up 都互相顶掉容器（客服/问数轮流坏）。
+name: kefu
 services:
   mysql:
     image: mysql:8.0
@@ -8,7 +12,7 @@ services:
       MYSQL_USER: itwwy
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change_me}
     ports:
-      - "3306:3306"
+      - "3308:3306"
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
@@ -19,3 +23,4 @@ services:
 
 volumes:
   mysql_data:
+    name: docker_mysql_data   # 沿用历史卷：customer_service + commerce 都在这，别改名

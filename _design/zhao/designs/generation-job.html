@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" class="js">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>生成任务详情 · 多智能体运营平台 UI 设计稿</title>
+<meta name="description" content="静态设计稿：图片 / 视频生成任务详情页。五种任务状态的视觉语言、进度与预估口径、多模态产物、批次单张状态、失败原因与重试。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f8f7f4'/%3E%3Cg fill='%230d1218'%3E%3Crect x='12' y='12' width='8' height='8'/%3E%3Crect x='4' y='4' width='4' height='4'/%3E%3Crect x='24' y='4' width='4' height='4'/%3E%3Crect x='4' y='24' width='4' height='4'/%3E%3Crect x='24' y='24' width='4' height='4'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="stylesheet" href="design-system.css">
+<style>
+  /* ======================================================================
+     页面级布局（generation-job）
+     硬约束：只消费 design-system.css 的 token 与组件类，不新增视觉值。
+     对应线上源码：web/src/app/products/[id]/generation-jobs/[jobId]/page.tsx
+     ====================================================================== */
+  /* 命中区下限：导航与品牌入口同样按 44px 计 */
+  .app-top .brand, .app-top nav a { min-height: 44px; display: inline-flex; align-items: center; white-space: nowrap; }
+  .panel-head .btn-sm { min-height: 44px; }
+
+  .wrap { width: 100%; max-width: var(--max-w); margin-inline: auto; }
+  .stack   { display: flex; flex-direction: column; gap: var(--sp-6); }
+  .stack-5 { display: flex; flex-direction: column; gap: var(--sp-5); }
+  .stack-4 { display: flex; flex-direction: column; gap: var(--sp-4); }
+  .stack-3 { display: flex; flex-direction: column; gap: var(--sp-3); }
+  .stack-2 { display: flex; flex-direction: column; gap: var(--sp-2); }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
+  .row-between { justify-content: space-between; }
+
+  .ribbon {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--sp-3) var(--sp-4); flex-wrap: wrap;
+    padding: .5rem var(--pad-x);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-subtle);
+  }
+  .mono-note { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted); }
+  .mono-faint { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  .cap { font-size: var(--fs-body); color: var(--muted); line-height: 1.75; }
+  .cap-2 { font-size: var(--fs-body); color: var(--fg-secondary); line-height: 1.75; }
+
+  .back {
+    display: inline-flex; align-items: center; gap: .5rem; min-height: 44px;
+    font-size: var(--fs-body); color: var(--muted);
+    transition: color var(--t-2) var(--ease-state);
+  }
+  .back:hover { color: var(--fg); }
+  .back .ic { transform: rotate(90deg); }
+
+  .sec-hd {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: var(--sp-3) var(--sp-4); flex-wrap: wrap;
+    margin-bottom: var(--sp-4); padding-bottom: var(--sp-3);
+    border-bottom: 1px solid var(--border);
+  }
+  .sec-hd h2 { font-size: var(--fs-h2); }
+  .sec-hd .right { display: flex; flex-direction: column; align-items: flex-end; gap: .375rem; }
+  .sec-hd .right .cap { max-width: 44em; text-align: right; }
+
+  /* ---- 页头 ---- */
+  .job-hd { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-4) var(--sp-5); align-items: start; }
+  .job-title { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .job-actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+
+  /* ---- 状态徽标（五态一一对应源码 tone 映射） ---- */
+  .st {
+    display: inline-flex; align-items: center; gap: .45em;
+    min-height: 32px; padding: .2em .625em;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    font-family: var(--font-mono); font-size: var(--fs-mini); font-weight: 700;
+    letter-spacing: .04em; white-space: nowrap;
+  }
+  .st i, .st .dot { flex: none; }
+  .st-pending   { color: var(--muted);          background: var(--surface-subtle); border-color: var(--border); }
+  .st-running   { color: var(--warn);           background: var(--warn-tint);      border-color: var(--border-warn); }
+  .st-succeeded { color: var(--success);        background: var(--success-tint);   border-color: var(--border-success); }
+  .st-failed    { color: var(--accent);         background: var(--accent-tint);    border-color: var(--border-accent); }
+  .st-cancelled { color: var(--faint);          background: var(--surface-sunken); border-color: var(--border); border-style: dashed; }
+  .st .sq { width: 8px; height: 8px; background: currentColor; flex: none; }
+  .st .sq-hollow { width: 8px; height: 8px; border: 1px solid currentColor; flex: none; }
+
+  /* ---- 任务摘要 ---- */
+  .m-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-3); }
+  .m-card {
+    min-width: 0; padding: var(--sp-4); border: 1px solid var(--border);
+    border-radius: var(--radius); background: var(--surface);
+    display: flex; flex-direction: column; gap: .375rem;
+  }
+  .m-card.is-lead { border-top-width: 2px; border-top-color: var(--accent); }
+  .m-card.is-idle { background: var(--surface-sunken); }
+  .m-lbl {
+    font-family: var(--font-mono); font-size: var(--fs-mini); font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--faint);
+  }
+  .m-val { font-size: var(--fs-h3); font-weight: 700; color: var(--fg); overflow-wrap: anywhere; }
+  .m-val.mono { font-family: var(--font-mono); font-size: 1rem; font-weight: 600; }
+  .m-val.is-idle { color: var(--muted); }
+  .m-sub { font-size: var(--fs-mini); color: var(--muted); font-family: var(--font-mono); }
+
+  /* ---- 状态语义图例 ---- */
+  .legend-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--sp-3); }
+  .legend .panel-head { align-items: center; justify-content: space-between; gap: .5rem; }
+  .legend .panel-head h3 { font-size: var(--fs-body); }
+  .legend-pre { display: flex; flex-direction: column; gap: .5rem; }
+  .legend dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .375rem .625rem; }
+  .legend dt {
+    font-family: var(--font-mono); font-size: var(--fs-mini); font-weight: 600;
+    letter-spacing: .06em; color: var(--faint); white-space: nowrap;
+  }
+  .legend dd { font-size: var(--fs-body); color: var(--fg-secondary); line-height: 1.65; }
+  .legend-foot { border-top: 1px solid var(--border); padding: var(--sp-3) var(--sp-4); font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted); }
+
+  /* ---- 进度：轨道（唯一允许的 5 态进度的载体） ---- */
+  .track { position: relative; height: 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-sunken); }
+  .track-fill { height: 100%; background: var(--warn); }
+  .track.is-done .track-fill { background: var(--success); }
+  .track.is-failed .track-fill { background: var(--accent); }
+  .track.is-cancelled { border-style: dashed; }
+  .track.is-cancelled .track-fill { background: var(--faint); }
+  .track.is-queued { border-style: dashed; }
+  .track.is-queued .track-fill { display: none; }
+  .track-tick { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--border); }
+  .track-stop { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--fg); }
+  .track-scale {
+    display: flex; justify-content: space-between; gap: .5rem; flex-wrap: wrap;
+    margin-top: .375rem; font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint);
+  }
+  .track-wrap { min-width: 0; }
+
+  /* 迷你轨道（图例用） */
+  .mini-track { height: 8px; }
+  .mini-row { display: flex; align-items: center; gap: .5rem; }
+
+  /* ---- 面板状态：3px 左侧色条是唯一的强优先级表达 ---- */
+  .panel.is-running { border-left: 3px solid var(--warn); }
+  .panel.is-failed { border-left: 3px solid var(--accent); }
+  .panel.is-succeeded { border-left: 3px solid var(--success); }
+  .panel.is-cancelled { border-left: 3px dashed var(--border-strong); }
+  .panel.is-pending { border-left: 3px solid var(--muted); }
+
+  /* ---- 事实表 ---- */
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: var(--sp-3) var(--sp-4); }
+  .fact { min-width: 0; border-left: 1px solid var(--border); padding-left: var(--sp-3); }
+  .fact dt {
+    font-family: var(--font-mono); font-size: var(--fs-mini); font-weight: 600;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--faint);
+  }
+  .fact dd { font-size: var(--fs-body); color: var(--fg-secondary); line-height: 1.7; margin-top: .125rem; overflow-wrap: anywhere; }
+  .fact dd.mono { font-family: var(--font-mono); }
+
+  /* ---- 失败 / 取消 原因块 ---- */
+  .reason { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-sunken); padding: var(--sp-4); }
+  .reason.is-failed { border-left: 3px solid var(--accent); background: var(--accent-tint); }
+  .reason.is-cancelled { border-left: 3px dashed var(--border-strong); }
+  .reason h4 { font-size: var(--fs-h3); }
+  .reason p { font-size: var(--fs-body); line-height: 1.8; color: var(--fg-secondary); }
+  .reason .raw {
+    margin-top: var(--sp-3); padding: var(--sp-3);
+    border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--fg-secondary);
+    overflow-wrap: anywhere;
+  }
+
+  /* ---- 媒体产物：1px 发丝线框 + 占位符（不使用任何彩色渐变块） ---- */
+  .media-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: var(--sp-4); }
+  .media { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .media-frame {
+    position: relative; aspect-ratio: 1 / 1;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface-sunken);
+    display: grid; place-items: center; gap: .25rem;
+    color: var(--faint); font-family: var(--font-mono); font-size: var(--fs-mini);
+    transition: background-color var(--t-2) var(--ease-state), border-color var(--t-2) var(--ease-state);
+  }
+  .media-frame:hover { background: var(--surface-subtle); border-color: var(--border-strong); }
+  .media-frame.is-ok { border-color: var(--success); }
+  .media-frame.is-run { border-color: var(--warn); }
+  .media-frame.is-fail { border-color: var(--border-accent); }
+  .media-frame.is-queue { border-style: dashed; }
+  .media-frame .tagline { position: absolute; left: .5rem; bottom: .5rem; font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  .media-frame .st { position: absolute; left: .5rem; top: .5rem; background: var(--surface); }
+  .media-frame .ph { display: flex; flex-direction: column; align-items: center; gap: .375rem; }
+  .media-meta { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+  .media-acts { display: flex; gap: .375rem; flex-wrap: wrap; }
+
+  /* 视频播放器占位 */
+  .player {
+    position: relative; aspect-ratio: 16 / 9; width: 100%;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface-sunken);
+    display: grid; place-items: center;
+  }
+  .player-btn {
+    width: 64px; height: 64px; min-width: 44px; min-height: 44px;
+    border: 1px solid var(--border-strong); border-radius: var(--radius);
+    background: var(--surface); color: var(--fg);
+    display: grid; place-items: center;
+    transition: background-color var(--t-2) var(--ease-state);
+  }
+  .player-btn:hover { background: var(--surface-subtle); }
+  .tri { width: 0; height: 0; border-top: 9px solid transparent; border-bottom: 9px solid transparent; border-left: 15px solid currentColor; margin-left: 3px; }
+  .player-hud {
+    position: absolute; left: var(--sp-3); bottom: var(--sp-3); right: var(--sp-3);
+    display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap;
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted);
+  }
+  .player-top { position: absolute; right: var(--sp-3); top: var(--sp-3); display: flex; gap: .375rem; flex-wrap: wrap; }
+
+  /* ---- 代码块 ---- */
+  .code {
+    margin: 0; padding: var(--sp-3);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface-sunken); color: var(--fg-secondary);
+    font-family: var(--font-mono); font-size: var(--fs-mini); line-height: 1.75;
+    max-height: 420px; overflow: auto; white-space: pre; tab-size: 2;
+  }
+
+  /* ---- 表格 ---- */
+  .tbl { font-size: var(--fs-body); }
+  .tbl td { vertical-align: middle; }
+  .cell-actions { display: flex; gap: .375rem; flex-wrap: wrap; }
+  .ta-r { text-align: right; }
+  .txt-ok { color: var(--success); }
+  .txt-warn { color: var(--warn); }
+  .txt-accent { color: var(--accent); }
+  .b700 { font-weight: 700; }
+  .tbl-note {
+    display: flex; align-items: flex-start; gap: .5rem; flex-wrap: wrap;
+    padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--border);
+    background: var(--surface-subtle);
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted); line-height: 1.7;
+  }
+  .tbl-scroll { min-width: 860px; }
+
+  /* ---- 空态 ---- */
+  .empty { text-align: left; }
+  .empty h4, .empty h3 { margin-top: var(--sp-3); }
+  /* design-system.css 的 .empty h4 是标签选择器，标题改级后在本页复述同一组取值 */
+  .empty h3 { font-size: var(--fs-h3); margin-bottom: .375rem; }
+  .empty p { margin: 0; max-width: none; font-size: var(--fs-body); }
+  .empty-actions { display: flex; gap: var(--sp-3); flex-wrap: wrap; margin-top: var(--sp-4); }
+  .empty-next {
+    margin-top: var(--sp-4); padding-top: var(--sp-4); border-top: 1px solid var(--border);
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted);
+    display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+  }
+
+  /* ---- 源码映射说明（设计稿专用） ---- */
+  .src-map {
+    margin-top: var(--sp-3); padding: var(--sp-3);
+    border: 1px solid var(--border); border-left: 2px solid var(--border-strong);
+    border-radius: var(--radius); background: var(--surface-sunken);
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted);
+    line-height: 1.75; overflow-wrap: anywhere;
+  }
+  .stage-list { display: grid; gap: 0; }
+
+  /* ---- 响应式 ---- */
+  @media (max-width: 1199px) {
+    .legend-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (max-width: 1023px) {
+    .m-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .job-hd { grid-template-columns: minmax(0, 1fr); }
+    .sec-hd .right { align-items: flex-start; }
+    .sec-hd .right .cap { text-align: left; }
+    .legend-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 767px) {
+    .m-grid, .legend-grid { grid-template-columns: minmax(0, 1fr); }
+    .media-grid { grid-template-columns: minmax(0, 1fr); }
+    .player-btn { width: 56px; height: 56px; }
+    /* 窄屏：头部一行放不下时允许换行，徽标不再 nowrap，避免被 overflow-x 裁掉 */
+    .panel-head, .trace-hd, .row-between { flex-wrap: wrap; }
+    .panel-head .badge, .sec-hd .badge, .legend .badge { white-space: normal; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============================ 应用顶栏 ============================ -->
+  <header class="app-top">
+    <a class="brand" href="workspace.html">
+      <svg class="mark ic-lg" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <rect x="12" y="12" width="8" height="8" rx="2"/>
+        <rect x="4" y="4" width="4" height="4" rx="1"/>
+        <rect x="24" y="4" width="4" height="4" rx="1"/>
+        <rect x="4" y="24" width="4" height="4" rx="1"/>
+        <rect x="24" y="24" width="4" height="4" rx="1"/>
+      </svg>
+      <span>运营智能体</span>
+      <span class="sub">GENERATION JOBS / :jobId</span>
+    </a>
+    <nav aria-label="页面导航">
+      <a href="workspace.html">工作台</a>
+      <a href="imports.html">导入中心</a>
+      <a href="store-detail.html">店铺详情</a>
+      <a href="#top" aria-current="page">生成任务</a>
+    </nav>
+    <div class="row">
+      <span class="badge badge-online"><span class="status-led" aria-hidden="true"></span>:80 ONLINE</span>
+      <button type="button" class="btn" id="themeBtn" aria-label="切换明暗主题">
+        <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-chev"></use></svg>
+        <span id="themeBtnText" class="mono">DARK</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ======================== 设计稿声明带 ======================== -->
+  <div class="ribbon">
+    <span class="eyebrow">DESIGN PROPOSAL · 静态设计稿 · 非线上系统</span>
+    <span class="mono-note">本稿修复 6 项：五态视觉 / 进度与预估口径 / 供应商与耗时 / 失败可操作 / 批次单张状态 / 产物多模态</span>
+  </div>
+
+  <main class="app-body">
+    <div class="pane">
+      <div class="wrap stack" id="top">
+
+        <!-- ==================== 页头 ==================== -->
+        <div class="stack-4">
+          <a class="back" href="workspace.html">
+            <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-chev"></use></svg>
+            返回任务中心
+          </a>
+
+          <section class="panel" aria-labelledby="h-job">
+            <div class="panel-body job-hd">
+              <div class="job-title">
+                <div class="row">
+                  <span class="badge badge-accent">三合一冲锋衣（男款）</span>
+                  <span class="badge mono">任务 #1042</span>
+                  <span class="badge mono">PRODUCT 318</span>
+                </div>
+                <h1 class="t-h1" id="h-job">生成任务 #1042</h1>
+                <p class="cap">
+                  图片生成 · 关联方案「秋冬冲锋衣 · 主图方案 A」· 供应商 <b>即梦（火山引擎）</b> / <b>jimeng_t2i_v3</b> ·
+                  1024 × 1024 · 已在 worker <span class="mono">gen-worker-02</span> 上执行 4 分 12 秒
+                </p>
+                <div class="row">
+                  <span class="st st-running"><span class="status-led is-busy" aria-hidden="true"></span>生成中</span>
+                  <span class="badge">第 1 / 3 次尝试</span>
+                  <span class="badge">自动刷新 · 5 秒</span>
+                </div>
+              </div>
+              <div class="job-actions">
+                <button type="button" class="btn">
+                  <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-copy"></use></svg>
+                  复制任务 ID
+                </button>
+                <a class="btn" href="#variants">
+                  <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg>
+                  查看全部状态样例
+                </a>
+              </div>
+            </div>
+            <div class="src-map">
+              源码字段映射：product.name · job.id · job.kind（video_asset / main_image_asset）· job.status · job.started_at · job.attempts / job.max_attempts · job.locked_by · creativePlan.title（缺省文案「未知方案」）· GenerationJobAutoRefresh 的 5 秒轮询只在存在 pending / running 任务时启用。原版页头把商品名与状态徽标分列上下，未显示供应商、模型与已耗时。
+            </div>
+          </section>
+        </div>
+
+        <!-- ==================== 任务摘要 ==================== -->
+        <section aria-labelledby="h-sum">
+          <div class="sec-hd">
+            <div class="stack-2">
+              <span class="eyebrow">TASK SUMMARY · 供应商与耗时是一等公民</span>
+              <h2 class="t-h2" id="h-sum">任务摘要</h2>
+            </div>
+            <div class="right">
+              <span class="mono-note">读表时间 2026-10-14 09:40:32 · 时区 Asia/Shanghai</span>
+              <p class="cap">同一张卡里给出「谁在生成、用哪个模型、已经跑了多久、还能重试几次」，避免为了确认耗时去翻时间线。</p>
+            </div>
+          </div>
+
+          <div class="m-grid">
+            <article class="m-card">
+              <span class="m-lbl">任务类型</span>
+              <span class="m-val">图片生成</span>
+              <span class="m-sub">kind = main_image_asset</span>
+            </article>
+            <article class="m-card">
+              <span class="m-lbl">关联方案</span>
+              <span class="m-val">秋冬冲锋衣 · 主图方案 A</span>
+              <span class="m-sub">creative_plan_id = 96 · 状态 selected</span>
+            </article>
+            <article class="m-card is-lead">
+              <span class="m-lbl">供应商 / 模型</span>
+              <span class="m-val">即梦（火山引擎）</span>
+              <span class="m-sub">jimeng_t2i_v3 · 1024*1024 · provider = jimeng</span>
+            </article>
+            <article class="m-card">
+              <span class="m-lbl">已耗时</span>
+              <span class="m-val">4 分 12 秒</span>
+              <span class="m-sub">started_at 09:36:20 → 仍在运行</span>
+            </article>
+            <article class="m-card">
+              <span class="m-lbl">开始时间</span>
+              <span class="m-val mono">2026-10-14 09:36:20</span>
+              <span class="m-sub">job.started_at</span>
+            </article>
+            <article class="m-card is-idle">
+              <span class="m-lbl">完成时间</span>
+              <span class="m-val is-idle">未完成</span>
+              <span class="m-sub">job.finished_at = null</span>
+            </article>
+            <article class="m-card">
+              <span class="m-lbl">尝试次数</span>
+              <span class="m-val">1 / 3</span>
+              <span class="m-sub">attempts / max_attempts（默认 3）</span>
+            </article>
+            <article class="m-card">
+              <span class="m-lbl">运行锁</span>
+              <span class="m-val mono">gen-worker-02</span>
+              <span class="m-sub">locked_at 09:36:20 · 超时阈值 30 分</span>
+            </article>
+          </div>
+        </section>
+
+        <!-- ==================== 状态语义图例 ==================== -->
+        <section aria-labelledby="h-legend">
+          <div class="sec-hd">
+            <div class="stack-2">
+              <span class="eyebrow">STATE SEMANTICS · 五种状态，五种视觉</span>
+              <h2 class="t-h2" id="h-legend">状态语义</h2>
+            </div>
+            <div class="right">
+              <span class="mono-note">status 枚举：pending / running / succeeded / failed / cancelled</span>
+              <p class="cap">状态是这一页的核心信息，因此每一种状态都同时改变四件事：左侧色条、徽标形制、进度轨道、主操作。不做「换个文字颜色」的伪区分。</p>
+            </div>
+          </div>
+
+          <div class="legend-grid">
+            <article class="panel legend is-pending">
+              <div class="panel-head">
+                <h3>排队中</h3>
+                <span class="st st-pending"><span class="sq-hollow" aria-hidden="true"></span>PENDING</span>
+              </div>
+              <div class="panel-body stack-3">
+                <div class="legend-pre">
+                  <div class="track mini-track is-queued"><span class="track-fill"></span></div>
+                  <span class="mono-faint">虚线轨道 · 无填充 = 尚未开始</span>
+                </div>
+                <dl>
+                  <dt>进度表达</dt><dd>队列位置 + 预计开始时间（不给百分比，因为还没消耗算力）</dd>
+                  <dt>主操作</dt><dd>取消任务</dd>
+                  <dt>出现时机</dt><dd>创建后、worker 领取前，或失败自动重排队</dd>
+                </dl>
+              </div>
+              <div class="legend-foot">左条：--muted 实线</div>
+            </article>
+
+            <article class="panel legend is-running">
+              <div class="panel-head">
+                <h3>生成中</h3>
+                <span class="st st-running"><span class="status-led is-busy" aria-hidden="true"></span>RUNNING</span>
+              </div>
+              <div class="panel-body stack-3">
+                <div class="legend-pre">
+                  <div class="track mini-track"><span class="track-fill" style="width:14%"></span><span class="track-stop" style="left:14%"></span></div>
+                  <span class="mono-faint">实心琥珀轨道 + 当前进度游标</span>
+                </div>
+                <dl>
+                  <dt>进度表达</dt><dd>阶段轨迹 + 已耗时 / 超时预算 + 轮询节奏</dd>
+                  <dt>主操作</dt><dd>取消任务</dd>
+                  <dt>出现时机</dt><dd>worker 持锁执行中（locked_by 非空）</dd>
+                </dl>
+              </div>
+              <div class="legend-foot">左条：--warn 实线</div>
+            </article>
+
+            <article class="panel legend is-succeeded">
+              <div class="panel-head">
+                <h3>已完成</h3>
+                <span class="st st-succeeded"><svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-check"></use></svg>SUCCEEDED</span>
+              </div>
+              <div class="panel-body stack-3">
+                <div class="legend-pre">
+                  <div class="track mini-track is-done"><span class="track-fill" style="width:100%"></span></div>
+                  <span class="mono-faint">满轨 · 翠绿 = 结果已落盘</span>
+                </div>
+                <dl>
+                  <dt>进度表达</dt><dd>不显示进度，改为显示耗时终值与产物</dd>
+                  <dt>主操作</dt><dd>打开结果 / 查看资产</dd>
+                  <dt>出现时机</dt><dd>结果 URL 与 GeneratedAsset 均已写入</dd>
+                </dl>
+              </div>
+              <div class="legend-foot">左条：--success 实线</div>
+            </article>
+
+            <article class="panel legend is-failed">
+              <div class="panel-head">
+                <h3>失败</h3>
+                <span class="st st-failed"><svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-warn"></use></svg>FAILED</span>
+              </div>
+              <div class="panel-body stack-3">
+                <div class="legend-pre">
+                  <div class="track mini-track is-failed"><span class="track-fill" style="width:14%"></span><span class="track-stop" style="left:14%"></span></div>
+                  <span class="mono-faint">轨道冻结在中断点 · 转为朱红</span>
+                </div>
+                <dl>
+                  <dt>进度表达</dt><dd>冻结游标 + 具体原因 + 可重试次数</dd>
+                  <dt>主操作</dt><dd>重试任务（唯一高亮按钮）</dd>
+                  <dt>出现时机</dt><dd>异常或供应商失败，且 attempts 已用尽前</dd>
+                </dl>
+              </div>
+              <div class="legend-foot">左条：--accent 实线</div>
+            </article>
+
+            <article class="panel legend is-cancelled">
+              <div class="panel-head">
+                <h3>已取消</h3>
+                <span class="st st-cancelled"><span class="sq" aria-hidden="true"></span>CANCELLED</span>
+              </div>
+              <div class="panel-body stack-3">
+                <div class="legend-pre">
+                  <div class="track mini-track is-cancelled"><span class="track-fill" style="width:22%"></span></div>
+                  <span class="mono-faint">整体虚线降级 · 无人为终止游标</span>
+                </div>
+                <dl>
+                  <dt>进度表达</dt><dd>中断点 + 取消原因（人工停止，不是故障）</dd>
+                  <dt>主操作</dt><dd>重新排队（次要按钮，不抢注意力）</dd>
+                  <dt>出现时机</dt><dd>用户取消 pending / running 任务</dd>
+                </dl>
+              </div>
+              <div class="legend-foot">左条：虚线（border-strong）</div>
+            </article>
+          </div>
+
+          <div class="src-map">
+            源码字段映射：JobStatusBadge 的 tone 表 —— failed: rose / pending: slate / running: amber / succeeded: emerald / cancelled: slate，但五个徽标尺寸与形状完全一致，仅靠颜色区分。本稿把 tone 语义保留（琥珀=进行中、翠绿=成功、朱红=需处理、灰=中性），并追加「形制」维度：实心点 / 呼吸灯 / 勾 / 警告 / 空心方块，色觉障碍下依然可分。状态中文文案与源码一致：排队中 / 生成中 / 已完成 / 失败 / 已取消。
+          </div>
+        </section>
+
+        <!-- ==================== 主实例 · 生成中 ==================== -->
+        <section aria-labelledby="h-running" id="running">
+          <div class="sec-hd">
+            <div class="stack-2">
+              <span class="eyebrow">PRIMARY INSTANCE · RUNNING</span>
+              <h2 class="t-h2" id="h-running">生成中：进度与预估</h2>
+            </div>
+            <div class="right">
+              <span class="mono-note">这一页最重要的状态：等待型页面的等待成本必须被量化</span>
+              <p class="cap">供应商接口不返回百分比，所以这里不编造进度条 —— 用「阶段 + 已耗时 / 预算 + 历史参考值」三件事表达「还要等多久」。</p>
+            </div>
+          </div>
+
+          <div class="panel is-running">
+            <div class="panel-head">
+              <h3>执行进度</h3>
+              <div class="row">
+                <span class="st st-running"><span class="status-led is-busy" aria-hidden="true"></span>生成中</span>
+                <span class="badge mono">AUTO REFRESH 5s</span>
+              </div>
+            </div>
+            <div class="panel-body stack-5">
+
+              <!-- 阶段轨迹 -->
+              <div class="trace">
+                <div class="trace-hd">
+                  <span>阶段轨迹 · 5 STAGES</span>
+                  <span class="mono-faint">数据来源：job.events 事件链</span>
+                </div>
+                <ol class="stage-list">
+                  <li class="trace-step">
+                    <span class="trace-dot done" aria-hidden="true"></span>
+                    <span>任务入队 · queued</span>
+                    <span class="trace-time mono">09:36:18</span>
+                  </li>
+                  <li class="trace-step">
+                    <span class="trace-dot done" aria-hidden="true"></span>
+                    <span>worker 领取并持锁 · started（gen-worker-02）</span>
+                    <span class="trace-time mono">09:36:20</span>
+                  </li>
+                  <li class="trace-step">
+                    <span class="trace-dot done" aria-hidden="true"></span>
+                    <span>供应商受理，返回 task_id</span>
+                    <span class="trace-time mono">09:36:23</span>
+                  </li>
+                  <li class="trace-step">
+                    <span class="trace-dot run" aria-hidden="true"></span>
+                    <span>轮询等待生成结果（当前阶段）</span>
+                    <span class="trace-time mono">已持续 4 分 09 秒</span>
+                  </li>
+                  <li class="trace-step">
+                    <span class="trace-dot skip" aria-hidden="true"></span>
+                    <span>下载落盘并写入资产</span>
+                    <span class="trace-time mono">尚未开始</span>
+                  </li>
+                </ol>
+              </div>
+
+              <!-- 耗时轨道 -->
+              <div class="track-wrap stack-3">
+                <div class="track">
+                  <span class="track-fill" style="width:14%"></span>
+                  <span class="track-tick" style="left:25%"></span>
+                  <span class="track-tick" style="left:50%"></span>
+                  <span class="track-tick" style="left:75%"></span>
+                  <span class="track-stop" style="left:14%"></span>
+                </div>
+                <div class="track-scale">
+                  <span>0 分</span>
+                  <span>7 分 30 秒</span>
+                  <span>15 分</span>
+                  <span>22 分 30 秒</span>
+                  <span>超时阈值 30 分</span>
+                </div>
+              </div>
+
+              <dl class="facts">
+                <div class="fact">
+                  <dt>已耗时</dt>
+                  <dd class="mono">4 分 12 秒 / 30 分 00 秒</dd>
+                </div>
+                <div class="fact">
+                  <dt>耗时口径</dt>
+                  <dd>已耗时 = 当前时间 − job.started_at（worker 持锁起点），不是创建时间，也不含排队时间。</dd>
+                </div>
+                <div class="fact">
+                  <dt>轮询节奏</dt>
+                  <dd>每 5 秒一次，上限 120 次（配置项 poll_interval_seconds / poll_max_attempts）。</dd>
+                </div>
+                <div class="fact">
+                  <dt>超时口径</dt>
+                  <dd>调度器 30 分未完成即判超时（DEFAULT_RUNNING_TIMEOUT_MINUTES），释放锁并按重试策略重新排队 —— 这是兜底时间，不是预计完成时间。</dd>
+                </div>
+                <div class="fact">
+                  <dt>预估参考</dt>
+                  <dd>同模型近 30 天成功任务：P50 6 分 30 秒 · P90 9 分 10 秒 · 样本 48 条。</dd>
+                </div>
+                <div class="fact">
+                  <dt>预估性质</dt>
+                  <dd>参考值，非承诺。供应商不提供 SLA，因此页面不使用「预计剩余 X 分钟」这类确定性措辞。</dd>
+                </div>
+              </dl>
+
+              <!-- 诚实性说明 -->
+              <div class="src-map" style="margin-top:0">
+                为什么不画百分比：即梦与 DashScope 都只在轮询响应里返回 done / failed / unknown 这类离散状态（见 _jimeng_status / 轮询实现），没有 0–100 的进度字段。可用百分比将是无依据的装饰 —— 本稿改用「阶段 + 耗时预算 + 历史分位数」三件可验证的事。进度轨道只表达「已耗时间占超时预算的比例」，并在标尺上写明。
+              </div>
+
+              <!-- 任务控制（pending / running 专属） -->
+              <div class="reason">
+                <h4>任务控制</h4>
+                <p style="margin-top:.375rem">
+                  取消后任务会停止排队或释放运行锁，不会继续生成素材（与源码文案一致）。已产生的中间请求由供应商侧自然结束，不会写入资产库。
+                </p>
+                <div class="row" style="margin-top:var(--sp-3)">
+                  <button type="button" class="btn">取消任务</button>
+                  <button type="button" class="btn btn-ghost">查看完整日志</button>
+                  <span class="mono-faint">取消入口只在 pending / running 状态出现，与源码一致</span>
+                </div>
+              </div>
+            </div>
+            <div class="src-map">
+              源码字段映射：JobEventTimeline 的 events（queued / started / retry_requested / retry_scheduled / failed / succeeded / cancelled / timeout_checked）提供阶段轨迹；job.attempts / max_attempts / locked_by / started_at / next_run_at 提供耗时与锁信息；超时与轮询参数来自 GenerationJob 服务常量 DEFAULT_RUNNING_TIMEOUT_MINUTES = 30 与图像 / 视频轮询配置。
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== 状态变体 ==================== -->
+        <section aria-labelledby="h-variants" id="variants">
+          <div class="sec-hd">
+            <div class="stack-2">
+              <span class="eyebrow">STATE VARIANTS · 同一页面的另外四种样子</span>
+              <h2 class="t-h2" id="h-variants">状态变体</h2>
+            </div>
+            <div class="right">
+              <span class="mono-note">设计稿展示：同一路由在不同 job.status 下的完整形态</span>
+              <p class="cap">静态稿把四种状态并排给出，便于审查；真实运行时每个任务只会命中其中一种。</p>
+            </div>
+          </div>
+
+          <div class="stack-5">
+
+            <!-- 排队中 -->
+            <article class="panel is-pending" id="v-pending">
+              <div class="panel-head">
+                <h3>变体 1 · 排队中</h3>
+                <div class="row">
+                  <span class="st st-pending"><span class="sq-hollow" aria-hidden="true"></span>排队中</span>
+                  <span class="badge mono">job #1043</span>
+                </div>
+              </div>
+              <div class="panel-body stack-4">
+                <div class="track is-queued"><span class="track-fill"></span></div>
+                <dl class="facts">
+                  <div class="fact"><dt>队列位置</dt><dd>第 <b>3</b> 位 · 前面还有 2 个待执行任务（同队列 FIFO）</dd></div>
+                  <div class="fact"><dt>预计开始</dt><dd class="mono">09:41:05（next_run_at）</dd></div>
+                  <div class="fact"><dt>等待时长</dt><dd class="mono">已等待 1 分 08 秒 · 未消耗供应商额度</dd></div>
+                  <div class="fact"><dt>重试信息</dt><dd>attempts 0 / 3 · 本次为首次入队</dd></div>
+                </dl>
+                <p class="cap">
+                  排队态的进度表达刻意不写百分比：没有开始执行就没有可度量的完成度，给出「第几位 + 预计开始」才是可验证的信息。
+                  预计开始时间随后续任务完成而前移，页面每 5 秒自动刷新一次。
+                </p>
+                <div class="row">
+                  <button type="button" class="btn">取消排队</button>
+                  <button type="button" class="btn btn-ghost">调整优先级</button>
+                </div>
+              </div>
+              <div class="src-map">源码字段映射：next_run_at（可执行时间）· status = pending · 排序依据 created_at 升序（process_next_generation_job）· queue_name / lease 概念见 AgentRun，生成任务此处以 worker 锁 + next_run_at 表达。</div>
+            </article>
+
+            <!-- 失败 -->
+            <article class="panel is-failed" id="v-failed">
+              <div class="panel-head">
+                <h3>变体 2 · 失败</h3>
+                <div class="row">
+                  <span class="st st-failed"><svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-warn"></use></svg>失败</span>
+                  <span class="badge mono">job #1044</span>
+                </div>
+              </div>
+              <div class="panel-body stack-4">
+                <div class="track is-failed">
+                  <span class="track-fill" style="width:9%"></span>
+                  <span class="track-stop" style="left:9%"></span>
+                </div>
+                <div class="track-scale">
+                  <span>中断于 2 分 44 秒</span>
+                  <span>2 / 3 次尝试已用</span>
+                  <span>超时阈值 30 分未触及</span>
+                </div>
+
+                <div class="reason is-failed">
+                  <div class="row" style="justify-content:space-between">
+                    <h4>失败原因</h4>
+                    <span class="badge badge-accent">供应商侧失败</span>
+                  </div>
+                  <p style="margin-top:.5rem">
+                    供应商返回终态 failed，判定为<strong>提示词命中供应商审核</strong>。此类失败不会自动重排队（自动重试只覆盖超时与网络异常），需要人工修改后重试。
+                  </p>
+                  <dl class="facts" style="margin-top:var(--sp-3)">
+                    <div class="fact"><dt>错误归类</dt><dd>上游内容审核拦截（非本系统异常）</dd></div>
+                    <div class="fact"><dt>失败阶段</dt><dd>轮询等待 → 返回终态 failed</dd></div>
+                    <div class="fact"><dt>供应商 / 模型</dt><dd>即梦（火山引擎）· jimeng_t2i_v3</dd></div>
+                    <div class="fact"><dt>剩余重试</dt><dd>1 次（attempts 2 / max_attempts 3）</dd></div>
+                  </dl>
+                  <div class="raw">供应商原始错误：Jimeng image task ended with status: failed</div>
+                  <p class="mono-faint" style="margin-top:.5rem">建议处置：① 修改提示词中的绝对化用词后重试；② 或在模型配置里把图像供应商切到 DashScope（wan2.6-t2i）再重试 —— 重试保留同一任务 ID，事件链不断裂。</p>
+                </div>
+
+                <div class="row">
+                  <button type="button" class="btn btn-primary">
+                    <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg>
+                    重试任务
+                  </button>
+                  <button type="button" class="btn">编辑方案提示词</button>
+                  <button type="button" class="btn btn-ghost">切换图像供应商</button>
+                </div>
+              </div>
+              <div class="src-map">
+                源码字段映射：job.error 为失败 / 取消的共用字段，原版用同一块面板渲染，只在 status = failed 时显示重试表单（POST /generation-jobs/[jobId]/retry，重定向回 ?tab=jobs）；retry_generation_job_record 会清空 error / locked_* / started_at / finished_at 并写 retry_requested 事件。本稿在此之上补三条：失败归类、剩余重试次数、具体处置建议。
+              </div>
+            </article>
+
+            <!-- 已取消 -->
+            <article class="panel is-cancelled" id="v-cancelled">
+              <div class="panel-head">
+                <h3>变体 3 · 已取消</h3>
+                <div class="row">
+                  <span class="st st-cancelled"><span class="sq" aria-hidden="true"></span>已取消</span>
+                  <span class="badge mono">job #1045</span>
+                </div>
+              </div>
+              <div class="panel-body stack-4">
+                <div class="track is-cancelled"><span class="track-fill" style="width:22%"></span></div>
+                <div class="track-scale">
+                  <span>人工终止于 2 分 11 秒</span>
+                  <span>未产生失败计数</span>
+                  <span>attempts 保持 1 / 3</span>
+                </div>
+
+                <div class="reason is-cancelled">
+                  <h4>取消原因</h4>
+                  <p style="margin-top:.5rem">
+                    用户请求取消：需要先调整方案里的背景描述，避免与十月大促的视觉规范冲突。
+                  </p>
+                  <dl class="facts" style="margin-top:var(--sp-3)">
+                    <div class="fact"><dt>操作人</dt><dd>林澈 · 2026-10-14 09:33:07</dd></div>
+                    <div class="fact"><dt>锁状态</dt><dd>已释放 · locked_at / locked_by 置空</dd></div>
+                    <div class="fact"><dt>素材影响</dt><dd>无残留写库资产</dd></div>
+                  </dl>
+                </div>
+
+                <p class="cap">
+                  已取消是<strong>人为决定</strong>而不是故障，所以整块降级为中性灰 + 虚线，不复用失败的朱红，也不把「重新排队」做成高亮主按钮 —— 否则会诱导误操作重跑一个已经被否掉的方案。
+                </p>
+
+                <div class="row">
+                  <button type="button" class="btn">重新排队</button>
+                  <button type="button" class="btn btn-ghost">回到方案页修改</button>
+                </div>
+              </div>
+              <div class="src-map">源码字段映射：cancel_generation_job_record 把 status 置为 cancelled、写入 job.error = reason 或「任务已取消。」、清空锁与 next_run_at，并在仅 pending / running 时允许取消 —— 本页据此把「可取消」作为状态机约束而不是按钮开关。</div>
+            </article>
+
+            <!-- 已完成 -->
+            <article class="panel is-succeeded" id="v-succeeded">
+              <div class="panel-head">
+                <h3>变体 4 · 已完成</h3>
+                <div class="row">
+                  <span class="st st-succeeded"><svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-check"></use></svg>已完成</span>
+                  <span class="badge mono">job #1046</span>
+                </div>
+              </div>
+              <div class="panel-body stack-4">
+                <div class="track is-done"><span class="track-fill" style="width:100%"></span></div>
+                <div class="track-scale">
+                  <span>耗时 6 分 08 秒</span>
+                  <span>09:36:20 → 09:42:28</span>
+                  <span>在 30 分预算内 · 未触发重试</span>
+                </div>
+
+                <dl class="facts">
+                  <div class="fact"><dt>供应商 / 模型</dt><dd>即梦（火山引擎）· jimeng_t2i_v3</dd></div>
+                  <div class="fact"><dt>输出尺寸</dt><dd class="mono">1024 × 1024</dd></div>
+                  <div class="fact"><dt>写入资产</dt><dd>asset_type = image · asset_version 1 · rating 4</dd></div>
+                  <div class="fact"><dt>结果路径</dt><dd class="mono">/uploads/generated/plan-96-main.png</dd></div>
+                </dl>
+
+                <div class="row">
+                  <a class="btn btn-primary" href="#media">
+                    <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-ext"></use></svg>
+                    打开结果
+                  </a>
+                  <button type="button" class="btn">复制结果地址</button>
+                  <button type="button" class="btn btn-ghost">标记为可用素材</button>
+                </div>
+              </div>
+              <div class="src-map">源码字段映射：jobResultUrl(job) 只认可 job.result.url 为字符串时才算「有结果」，随后用 absoluteMediaUrl() 补齐 API 域名；结果区块头显示可断行的完整 URL 与「打开结果」外链，kind = video_asset 渲染 &lt;video controls&gt;，否则渲染 &lt;img&gt;（max-h 560px, object-contain）。</div>
+            </article>
+
+          </div>
+        </section>
+
+        <!-- ==================== 多模态产物 ==================== -->
+        <section aria-labelledby="h-media" id="media">
+          <div class="sec-hd">
+            <div class="stack-2">
+              <span class="eyebrow">OUTPUTS · 多模态产物</span>
+              <h2 class="t-h2" id="h-media">生成结果</h2>
+            </div>
+            <div class="right">
+              <span class="mono-note">图片 1px 发丝线框占位 · 视频 16:9 播放器占位</span>
+              <p class="cap">占位块只画边框与等宽标注，不使用彩色渐变 —— 占位图的职责是标明「这里将出现什么尺寸的什么资产」。</p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>图片产物 · 批次 OUT-20261014-01</h3>
+              <div class="row">
+                <span class="badge">4 张 · 1024 × 1024</span>
+                <span class="badge badge-online">2 张可用</span>
+              </div>
+            </div>
+            <div class="panel-body stack-4">
+              <div class="media-grid">
+                <figure class="media">
+                  <a class="media-frame is-ok" href="#batch">
+                    <span class="st st-succeeded"><svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-check"></use></svg>成功</span>
+                    <span class="ph">
+                      <svg class="ic ic-lg" aria-hidden="true" style="color:var(--faint)" focusable="false"><use href="#i-doc"></use></svg>
+                      <span>IMG 1024×1024</span>
+                    </span>
+                    <span class="tagline">main_01.png</span>
+                  </a>
+                  <figcaption class="media-meta">
+                    <span class="mono-faint">耗时 6 分 08 秒</span>
+                    <span class="mono-faint">v1 · rating 4</span>
+                  </figcaption>
+                </figure>
+
+                <figure class="media">
+                  <a class="media-frame is-run" href="#running">
+                    <span class="st st-running"><span class="status-led is-busy" aria-hidden="true"></span>生成中</span>
+                    <span class="ph">
+                      <svg class="ic ic-lg" aria-hidden="true" style="color:var(--faint)" focusable="false"><use href="#i-terminal"></use></svg>
+                      <span>IMG 1024×1024</span>
+                    </span>
+                    <span class="tagline">main_02.png · 4 分 12 秒</span>
+                  </a>
+                  <figcaption class="media-meta">
+                    <span class="mono-faint">阶段 4 / 5 · 轮询等待</span>
+                    <span class="mono-faint">自动刷新</span>
+                  </figcaption>
+                </figure>
+
+                <figure class="media">
+                  <a class="media-frame is-queue" href="#v-pending">
+                    <span class="st st-pending"><span class="sq-hollow" aria-hidden="true"></span>排队中</span>
+                    <span class="ph">
+                      <svg class="ic ic-lg" aria-hidden="true" style="color:var(--faint)" focusable="false"><use href="#i-db"></use></svg>
+                      <span>IMG 1024×1024</span>
+                    </span>
+                    <span class="tagline">main_03.png · 队列第 3 位</span>
+                  </a>
+                  <figcaption class="media-meta">
+                    <span class="mono-faint">等待 1 分 08 秒</span>
+                    <span class="mono-faint">未消耗额度</span>
+                  </figcaption>
+                </figure>
+
+                <figure class="media">
+                  <a class="media-frame is-fail" href="#v-failed">
+                    <span class="st st-failed"><svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-warn"></use></svg>失败</span>
+                    <span class="ph">
+                      <svg class="ic ic-lg" aria-hidden="true" style="color:var(--accent)" focusable="false"><use href="#i-warn"></use></svg>
+                      <span>IMG 1024×1024</span>
+                    </span>
+                    <span class="tagline">main_04.png · 审核拦截</span>
+                  </a>
+                  <figcaption class="media-meta">
+                    <span class="mono-faint">缺 1 张 · 可单独重试</span>
+                    <span class="mono-faint">attempts 2 / 3</span>
+                  </figcaption>
+                </figure>
+              </div>
+
+              <div class="row">
+                <button type="button" class="btn">全部下载（ZIP）</button>
+                <button type="button" class="btn">重试失败张</button>
+                <button type="button" class="btn btn-ghost">导出到素材库</button>
+              </div>
+            </div>
+            <div class="tbl-note">
+              <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-warn"></use></svg>
+              <span>占位线框使用的都是系统 token：border 1px var(--border)、底色 var(--surface-sunken)、等宽字 var(--font-mono) 13px；状态描边复用五态语义色（成功 = border-color var(--success) 等）。缩略图点击命中区即整块线框，≥44px。真实实现中该处为 img 元素（object-contain），视频处为 video controls。</span>
+            </div>
+          </div>
+
+          <div class="panel" style="margin-top:var(--sp-4)">
+            <div class="panel-head">
+              <h3>视频产物 · 任务 #1047（video_asset）</h3>
+              <div class="row">
+                <span class="badge mono">1280 × 720 · 5.0s</span>
+                <span class="badge badge-online">已完成</span>
+              </div>
+            </div>
+            <div class="panel-body stack-4">
+              <div class="player">
+                <span class="player-top">
+                  <span class="st st-succeeded"><svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-check"></use></svg>已完成</span>
+                  <span class="badge mono">H.264 · 24fps</span>
+                </span>
+                <button type="button" class="player-btn" aria-label="播放生成视频">
+                  <span class="tri" aria-hidden="true"></span>
+                </button>
+                <span class="player-hud">
+                  <span>VIDEO 1280×720 · 5.0s · jimeng_video_v3</span>
+                  <span>00:00 / 00:05</span>
+                </span>
+              </div>
+
+              <dl class="facts">
+                <div class="fact"><dt>供应商 / 模型</dt><dd>即梦（火山引擎）· jimeng_video_v3</dd></div>
+                <div class="fact"><dt>时长 / 比例</dt><dd class="mono">5 秒 · 16:9（video_duration / video_size）</dd></div>
+                <div class="fact"><dt>生成耗时</dt><dd class="mono">11 分 46 秒（供应商轮询时长）</dd></div>
+                <div class="fact"><dt>写入资产</dt><dd>asset_type = video · asset_version 2</dd></div>
+              </dl>
+
+              <div class="row">
+                <a class="btn btn-primary" href="#media">
+                  <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-ext"></use></svg>
+                  在新窗口打开
+                </a>
+                <button type="button" class="btn">下载原片</button>
+                <button type="button" class="btn btn-ghost">基于本片再生成一版</button>
+              </div>
+
+              <div class="src-map">
+                源码字段映射：视频任务结果 result = { provider, model, size, duration, task_id, url, created_at }（video_generation.py 返回值），播放器为 &lt;video src controls class="aspect-video w-full"&gt;。帧数换算与比例（duration → frames、size → aspect_ratio）由服务层完成，页面只读展示。生成中态与图片任务共用同一套阶段轨迹与耗时轨道，因此无需为视频单独设计等待语言。
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== 批次子任务 ==================== -->
+        <section aria-labelledby="h-batch" id="batch">
+          <div class="sec-hd">
+            <div class="stack-2">
+              <span class="eyebrow">BATCH · 一次生成多张，逐张可读</span>
+              <h2 class="t-h2" id="h-batch">批次子任务</h2>
+            </div>
+            <div class="right">
+              <span class="mono-note">批次 OUT-20261014-01 · 4 张 · 2 成功 / 1 进行中 / 1 排队 / 1 失败</span>
+              <p class="cap">批次里单张失败不应该让整批看起来「都失败了」：逐张给状态、重试与产物入口。</p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>子任务明细</h3>
+              <div class="row">
+                <span class="badge mono">4 SUBTASKS</span>
+                <span class="badge badge-accent">设计扩展</span>
+              </div>
+            </div>
+            <div class="tbl-wrap">
+              <table class="tbl tbl-scroll">
+                <caption style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">批次子任务明细，共 4 条</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">子任务</th>
+                    <th scope="col">状态</th>
+                    <th scope="col">尝试</th>
+                    <th scope="col" class="ta-r">耗时</th>
+                    <th scope="col">供应商 / 模型</th>
+                    <th scope="col">产物</th>
+                    <th scope="col">动作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="mono">01</td>
+                    <td class="mono">job #1042</td>
+                    <td><span class="st st-succeeded"><svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-check"></use></svg>已完成</span></td>
+                    <td class="mono">1 / 3</td>
+                    <td class="mono ta-r">6 分 08 秒</td>
+                    <td>即梦 · jimeng_t2i_v3</td>
+                    <td class="mono txt-ok">main_01.png</td>
+                    <td><div class="cell-actions">
+                      <a class="btn" href="#media">打开</a>
+                      <button type="button" class="btn">重出</button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td class="mono">02</td>
+                    <td class="mono">job #1043</td>
+                    <td><span class="st st-running"><span class="status-led is-busy" aria-hidden="true"></span>生成中</span></td>
+                    <td class="mono">1 / 3</td>
+                    <td class="mono ta-r txt-warn">4 分 12 秒</td>
+                    <td>即梦 · jimeng_t2i_v3</td>
+                    <td class="mono">—</td>
+                    <td><div class="cell-actions">
+                      <a class="btn" href="#running">查看进度</a>
+                      <button type="button" class="btn">取消该张</button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td class="mono">03</td>
+                    <td class="mono">job #1044</td>
+                    <td><span class="st st-pending"><span class="sq-hollow" aria-hidden="true"></span>排队中</span></td>
+                    <td class="mono">0 / 3</td>
+                    <td class="mono ta-r">—</td>
+                    <td>即梦 · jimeng_t2i_v3</td>
+                    <td class="mono">—</td>
+                    <td><div class="cell-actions">
+                      <a class="btn" href="#v-pending">查看队列</a>
+                      <button type="button" class="btn">取消该张</button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td class="mono">04</td>
+                    <td class="mono">job #1045</td>
+                    <td><span class="st st-failed"><svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-warn"></use></svg>失败</span></td>
+                    <td class="mono txt-accent">2 / 3</td>
+                    <td class="mono ta-r">2 分 44 秒</td>
+                    <td>即梦 · jimeng_t2i_v3</td>
+                    <td class="mono txt-faint">审核拦截</td>
+                    <td><div class="cell-actions">
+                      <a class="btn" href="#v-failed">看原因</a>
+                      <button type="button" class="btn btn-primary">重试该张</button>
+                    </div></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="tbl-note">
+              <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-warn"></use></svg>
+              <span>说明：当前数据模型是「一条 GenerationJob = 一个产物」（result.url 单一 URL），仓库里没有 batch_id 字段。因此本区块是<strong>设计扩展</strong>：批次键取 product_id + creative_plan_id + kind + 同一入队时间窗，逐行仍映射真实字段（status / attempts / max_attempts / started_at / finished_at / locked_by / result.url）。落地时只需新增一个 batch 分组键，不改变既有任务语义。</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== 任务事件 ==================== -->
+        <section aria-labelledby="h-events">
+          <div class="sec-hd">
+            <div class="stack-2">
+              <span class="eyebrow">JOB EVENTS · 生命周期可追溯</span>
+              <h2 class="t-h2" id="h-events">任务事件</h2>
+            </div>
+            <div class="right">
+              <span class="mono-note">记录入队、开始、失败、重试和完成等生命周期节点 · 共 6 条</span>
+              <p class="cap">事件是这张页面上唯一「不可被编辑的历史」：状态会被改写，事件不会。</p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>事件时间线（倒序 · 与源码一致）</h3>
+              <div class="row">
+                <span class="badge mono">6 EVENTS</span>
+                <span class="badge">每 5 秒自动刷新</span>
+              </div>
+            </div>
+            <div class="tbl-wrap">
+              <table class="tbl tbl-scroll">
+                <caption style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">生成任务事件时间线，共 6 条</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">事件</th>
+                    <th scope="col">时间</th>
+                    <th scope="col">事件时的状态</th>
+                    <th scope="col">说明</th>
+                    <th scope="col">worker</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>开始执行</td>
+                    <td class="mono">10-14 09:36:20</td>
+                    <td><span class="st st-running"><span class="status-led is-busy" aria-hidden="true"></span>生成中</span></td>
+                    <td>worker 已开始执行生成任务，已获取运行锁。</td>
+                    <td class="mono">gen-worker-02</td>
+                  </tr>
+                  <tr>
+                    <td>任务入队</td>
+                    <td class="mono">10-14 09:36:18</td>
+                    <td><span class="st st-pending"><span class="sq-hollow" aria-hidden="true"></span>排队中</span></td>
+                    <td>生成任务已入队（kind = main_image_asset，max_attempts = 3）。</td>
+                    <td class="mono">—</td>
+                  </tr>
+                  <tr>
+                    <td>请求重试</td>
+                    <td class="mono">10-14 09:35:44</td>
+                    <td><span class="st st-failed"><svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-warn"></use></svg>失败</span></td>
+                    <td>用户请求重试生成任务（上一轮为供应商超时）。</td>
+                    <td class="mono">—</td>
+                  </tr>
+                  <tr>
+                    <td>安排重试</td>
+                    <td class="mono">10-14 09:35:44</td>
+                    <td><span class="st st-pending"><span class="sq-hollow" aria-hidden="true"></span>排队中</span></td>
+                    <td>已重新安排执行时间（next_run_at 立即执行）。</td>
+                    <td class="mono">—</td>
+                  </tr>
+                  <tr>
+                    <td>执行失败</td>
+                    <td class="mono">10-14 09:35:20</td>
+                    <td><span class="st st-failed"><svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-warn"></use></svg>失败</span></td>
+                    <td>生成任务运行超过 30 分钟，已按超时处理（timeout_checked）。</td>
+                    <td class="mono">gen-worker-01</td>
+                  </tr>
+                  <tr>
+                    <td>任务取消</td>
+                    <td class="mono">10-14 09:12:02</td>
+                    <td><span class="st st-cancelled"><span class="sq" aria-hidden="true"></span>已取消</span></td>
+                    <td>任务已取消（reason = user_cancelled）。</td>
+                    <td class="mono">—</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="panel-body stack-3">
+              <span class="eyebrow">事件类型全集 · 8 种</span>
+              <div class="row">
+                <span class="badge mono">queued 任务入队</span>
+                <span class="badge mono">started 开始执行</span>
+                <span class="badge mono">succeeded 执行成功</span>
+                <span class="badge mono">failed 执行失败</span>
+                <span class="badge mono">retry_requested 请求重试</span>
+                <span class="badge mono">retry_scheduled 安排重试</span>
+                <span class="badge mono">cancelled 任务取消</span>
+                <span class="badge mono">timeout_checked 超时检查</span>
+              </div>
+              <div class="src-map" style="margin-top:0">
+                源码字段映射：generationJobEventLabel / generationJobStatusLabel 两张映射表；事件在入队、开始、成功、失败、重试、取消与超时检查时由 record_generation_job_event 写入；原版用卡片列表渲染（无 worker 列对齐、无表格化），并带「暂无任务事件」空态。本稿改用表格以获得时间轴的可扫读性，保留 worker_id 与 event.message 原文。
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== JSON 面板 ==================== -->
+        <section aria-labelledby="h-json">
+          <div class="sec-hd">
+            <div class="stack-2">
+              <span class="eyebrow">RAW PAYLOAD · 排障用</span>
+              <h2 class="t-h2" id="h-json">原始数据</h2>
+            </div>
+            <div class="right">
+              <span class="mono-note">折叠在页面底部 · 面向工程排障而非日常阅读</span>
+              <p class="cap">线上原版把这两块 JSON 直接铺在结果区下方；本稿保留内容但明确其为排障层级，并给每块加复制入口。</p>
+            </div>
+          </div>
+
+          <div class="media-grid" style="grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr))">
+            <div class="panel">
+              <div class="panel-head">
+                <h3>任务结果 JSON</h3>
+                <button type="button" class="btn btn-sm">
+                  <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-copy"></use></svg>
+                  复制
+                </button>
+              </div>
+              <div class="panel-body">
+<pre class="code">{
+  "provider": "jimeng",
+  "model": "jimeng_t2i_v3",
+  "size": "1024*1024",
+  "prompt": "户外冲锋衣主图，白底，正面全身，光比柔和",
+  "task_id": "20261014-7f3c9a2b",
+  "source_url": "https://visual.volcengineapi.com/...",
+  "url": "/uploads/generated/plan-96-main.png",
+  "created_at": 1760406148
+}</pre>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-head">
+                <h3>关联方案 JSON</h3>
+                <button type="button" class="btn btn-sm">
+                  <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-copy"></use></svg>
+                  复制
+                </button>
+              </div>
+              <div class="panel-body">
+<pre class="code">{
+  "title": "秋冬冲锋衣 · 主图方案 A",
+  "angle": "通勤 + 户外两用",
+  "layout": "白底正面全身",
+  "headline": "一件顶三件",
+  "sub_headline": "可拆内胆｜防风防水",
+  "visual_focus": "肩线与内胆拉链细节",
+  "proof_points": ["270g 面料", "可拆内胆", "三季可穿"],
+  "suitable_audience": "25-35 岁通勤通学人群",
+  "image_prompt": "户外冲锋衣主图，白底，正面全身，光比柔和",
+  "source": "llm"
+}</pre>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== 空态 ==================== -->
+        <section aria-labelledby="h-empty">
+          <div class="sec-hd">
+            <div class="stack-2">
+              <span class="eyebrow">EMPTY STATE · 无事件时也不能空着</span>
+              <h2 class="t-h2" id="h-empty">空态</h2>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-body">
+              <div class="empty">
+                <svg class="ic ic-lg" aria-hidden="true" style="color:var(--faint)" focusable="false"><use href="#i-terminal"></use></svg>
+                <h3>暂无任务事件</h3>
+                <p>新任务会在入队、执行和重试时写入事件。看到这个空态通常说明任务刚创建、事件还没落库，或该任务的执行链路在写入事件前就中断了。</p>
+                <div class="empty-actions">
+                  <button type="button" class="btn btn-primary">立即刷新</button>
+                  <a class="btn" href="#running">查看执行进度</a>
+                </div>
+                <p class="empty-next">
+                  <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-chev"></use></svg>
+                  正常情况下 5 秒内会看到第一条「任务入队」事件；超过 1 分钟仍为空，请检查 worker 是否在线
+                </p>
+              </div>
+            </div>
+            <div class="src-map">
+              源码字段映射：原版空态文案「暂无任务事件。新任务会在入队、执行和重试时写入事件。」—— 本稿保留原意并补上「为什么可能是空的」与自检动作。另：原版 job.error 同时承载失败原因与取消原因，取消态在源码里已改用中性配色，这一判断被本稿继承。
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== 口径脚注 ==================== -->
+        <section class="panel" aria-labelledby="h-notes">
+          <div class="panel-head"><h3 id="h-notes">本页口径约定</h3><span class="badge mono">READING NOTES</span></div>
+          <div class="panel-body stack-3">
+            <dl class="facts">
+              <div class="fact">
+                <dt>耗时</dt>
+                <dd>「已耗时」= 当前时间 − started_at，只统计 worker 执行段，不含排队与重试间隔；完成态显示 finished_at − started_at。</dd>
+              </div>
+              <div class="fact">
+                <dt>进度</dt>
+                <dd>供应商不返回百分比，进度只由「阶段 + 已耗时 / 超时预算」表达；轨道上的标尺写明 30 分兜底阈值是调度器判超时用，不是预计完成时间。</dd>
+              </div>
+              <div class="fact">
+                <dt>预估</dt>
+                <dd>历史分位数（P50 / P90）标注样本量与统计窗口，并明确为参考值；不使用「预计剩余 X 分钟」这类承诺性措辞。</dd>
+              </div>
+              <div class="fact">
+                <dt>供应商</dt>
+                <dd>图像与视频各分 dashscope / jimeng（即梦 · 火山引擎）两个适配器，供应商与模型一律来自任务结果写入值，不靠页面推断。</dd>
+              </div>
+            </dl>
+            <p class="mono-faint">
+              本页为静态设计稿：任务、事件、供应商返回与产物均为示意数据，不连接任何后端接口；所有颜色 / 圆角 / 字体 / 间距均取自 design-system.css 的 token，图标仅使用 icons.js 的 #i-* 集合。
+            </p>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="icons.js"></script>
+<script>
+  (function () {
+    'use strict';
+
+    var lbl = document.getElementById('themeBtnText');
+    var root = document.documentElement;
+    function syncThemeLabel() {
+      if (lbl) lbl.textContent = root.getAttribute('data-theme') === 'dark' ? 'LIGHT' : 'DARK';
+    }
+    syncThemeLabel();
+    var btn = document.getElementById('themeBtn');
+    if (btn) btn.addEventListener('click', syncThemeLabel);
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>G. · 作品集 — iOS 26 Liquid Glass</title>
+
+<!--
+  ============================================================
+  版本 A：淡色系 + iOS 26 Liquid Glass 玻璃拟态作品集
+  设计参考：
+    - GlassKit (JUNGHERZ/GlassKit)
+    - iOS 26 设计系统 (seunghan91/ios26-design-system)
+  材质层级：clear 4% frost / regular 24% frost / frost 66% frost
+  ============================================================
+-->
+
+<style>
+  /* ==========================================================
+     Design Tokens — 遵循 iOS 规范
+     ========================================================== */
+  :root {
+    /* iOS 深浅模式系统背景色 */
+    --bg-light: #F2F2F7;
+    --bg-dark: #111115;
+
+    --surface: #FFFFFF;            /* 卡片高亮表面 */
+    --text-primary: #1C1C1E;       /* 主文字 */
+    --text-secondary: #6E6E73;     /* 次要文字 */
+    --accent: #007AFF;             /* iOS 系统蓝 */
+
+    /* Liquid Glass 材质 */
+    --frost-card: 24%;             /* regular - 卡片用 */
+    --frost-menu: 66%;             /* frost  - 菜单/弹出用 */
+    --glass-card-bg: rgba(255,255,255,0.65);
+    --glass-border: 1px solid rgba(255,255,255,0.8); /* 玻璃高光边缘 */
+    --glass-inset: inset 0 1px 1px 0 rgba(255,255,255,0.95); /* 顶部内高光 */
+
+    --blur-sm: blur(16px);
+    --blur-lg: blur(20px) saturate(180%); /* 卡片毛玻璃 */
+
+    /* 圆角（8pt 网格 + iOS 规范） */
+    --r-card: 20px;
+    --r-icon: 14px;
+    --r-pill: 999px;
+
+    /* 弥散阴影 */
+    --shadow-card: 0 8px 32px rgba(0,0,0,0.08);
+    --shadow-card-hover: 0 20px 48px rgba(0,0,0,0.16);
+
+    /* 间距 — 8pt 网格 */
+    --sp-2: 8px;
+    --sp-3: 16px;
+    --sp-4: 24px;
+    --sp-6: 32px;
+    --sp-9: 48px;
+
+    /* 字体 */
+    --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+                  "SF Pro Display", "PingFang SC", "Helvetica Neue",
+                  "Segoe UI", sans-serif;
+
+    /* 项目图标渐变 */
+    --grad-blue:  linear-gradient(135deg, #5AC8FA 0%, #007AFF 100%);
+    --grad-green: linear-gradient(135deg, #B8E986 0%, #34C759 100%);
+    --grad-orange:linear-gradient(135deg, #FFD60A 0%, #FF9500 100%);
+  }
+
+  /* 使用 prefers-color-scheme 切换暗色（可选降级） */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111115;
+      --text-primary: #F2F2F7;
+      --text-secondary: #98989F;
+      --glass-card-bg: rgba(28,28,30,0.55);
+      --glass-border: 1px solid rgba(255,255,255,0.14);
+      --glass-inset: inset 0 1px 1px 0 rgba(255,255,255,0.12);
+      --shadow-card: 0 8px 32px rgba(0,0,0,0.4);
+    }
+  }
+
+  /* ==========================================================
+     基础重置 & 页面背景
+     ========================================================== */
+  *,
+  *::before,
+  *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-stack);
+    color: var(--text-primary);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    background-color: var(--bg-light);
+    /* 柔和 Aurora 渐变背景（淡蓝紫 -> 米白） */
+    background-image:
+      radial-gradient(1200px 800px at 8% 0%,  #E8EDFF 0%, transparent 60%),
+      radial-gradient(1000px 700px at 95% 15%, #FDEBFF 0%, transparent 55%),
+      radial-gradient(900px 700px at 50% 100%, #FFF3E6 0%, transparent 60%),
+      linear-gradient(180deg, #F4F6FE 0%, #FBF6EE 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* 微妙噪点纹理 — 提升 Liquid Glass 质感 */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ==========================================================
+     漂浮光斑 — 营造 Liquid Glass 折射感
+     ========================================================== */
+  .orb { position: fixed; border-radius: 50%; filter: blur(80px); z-index: 1; opacity: 0.5; pointer-events: none; animation: orb-drift 22s ease-in-out infinite; }
+  .orb--violet { width: 420px; height: 420px; background: radial-gradient(circle, rgba(174,154,255,0.7), transparent 70%); top: -80px; left: 8%; }
+  .orb--mint   { width: 360px; height: 360px; background: radial-gradient(circle, rgba(140,255,200,0.55), transparent 70%); bottom: -60px; right: 6%; animation-delay: -6s; }
+  .orb--pink   { width: 300px; height: 300px; background: radial-gradient(circle, rgba(255,170,210,0.5), transparent 70%); top: 45%; left: 55%; animation-delay: -11s; }
+
+  @keyframes orb-drift {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -24px) scale(1.06); }
+    66% { transform: translate(-24px, 20px) scale(0.96); }
+  }
+
+  /* ==========================================================
+     顶部导航栏 — 毛玻璃
+     ========================================================== */
+  .navbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    /* frost（菜单级）毛玻璃导航 */
+    backdrop-filter: var(--blur-lg);
+    -webkit-backdrop-filter: var(--blur-lg);
+    background: rgba(255,255,255,0.55);
+    border-bottom: var(--glass-border);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+  }
+  .nav-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 14px var(--sp-6);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  /* Logo "G." */
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 20px;
+    letter-spacing: -0.02em;
+  }
+  .logo__mark {
+    width: 34px; height: 34px;
+    display: grid; place-items: center;
+    border-radius: var(--r-icon);
+    color: #fff;
+    background: linear-gradient(135deg, #5AC8FA 0%, #007AFF 60%, #5856D6 100%);
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.5), 0 4px 12px rgba(0,122,255,0.3);
+    font-size: 16px;
+  }
+  .nav-links { display: flex; align-items: center; gap: var(--sp-3); }
+  .nav-ghost {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 15px;
+    padding: 8px 14px;
+    border-radius: var(--r-pill);
+    transition: background 0.25s ease;
+  }
+  .nav-ghost:hover { background: rgba(0,0,0,0.04); }
+
+  /* 主题切换按钮（iOS 开关样式） */
+  .theme-toggle {
+    position: relative;
+    width: 50px; height: 30px;
+    border-radius: var(--r-pill);
+    border: none;
+    cursor: pointer;
+    background: rgba(120,120,128,0.24);
+    transition: background 0.3s ease;
+    appearance: none;
+  }
+  .theme-toggle::after {
+    content: "\2600"; /* 太阳 */
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: #fff;
+    display: grid; place-items: center;
+    font-size: 13px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    transition: transform 0.3s cubic-bezier(.4,1.4,.6,1);
+  }
+  .theme-toggle[aria-pressed="true"] { background: var(--accent); }
+  .theme-toggle[aria-pressed="true"]::after { transform: translateX(20px); content: "\263E"; }
+
+  /* GitHub 按钮（主视觉） */
+  .btn-github {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 18px;
+    border-radius: var(--r-pill);
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    text-decoration: none;
+    background: linear-gradient(135deg, #6E6E73 0%, #1C1C1E 100%);
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.25), var(--shadow-card);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .btn-github:hover { transform: translateY(-1px); box-shadow: var(--shadow-card-hover); }
+
+  /* ==========================================================
+     主体容器
+     ========================================================== */
+  .page { position: relative; z-index: 5; max-width: 1120px; margin: 0 auto; padding: var(--sp-9) var(--sp-6) 32px; }
+
+  /* Hero 头部 */
+  .hero { text-align: center; padding: 24px 0 var(--sp-6); animation: fade-up 0.8s ease both; }
+  .hero__eyebrow {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: var(--r-pill);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    background: rgba(0,122,255,0.1);
+    backdrop-filter: var(--blur-sm);
+    border: var(--glass-border);
+    margin-bottom: var(--sp-3);
+  }
+  .hero h1 {
+    font-size: clamp(34px, 6vw, 56px);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.12;
+    background: linear-gradient(135deg, #1C1C1E 20%, #5856D6 80%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .hero p {
+    max-width: 560px;
+    margin: var(--sp-3) auto 0;
+    color: var(--text-secondary);
+    font-size: 17px;
+  }
+
+  /* 项目标题行 */
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; margin: var(--sp-6) 0 var(--sp-4); }
+  .section-head h2 { font-size: 22px; font-weight: 700; }
+  .section-head span { font-size: 13px; color: var(--text-secondary); }
+
+  /* ==========================================================
+     项目网格 — 响应式 3/2/1 列
+     ========================================================== */
+  .grid {
+    display: grid;
+    gap: var(--sp-4);
+    grid-template-columns: repeat(3, 1fr);
+  }
+  @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } }
+
+  /* ==========================================================
+     玻璃卡片
+     ========================================================== */
+  .glass-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+    padding: var(--sp-6);
+    border-radius: var(--r-card);
+    /* 核心毛玻璃：regular 24% frost */
+    background: var(--glass-card-bg);
+    backdrop-filter: var(--blur-lg);
+    -webkit-backdrop-filter: var(--blur-lg);
+    border: var(--glass-border);
+    box-shadow: var(--shadow-card);
+    /* 顶部内高光 — 模拟玻璃反光 */
+    box-shadow: var(--glass-inset), var(--shadow-card);
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    /* 入场动画：依次淡入上移 */
+    opacity: 0;
+    transform: translateY(24px);
+    animation: fade-up 0.6s cubic-bezier(.2,.7,.3,1) forwards;
+    transition: transform 0.35s cubic-bezier(.2,.7,.3,1), box-shadow 0.35s ease;
+  }
+  /* stagger（依次延迟） */
+  .glass-card:nth-child(2) { animation-delay: 0.12s; }
+  .glass-card:nth-child(3) { animation-delay: 0.24s; }
+
+  /* hover 弹性缩放 + 阴影加深 */
+  .glass-card:hover {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: var(--glass-inset), var(--shadow-card-hover);
+  }
+  .glass-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* 图标块 — 各项目不同柔和渐变 */
+  .card-icon {
+    width: 52px; height: 52px;
+    display: grid; place-items: center;
+    border-radius: var(--r-icon);
+    color: #fff;
+    font-size: 24px;
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.45), 0 6px 16px rgba(0,0,0,0.12);
+    transition: transform 0.3s ease;
+  }
+  .card-icon--blue   { background: var(--grad-blue); }
+  .card-icon--green  { background: var(--grad-green); }
+  .card-icon--orange { background: var(--grad-orange); }
+
+  /* hover 图标旋转微交互 */
+  .glass-card:hover .card-icon { transform: rotate(-8deg) scale(1.08); }
+
+  /* 分类标签 */
+  .card-tag {
+    position: absolute;
+    top: var(--sp-4); right: var(--sp-4);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: rgba(0,0,0,0.4);
+  }
+
+  /* 卡片文本 */
+  .card-title { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+  .card-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    flex: 1;
+  }
+
+  /* "查看项目 →" 链接 */
+  .card-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-top: auto;
+  }
+  .glass-card:hover .card-link .arrow { transform: translateX(4px); }
+  .arrow { display: inline-block; transition: transform 0.25s ease; }
+
+  /* ==========================================================
+     入场动画 & reduced-motion
+     ========================================================== */
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fade-up-hero {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .hero { animation-name: fade-up-hero; }
+
+  /* 尊重用户减少动效偏好 */
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    .glass-card, .hero { opacity: 1; transform: none; }
+  }
+
+  /* ==========================================================
+     页脚
+     ========================================================== */
+  .footer {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: var(--sp-6) var(--sp-6) var(--sp-9);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--text-secondary);
+    font-size: 13px;
+    border-top: 1px solid rgba(0,0,0,0.06);
+  }
+  .footer nav { display: flex; gap: var(--sp-3); }
+  .footer a { color: var(--text-secondary); text-decoration: none; }
+  .footer a:hover { color: var(--accent); }
+
+  /* 移动端导航折叠 */
+  @media (max-width: 620px) {
+    .nav-inner { padding: 12px var(--sp-4); }
+    .nav-ghost, .nav-links .label { display: none; }
+  }
+</style>
+</head>
+
+<body>
+  <!-- 漂浮光斑背景 -->
+  <div class="orb orb--violet" aria-hidden="true"></div>
+  <div class="orb orb--mint" aria-hidden="true"></div>
+  <div class="orb orb--pink" aria-hidden="true"></div>
+
+  <!-- ============ 顶部导航栏 ============ -->
+  <header class="navbar">
+    <div class="nav-inner">
+      <span class="logo"><span class="logo__mark">G.</span> G.</span>
+      <nav class="nav-links">
+        <a class="nav-ghost label" href="#featured">精选</a>
+        <a class="nav-ghost label" href="#features">特点</a>
+        <!-- 主题切换（仅亮色主题，保留开关预留暗色降级） -->
+        <button class="theme-toggle" aria-pressed="false" aria-label="切换主题"></button>
+        <a class="btn-github" href="#" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.10.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ============ 主体 ============ -->
+  <main class="page">
+    <!-- Hero -->
+    <section class="hero">
+      <span class="hero__eyebrow">iOS 26 · Liquid Glass</span>
+      <h1>设计与工程<br/>的玻璃折射</h1>
+      <p>专注 B 端产品体验、数据可视化与 AI 应用，用 iOS 原生规范沉淀可复用的设计语言。</p>
+    </section>
+
+    <!-- 项目网格 -->
+    <div class="section-head">
+      <h2 id="featured">精选项目</h2>
+      <span>拖入玻璃，折射灵感</span>
+    </div>
+
+    <section class="grid" aria-label="项目列表">
+
+      <!-- 项目 1：问数与智库 (BOSS) -->
+      <a class="glass-card" href="#">
+        <span class="card-tag">BOSS</span>
+        <span class="card-icon card-icon--blue" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+        </span>
+        <h3 class="card-title">问数与智库</h3>
+        <p class="card-desc">面向数据决策场景的分析助手，将查询、可视化与洞察沉淀为可复用智库，降低取数与解读成本。</p>
+        <span class="card-link">查看项目 <span class="arrow">→</span></span>
+      </a>
+
+      <!-- 项目 2：电商运营助手 (EC) -->
+      <a class="glass-card" href="#">
+        <span class="card-tag">EC</span>
+        <span class="card-icon card-icon--green" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        </span>
+        <h3 class="card-title">电商运营助手</h3>
+        <p class="card-desc">聚合店铺数据与营销动作的运营工作台，让爆品诊断、活动配置与日报生成更加高效直观。</p>
+        <span class="card-link">查看项目 <span class="arrow">→</span></span>
+      </a>
+
+      <!-- 项目 3：智能客服系统 (SK) -->
+      <a class="glass-card" href="#">
+        <span class="card-tag">SK</span>
+        <span class="card-icon card-icon--orange" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        </span>
+        <h3 class="card-title">智能客服系统</h3>
+        <p class="card-desc">基于大模型的智能接待体系，支持知识库问答、多轮引导与人工无缝切换，提升服务响应与满意度。</p>
+        <span class="card-link">查看项目 <span class="arrow">→</span></span>
+      </a>
+    </section>
+  </main>
+
+  <!-- ============ 页脚 ============ -->
+  <footer class="footer">
+    <span>© 2026 G. · 基于 iOS 26 Liquid Glass 设计</span>
+    <nav>
+      <a href="#featured">项目</a>
+      <a href="#" rel="noopener">GitHub</a>
+      <a href="#" rel="noopener">关于</a>
+    </nav>
+  </footer>
+
+  <!-- ==========================================================
+      主题切换脚本（亮色为主，切换暗色降级，尊重系统偏好）
+     ========================================================== -->
+  <script>
+    const toggle = document.querySelector('.theme-toggle');
+    const root = document.documentElement;
+
+    toggle.addEventListener('click', () => {
+      const pressed = toggle.getAttribute('aria-pressed') === 'true';
+      const next = !pressed;
+      toggle.setAttribute('aria-pressed', String(next));
+      // 暗色降级：覆盖亮色变量（Liquid Glass 暗色材质）
+      if (next) {
+        root.style.setProperty('--bg-light', '#111115');
+        root.style.setProperty('--text-primary', '#F2F2F7');
+        root.style.setProperty('--text-secondary', '#98989F');
+        root.style.setProperty('--glass-card-bg', 'rgba(28,28,30,0.55)');
+        root.style.setProperty('--glass-border', '1px solid rgba(255,255,255,0.14)');
+        root.style.setProperty('--glass-inset', 'inset 0 1px 1px 0 rgba(255,255,255,0.12)');
+      } else {
+        root.style.removeProperty('--bg-light');
+        root.style.removeProperty('--text-primary');
+        root.style.removeProperty('--text-secondary');
+        root.style.removeProperty('--glass-card-bg');
+        root.style.removeProperty('--glass-border');
+        root.style.removeProperty('--glass-inset');
+      }
+    });
+  </script>
+</body>
+</html>

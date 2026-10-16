@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f8f7f4'/%3E%3Cg fill='%230d1218'%3E%3Crect x='12' y='12' width='8' height='8'/%3E%3Crect x='4' y='4' width='4' height='4'/%3E%3Crect x='24' y='4' width='4' height='4'/%3E%3Crect x='4' y='24' width='4' height='4'/%3E%3Crect x='24' y='24' width='4' height='4'/%3E%3C/g%3C/svg%3E">
+<title>运营智能体 · 模型配置 | 设计稿</title>
+<link rel="stylesheet" href="design-system.css">
+<style>
+  /* ========================================================================
+     线上原版：后端未起时直接抛一句「模型配置读取失败」，用户只能猜。
+     本稿把这一页做成三态：
+       · 正常配置态  —— 列表 + 编辑 + 连接测试 + 高级设置
+       · 加载骨架态  —— 保持版式骨架，避免布局塌陷与误点
+       · 降级态      —— 错误细节 + 重试 + 排查指引 + 缓存兜底（不是死路）
+     顶部有状态切换器，可直接看三态差异；也支持 #ready / #loading / #down 深链。
+     ======================================================================== */
+  .app { grid-template-rows: auto auto 1fr; grid-template-columns: minmax(0, 1fr); }
+  [hidden] { display: none !important; }
+
+  .ribbon {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--sp-3) var(--sp-4); flex-wrap: wrap;
+    padding: .5rem var(--pad-x);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-subtle);
+  }
+  .ribbon .mono-note { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted); }
+  /* 眉标在 390 下会折成「…非线上系 / 统」的单字孤行，按标题同一手法配平换行 */
+  .ribbon .eyebrow { text-wrap: balance; }
+
+  .wrap { width: 100%; max-width: var(--max-w); margin-inline: auto; }
+  .sec { margin-bottom: var(--sp-7); }
+  .sec:last-child { margin-bottom: 0; }
+  .sec-hd {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: var(--sp-3) var(--sp-4); flex-wrap: wrap;
+    margin-bottom: var(--sp-4); padding-bottom: var(--sp-3);
+    border-bottom: 1px solid var(--border);
+  }
+  .sec-hd h2 { font-size: var(--fs-h2); }
+  /* 结构修复：页面主标题「模型配置」由 h2 升为 h1（补齐文档大纲），
+     字号/字体沿用原 h2，渲染像素不变。 */
+  .sec-hd h1 { font-size: var(--fs-h2); font-family: inherit; }
+  .sec-hd .mono-note { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+
+  a:focus-visible, button:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+
+  /* --- 三态切换器 --------------------------------------------------- */
+  .seg {
+    display: inline-flex; flex-wrap: wrap;
+    border: 1px solid var(--border-strong); border-radius: var(--radius);
+    overflow: hidden; background: var(--surface);
+  }
+  .seg button {
+    min-height: 44px; padding: 0 var(--sp-4);
+    border-right: 1px solid var(--border-strong);
+    background: var(--surface); color: var(--muted);
+    font-family: var(--font-mono); font-size: var(--fs-mini);
+    font-weight: 600; letter-spacing: .06em; white-space: nowrap;
+    transition: background-color var(--t-2) var(--ease-state), color var(--t-2) var(--ease-state);
+  }
+  .seg button:last-child { border-right: 0; }
+  .seg button:hover:not([aria-pressed="true"]) { background: var(--surface-subtle); color: var(--fg); }
+  .seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+
+  /* --- 状态说明行 --------------------------------------------------- */
+  .state-lede {
+    display: flex; align-items: flex-start; gap: var(--sp-3);
+    border: 1px solid var(--border); border-left: 3px solid var(--fg);
+    border-radius: var(--radius); background: var(--surface-subtle);
+    padding: var(--sp-3) var(--sp-4); margin-bottom: var(--sp-5);
+  }
+  .state-lede.is-warn { border-left-color: var(--warn); background: var(--warn-tint); border-color: var(--warn); }
+  .state-lede.is-accent { border-left-color: var(--accent); }
+  .state-lede b { display: block; font-size: var(--fs-meta); }
+  .state-lede span { font-size: var(--fs-mini); color: var(--muted); }
+
+  /* --- 开关（矩形，与 2px 圆角语言一致；命中区 56×44） ------------- */
+  .switch {
+    display: inline-flex; align-items: center; justify-content: flex-start;
+    width: 56px; height: 44px; padding: 0 6px; flex: none;
+    border: 1px solid transparent; border-radius: var(--radius);
+    background: transparent; cursor: pointer;
+  }
+  .switch-track {
+    position: relative; width: 44px; height: 24px; flex: none;
+    border: 1px solid var(--border-strong); border-radius: var(--radius);
+    background: var(--surface-subtle);
+    transition: background-color var(--t-2) var(--ease-state), border-color var(--t-2) var(--ease-state);
+  }
+  .switch-thumb {
+    position: absolute; top: 3px; left: 3px; width: 16px; height: 16px;
+    background: var(--muted); border-radius: var(--radius);
+    transition: transform var(--t-2) var(--ease-state), background-color var(--t-2) var(--ease-state);
+  }
+  .switch[aria-checked="true"] .switch-track { background: var(--success-tint); border-color: var(--success); }
+  .switch[aria-checked="true"] .switch-thumb { transform: translateX(20px); background: var(--success); }
+  .cell-switch { display: flex; align-items: center; gap: .25rem; white-space: nowrap; }
+  .cell-switch .st { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted); }
+
+  .cell-model b { font-weight: 700; }
+  .cell-model span { display: block; font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  .cell-num { font-family: var(--font-mono); white-space: nowrap; }
+
+  /* --- 表单 --------------------------------------------------------- */
+  .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); }
+  .field.is-wide { grid-column: 1 / -1; }
+  .field .hint { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); line-height: 1.7; }
+  .field .hint code { font-family: var(--font-mono); color: var(--accent); }
+  .input[readonly] { background: var(--surface-sunken); color: var(--muted); }
+  .input:disabled { background: var(--surface-sunken); color: var(--faint); cursor: not-allowed; }
+  .form-actions {
+    display: flex; gap: var(--sp-3); flex-wrap: wrap;
+    padding-top: var(--sp-4); margin-top: var(--sp-4); border-top: 1px solid var(--border);
+  }
+
+  /* --- 连接测试结果 ------------------------------------------------- */
+  .test-verdict {
+    display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap;
+    padding: var(--sp-3) var(--sp-4);
+    border: 1px solid var(--success); border-left: 3px solid var(--success);
+    border-radius: var(--radius); background: var(--success-tint);
+    margin-bottom: var(--sp-4);
+  }
+  .test-verdict b { font-size: var(--fs-meta); }
+  .test-verdict .num { font-family: var(--font-mono); font-size: var(--fs-meta); color: var(--fg); }
+
+  /* --- 高级设置折叠区 ----------------------------------------------- */
+  details.adv { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+  details.adv[open] { border-color: var(--border-strong); }
+  .adv-hd {
+    display: flex; align-items: center; gap: .5rem;
+    min-height: 44px; padding: var(--sp-3) var(--sp-4);
+    font-family: var(--font-mono); font-size: var(--fs-mini);
+    font-weight: 700; letter-spacing: .06em; color: var(--fg-secondary);
+    list-style: none; cursor: pointer;
+  }
+  .adv-hd::-webkit-details-marker { display: none; }
+  .adv-hd .ic { transition: transform var(--t-2) var(--ease-state); }
+  details.adv[open] .adv-hd .ic { transform: rotate(180deg); }
+  .adv-hd .cnt { margin-left: auto; color: var(--faint); font-weight: 400; letter-spacing: .04em; }
+  .adv-body { padding: 0 var(--sp-4) var(--sp-4); border-top: 1px solid var(--border); padding-top: var(--sp-4); }
+
+  /* --- 降级态 ------------------------------------------------------- */
+  .err-box {
+    border: 1px solid var(--warn); border-left: 3px solid var(--warn);
+    border-radius: var(--radius); background: var(--warn-tint);
+    padding: var(--sp-4); margin-bottom: var(--sp-4);
+  }
+  .err-box h3 { font-size: var(--fs-h3); margin-bottom: .375rem; }
+  .err-box p { font-size: var(--fs-meta); color: var(--fg-secondary); }
+  .err-actions { display: flex; gap: var(--sp-3); flex-wrap: wrap; margin-top: var(--sp-4); }
+  .guide-hint { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+
+  /* --- 骨架屏 -------------------------------------------------------- */
+  .sk { display: block; height: 12px; border-radius: var(--radius); background: var(--surface-subtle); }
+  .sk.is-title { height: 20px; width: 40%; }
+  .sk.is-block { height: 44px; }
+  .sk.is-thumb { width: 44px; height: 44px; }
+  @media (prefers-reduced-motion: no-preference) {
+    .sk { animation: sk-pulse 1.8s var(--ease-loop) infinite; }
+  }
+  @keyframes sk-pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: .45; }
+  }
+
+  /* ------------------------------------------------------------------------
+     呼吸类动画错峰
+     ------------------------------------------------------------------------
+     本页共有 49 个元素在跑呼吸类动画，默认 animation-delay 全是 0s，整页同时闪：
+       41 个 .sk（骨架屏，sk-pulse 1.8s）
+        5 个 .status-led（led-breathe 2.8s / is-busy 1.4s）
+        3 个 .trace-dot.run（led-breathe 1.4s）
+     这里给它们错峰：8 组相位、每组差 0.35s。
+        --led-a = 元素所在「区块 / 表格行 / 表单行 / 轨迹步」的序号（:nth-child 取模 8）
+        --led-b = 元素在其容器内的序号（同法，只取 0~2，做细相位）
+     两者相加即相位。只改 animation-delay，不动颜色 / 时长 / 缓动，也不减少任何元素。
+     ------------------------------------------------------------------------ */
+  .status-led,
+  .trace-dot.run,
+  .sk { animation-delay: calc((var(--led-a, 0) + var(--led-b, 0)) * .35s); }
+
+  /* 一级相位：区块与重复行 */
+  .state:nth-child(8n+1), .sec:nth-child(8n+1), .tbl tbody > tr:nth-child(8n+1),
+  .form-grid > .field:nth-child(8n+1), .trace-step:nth-child(8n+1) { --led-a: 0; }
+  .state:nth-child(8n+2), .sec:nth-child(8n+2), .tbl tbody > tr:nth-child(8n+2),
+  .form-grid > .field:nth-child(8n+2), .trace-step:nth-child(8n+2) { --led-a: 1; }
+  .state:nth-child(8n+3), .sec:nth-child(8n+3), .tbl tbody > tr:nth-child(8n+3),
+  .form-grid > .field:nth-child(8n+3), .trace-step:nth-child(8n+3) { --led-a: 2; }
+  .state:nth-child(8n+4), .sec:nth-child(8n+4), .tbl tbody > tr:nth-child(8n+4),
+  .form-grid > .field:nth-child(8n+4), .trace-step:nth-child(8n+4) { --led-a: 3; }
+  .state:nth-child(8n+5), .sec:nth-child(8n+5), .tbl tbody > tr:nth-child(8n+5),
+  .form-grid > .field:nth-child(8n+5), .trace-step:nth-child(8n+5) { --led-a: 4; }
+  .state:nth-child(8n+6), .sec:nth-child(8n+6), .tbl tbody > tr:nth-child(8n+6),
+  .form-grid > .field:nth-child(8n+6), .trace-step:nth-child(8n+6) { --led-a: 5; }
+  .state:nth-child(8n+7), .sec:nth-child(8n+7), .tbl tbody > tr:nth-child(8n+7),
+  .form-grid > .field:nth-child(8n+7), .trace-step:nth-child(8n+7) { --led-a: 6; }
+  .state:nth-child(8n+8), .sec:nth-child(8n+8), .tbl tbody > tr:nth-child(8n+8),
+  .form-grid > .field:nth-child(8n+8), .trace-step:nth-child(8n+8) { --led-a: 7; }
+
+  /* 二级相位：同一行/同一容器内部的细分，避免整行一起闪 */
+  .tbl td:nth-child(8n+1), .field > *:nth-child(8n+1), .form-actions > *:nth-child(8n+1) { --led-b: 0; }
+  .tbl td:nth-child(8n+2), .field > *:nth-child(8n+2), .form-actions > *:nth-child(8n+2) { --led-b: 1; }
+  .tbl td:nth-child(8n+3), .field > *:nth-child(8n+3), .form-actions > *:nth-child(8n+3) { --led-b: 2; }
+
+  /* --- 响应式 -------------------------------------------------------- */
+  @media (max-width: 899px) {
+    .form-grid { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 767px) {
+    .seg { width: 100%; }
+    .seg button { flex: 1 1 auto; padding: 0 var(--sp-2); }
+    .form-actions .btn, .err-actions .btn { flex: 1 1 100%; }
+    /* 窄屏表格：中文最小内容宽度只有 1 个字，5 列会被压到「模型名换三行」；
+       改为按最大内容宽度铺开，横向滚动交给 .tbl-wrap。 */
+    .tbl-wrap .tbl { width: max-content; max-width: 880px; min-width: 100%; }
+    /* rows=2 的备注框在 390 下把文本折成 3 行，第 3 行被裁掉半个字高。
+       field-sizing 让高度跟随内容，min-height 兜住不支持的浏览器。 */
+    #m-note { field-sizing: content; min-height: 7.5rem; }
+  }
+</style>
+</head>
+<body class="js">
+
+<div class="app">
+
+  <!-- ================= 顶栏 ================= -->
+  <header class="app-top">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <rect x="12" y="12" width="8" height="8" rx="2"/>
+        <rect x="4" y="4" width="4" height="4" rx="1"/>
+        <rect x="24" y="4" width="4" height="4" rx="1"/>
+        <rect x="4" y="24" width="4" height="4" rx="1"/>
+        <rect x="24" y="24" width="4" height="4" rx="1"/>
+      </svg>
+      <span>运营智能体</span>
+      <span class="sub">MODEL CONFIGURATION</span>
+    </div>
+    <nav aria-label="主导航">
+      <a href="workspace.html">工作台</a>
+      <a href="imports.html">导入中心</a>
+      <a href="#top" aria-current="page">模型配置</a>
+      <a href="agent.html">Agent 中心</a>
+    </nav>
+    <div style="display:flex;align-items:center;gap:.5rem">
+      <span class="badge badge-online"><span class="status-led" aria-hidden="true"></span>:80 ONLINE</span>
+      <a class="btn btn-sm" href="index.html">
+        <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg>
+        <span>设计稿总览</span>
+      </a>
+      <button type="button" class="btn btn-ghost" id="themeBtn" aria-label="切换明暗主题">
+        <svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>主题
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= 设计稿声明带 ================= -->
+  <div class="ribbon">
+    <span class="eyebrow">DESIGN PROPOSAL · 静态设计稿 · 非线上系统</span>
+    <span class="mono-note">本稿新增：加载骨架态 · 服务不可达降级态 · 重试与排查指引</span>
+  </div>
+
+  <!-- ================= 主体 ================= -->
+  <main class="app-body">
+    <div class="pane">
+      <div class="wrap" id="top">
+
+        <!-- ============ 状态切换器 ============ -->
+        <section class="sec" style="margin-bottom:var(--sp-5)">
+          <div class="sec-hd">
+            <div>
+              <span class="eyebrow">PAGE STATES · 3</span>
+              <h1>模型配置</h1>
+            </div>
+            <div class="seg" role="group" aria-label="切换页面状态">
+              <button type="button" data-state="ready" aria-pressed="true">正常配置态</button>
+              <button type="button" data-state="loading" aria-pressed="false">加载骨架态</button>
+              <button type="button" data-state="down" aria-pressed="false">服务不可达</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================================
+             状态一 · 正常配置态
+             ========================================================== -->
+        <div class="state" data-state="ready">
+
+          <div class="state-lede is-accent">
+            <span class="status-led is-live" aria-hidden="true"></span>
+            <div>
+              <b>配置来源 <span class="mono">/api/model/config</span> · 最近读取 2 分钟前 · 版本 r41</b>
+              <span>已配置 5 个模型，启用 4 个。密钥从环境变量注入，不落库、不回显明文。</span>
+            </div>
+          </div>
+
+          <!-- ---------- 模型列表 ---------- -->
+          <section class="sec">
+            <div class="sec-hd">
+              <div>
+                <span class="eyebrow">MODEL REGISTRY</span>
+                <h2>模型列表</h2>
+              </div>
+              <button type="button" class="btn"><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"></use></svg>新增模型</button>
+            </div>
+
+            <div class="panel">
+              <div class="tbl-wrap">
+                <table class="tbl">
+                  <caption class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">已配置模型列表，共 5 个模型，启用 4 个</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">模型名</th>
+                      <th scope="col">供应商</th>
+                      <th scope="col">用途</th>
+                      <th scope="col">上下文长度</th>
+                      <th scope="col">状态</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="cell-model"><b>qwen-max</b><span>qwen-max-2024-01-15</span></td>
+                      <td>通义千问</td>
+                      <td>意图识别 / 三轨路由决策</td>
+                      <td class="cell-num">32 K</td>
+                      <td>
+                        <div class="cell-switch">
+                          <button type="button" class="switch" role="switch" aria-checked="true" aria-label="启用 qwen-max"><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span></button>
+                          <span class="st">ON</span>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td class="cell-model"><b>deepseek-chat</b><span>deepseek-chat-v3</span></td>
+                      <td>DeepSeek</td>
+                      <td>闲聊轨应答</td>
+                      <td class="cell-num">64 K</td>
+                      <td>
+                        <div class="cell-switch">
+                          <button type="button" class="switch" role="switch" aria-checked="true" aria-label="启用 deepseek-chat"><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span></button>
+                          <span class="st">ON</span>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td class="cell-model"><b>BGE-M3</b><span>bge-m3-embedding</span></td>
+                      <td>BAAI</td>
+                      <td>向量召回（Embedding）</td>
+                      <td class="cell-num">8 K</td>
+                      <td>
+                        <div class="cell-switch">
+                          <button type="button" class="switch" role="switch" aria-checked="true" aria-label="启用 BGE-M3"><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span></button>
+                          <span class="st">ON</span>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td class="cell-model"><b>qwen-turbo</b><span>qwen-turbo-2024-02-15</span></td>
+                      <td>通义千问</td>
+                      <td>知识咨询轨生成</td>
+                      <td class="cell-num">128 K</td>
+                      <td>
+                        <div class="cell-switch">
+                          <button type="button" class="switch" role="switch" aria-checked="true" aria-label="启用 qwen-turbo"><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span></button>
+                          <span class="st">ON</span>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td class="cell-model"><b>glm-4-plus</b><span>glm-4-plus-0111</span></td>
+                      <td>智谱 AI</td>
+                      <td>降级备用 · 高风险复核</td>
+                      <td class="cell-num">128 K</td>
+                      <td>
+                        <div class="cell-switch">
+                          <button type="button" class="switch" role="switch" aria-checked="false" aria-label="启用 glm-4-plus"><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span></button>
+                          <span class="st">OFF</span>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="tbl-note" style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;padding:var(--sp-3) var(--sp-4);border-top:1px solid var(--border);background:var(--surface-subtle);font-family:var(--font-mono);font-size:var(--fs-mini);color:var(--muted)">
+                <svg class="ic ic-sm" aria-hidden="true"><use href="#i-server"></use></svg>
+                <span>关闭的模型不会被任何 Agent 调用；降级链按列表顺序取第一个可用项。</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- ---------- 编辑区 ---------- -->
+          <section class="sec">
+            <div class="sec-hd">
+              <div>
+                <span class="eyebrow">EDIT · qwen-max</span>
+                <h2>编辑区</h2>
+              </div>
+              <span class="mono-note">改动即时校验，保存后 30 秒内对新会话生效</span>
+            </div>
+
+            <div class="panel">
+              <div class="panel-head">
+                <h3>基础参数</h3>
+                <span class="badge badge-online"><span class="status-led" aria-hidden="true"></span>已启用</span>
+              </div>
+              <div class="panel-body">
+                <div class="form-grid">
+                  <div class="field">
+                    <label for="m-id">模型标识 model_id</label>
+                    <input class="input" id="m-id" value="qwen-max" readonly>
+                    <span class="hint">创建后不可修改，用于 Agent 编排的引用键</span>
+                  </div>
+                  <div class="field">
+                    <label for="m-prov">供应商</label>
+                    <input class="input" id="m-prov" value="通义千问 / DashScope">
+                  </div>
+                  <div class="field">
+                    <label for="m-ver">部署名 / 版本</label>
+                    <input class="input" id="m-ver" value="qwen-max-2024-01-15">
+                  </div>
+                  <div class="field">
+                    <label for="m-ctx">上下文长度（token）</label>
+                    <input class="input" id="m-ctx" type="number" value="32768" min="1024" step="1024">
+                  </div>
+                  <div class="field">
+                    <label for="m-out">最大输出（token）</label>
+                    <input class="input" id="m-out" type="number" value="4096" min="256" step="256">
+                  </div>
+                  <div class="field">
+                    <label for="m-temp">温度 temperature</label>
+                    <input class="input" id="m-temp" type="number" value="0.30" min="0" max="2" step="0.05">
+                    <span class="hint">路由决策建议 ≤ 0.4，保证判定稳定</span>
+                  </div>
+                  <div class="field">
+                    <label for="m-topp">Top P</label>
+                    <input class="input" id="m-topp" type="number" value="0.80" min="0" max="1" step="0.05">
+                  </div>
+                  <div class="field">
+                    <label for="m-to">超时（秒）</label>
+                    <input class="input" id="m-to" type="number" value="30" min="5" step="5">
+                  </div>
+                  <div class="field is-wide">
+                    <label for="m-base">API Base</label>
+                    <input class="input" id="m-base" value="https://dashscope.aliyuncs.com/compatible-mode/v1">
+                  </div>
+                  <div class="field is-wide">
+                    <label for="m-key">API Key</label>
+                    <input class="input" id="m-key" type="password" placeholder="{env:DASHSCOPE_API_KEY}" autocomplete="off">
+                    <span class="hint">从环境变量注入，<code>{env:DASHSCOPE_API_KEY}</code> 注入进程，不写入数据库、不在页面上回显；此处留空即表示「沿用环境变量」</span>
+                  </div>
+                  <div class="field is-wide">
+                    <label for="m-note">备注</label>
+                    <textarea class="input" id="m-note" rows="2">意图识别与三轨路由的主判定模型，温度必须压低，否则闲聊轨会被误判成业务轨。</textarea>
+                  </div>
+                </div>
+                <div class="form-actions">
+                  <button type="button" class="btn btn-primary">保存配置</button>
+                  <button type="button" class="btn">保存并测试</button>
+                  <button type="button" class="btn btn-ghost">恢复默认</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ---------- 连接测试 ---------- -->
+          <section class="sec">
+            <div class="sec-hd">
+              <div>
+                <span class="eyebrow">CONNECTION TEST</span>
+                <h2>连接测试</h2>
+              </div>
+              <span class="mono-note">只发 1 个最简 prompt，不消耗业务额度</span>
+            </div>
+
+            <div class="panel">
+              <div class="panel-head">
+                <h3>qwen-max · 最近一次</h3>
+                <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+                  <span class="badge badge-online">通过 · 812 ms</span>
+                  <button type="button" class="btn">重新测试</button>
+                </div>
+              </div>
+              <div class="panel-body">
+                <div class="test-verdict">
+                  <svg class="ic ic-lg" aria-hidden="true" style="color:var(--success)"><use href="#i-check"></use></svg>
+                  <div>
+                    <b>测试通过 · 模型可正常调用</b>
+                    <p class="t-mini mono">2024-05-18 14:35:09 · 首 token 20 ms · 返回 2 tokens · 实际消耗约 ¥0.0002</p>
+                  </div>
+                </div>
+
+                <div class="trace">
+                  <div class="trace-hd"><span>测试链路分解</span><span>4 STEPS</span></div>
+                  <div class="trace-step"><span class="trace-dot done"></span><span>DNS 解析 + TLS 握手</span><span class="trace-time">38 ms</span></div>
+                  <div class="trace-step"><span class="trace-dot done"></span><span>鉴权通过（Key 权限校验命中 qwen-max）</span><span class="trace-time">12 ms</span></div>
+                  <div class="trace-step"><span class="trace-dot done"></span><span>模型可调用，返回 HTTP 200</span><span class="trace-time">742 ms</span></div>
+                  <div class="trace-step"><span class="trace-dot done"></span><span>流式返回校验（首 token 正常，内容非空）</span><span class="trace-time">20 ms</span></div>
+                </div>
+
+                <div class="trace" style="margin-bottom:0">
+                  <div class="trace-hd"><span>实测配额消耗（近 24 小时）</span><span>QUOTA</span></div>
+                  <div class="trace-step"><span class="trace-dot done"></span><span>输入 4.82 M tokens / 上限 50 M</span><span class="trace-time">9.6%</span></div>
+                  <div class="trace-step"><span class="trace-dot run"></span><span>配额告警阈值 80% · 当前未触发</span><span class="trace-time">正常</span></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ---------- 高级设置（折叠） ---------- -->
+          <section class="sec">
+            <div class="sec-hd">
+              <div>
+                <span class="eyebrow">ADVANCED</span>
+                <h2>高级设置</h2>
+              </div>
+              <span class="mono-note">默认折叠：多数用户不需要改这里的参数</span>
+            </div>
+
+            <details class="adv">
+              <summary class="adv-hd">
+                <svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>
+                <span>流式输出 · 降级链 · 预算与重试</span>
+                <span class="cnt">6 项</span>
+              </summary>
+              <div class="adv-body">
+                <div class="form-grid">
+                  <div class="field">
+                    <span class="field-hdr" style="font-family:var(--font-mono);font-size:var(--fs-mini);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)">流式输出</span>
+                    <div class="cell-switch">
+                      <button type="button" class="switch" role="switch" aria-checked="true" aria-label="流式输出"><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span></button>
+                      <span class="st">ON · SSE 推前端</span>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label for="a-json">强制 JSON 输出</label>
+                    <div class="cell-switch">
+                      <button type="button" class="switch" role="switch" aria-checked="false" aria-label="强制 JSON 输出"><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span></button>
+                      <span class="st">OFF</span>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label for="a-conc">并发上限</label>
+                    <input class="input" id="a-conc" type="number" value="8" min="1" max="32">
+                  </div>
+                  <div class="field">
+                    <label for="a-budget">单次会话 Token 预算</label>
+                    <input class="input" id="a-budget" type="number" value="120000" min="1000" step="1000">
+                  </div>
+                  <div class="field is-wide">
+                    <label for="a-fb">失败降级链</label>
+                    <input class="input" id="a-fb" value="qwen-max → deepseek-chat → qwen-turbo">
+                    <span class="hint">按顺序取第一个健康且有配额的模型；全部不可用时直接降级到「转人工」</span>
+                  </div>
+                  <div class="field is-wide">
+                    <label for="a-retry">重试退避策略</label>
+                    <input class="input" id="a-retry" value="指数退避 · 1s / 2s / 4s · 最多 2 次">
+                  </div>
+                </div>
+                <div class="form-actions" style="border-top:0;margin-top:var(--sp-4);padding-top:0">
+                  <button type="button" class="btn btn-primary">保存高级设置</button>
+                  <button type="button" class="btn btn-ghost">还原为默认值</button>
+                </div>
+              </div>
+            </details>
+          </section>
+
+        </div>
+
+        <!-- ==========================================================
+             状态二 · 加载骨架态
+             ========================================================== -->
+        <div class="state" data-state="loading" hidden>
+
+          <div class="state-lede">
+            <span class="status-led is-busy" aria-hidden="true"></span>
+            <div>
+              <b>正在读取 <span class="mono">/api/model/config</span> · 已等待 1.2 s</b>
+              <span>保留完整版式骨架，避免内容塌陷与误点；超时 10 s 后自动转入「服务不可达」态。</span>
+            </div>
+          </div>
+
+          <section class="sec">
+            <div class="sec-hd">
+              <div>
+                <span class="eyebrow">MODEL REGISTRY</span>
+                <h2>模型列表</h2>
+              </div>
+              <span class="badge"><span class="status-led is-busy" aria-hidden="true"></span>读取中</span>
+            </div>
+            <div class="panel">
+              <div class="tbl-wrap">
+                <table class="tbl">
+                  <caption class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">模型列表加载中</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">模型名</th><th scope="col">供应商</th>
+                      <th scope="col">用途</th><th scope="col">上下文长度</th><th scope="col">状态</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td><span class="sk" style="width:60%"></span></td><td><span class="sk" style="width:70%"></span></td><td><span class="sk" style="width:80%"></span></td><td><span class="sk" style="width:40%"></span></td><td><span class="sk is-thumb"></span></td></tr>
+                    <tr><td><span class="sk" style="width:52%"></span></td><td><span class="sk" style="width:64%"></span></td><td><span class="sk" style="width:72%"></span></td><td><span class="sk" style="width:40%"></span></td><td><span class="sk is-thumb"></span></td></tr>
+                    <tr><td><span class="sk" style="width:66%"></span></td><td><span class="sk" style="width:70%"></span></td><td><span class="sk" style="width:78%"></span></td><td><span class="sk" style="width:40%"></span></td><td><span class="sk is-thumb"></span></td></tr>
+                    <tr><td><span class="sk" style="width:48%"></span></td><td><span class="sk" style="width:58%"></span></td><td><span class="sk" style="width:66%"></span></td><td><span class="sk" style="width:40%"></span></td><td><span class="sk is-thumb"></span></td></tr>
+                    <tr><td><span class="sk" style="width:56%"></span></td><td><span class="sk" style="width:66%"></span></td><td><span class="sk" style="width:74%"></span></td><td><span class="sk" style="width:40%"></span></td><td><span class="sk is-thumb"></span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section class="sec">
+            <div class="sec-hd">
+              <div>
+                <span class="eyebrow">EDIT</span>
+                <h2>编辑区</h2>
+              </div>
+              <span class="mono-note">读取完成前不可编辑</span>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><span class="sk is-title" style="width:120px"></span></div>
+              <div class="panel-body">
+                <div class="form-grid">
+                  <div class="field"><span class="sk" style="width:80px"></span><span class="sk is-block"></span></div>
+                  <div class="field"><span class="sk" style="width:64px"></span><span class="sk is-block"></span></div>
+                  <div class="field"><span class="sk" style="width:96px"></span><span class="sk is-block"></span></div>
+                  <div class="field"><span class="sk" style="width:88px"></span><span class="sk is-block"></span></div>
+                  <div class="field is-wide"><span class="sk" style="width:72px"></span><span class="sk is-block"></span></div>
+                  <div class="field is-wide"><span class="sk" style="width:112px"></span><span class="sk is-block"></span></div>
+                </div>
+                <div class="form-actions">
+                  <span class="sk is-block" style="width:140px"></span>
+                  <span class="sk is-block" style="width:140px"></span>
+                  <span class="sk is-block" style="width:120px"></span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="sec">
+            <div class="sec-hd">
+              <div>
+                <span class="eyebrow">CONNECTION TEST</span>
+                <h2>连接测试</h2>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-body">
+                <div class="trace" style="margin-bottom:0">
+                  <div class="trace-hd"><span>等待配置加载完成后才能发起测试</span><span>IDLE</span></div>
+                  <div class="trace-step"><span class="trace-dot skip"></span><span>未发起 —— 缺少可用模型清单</span><span class="trace-time">—</span></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+        </div>
+
+        <!-- ==========================================================
+             状态三 · 服务不可达（降级态）
+             ========================================================== -->
+        <div class="state" data-state="down" hidden>
+
+          <div class="state-lede is-warn">
+            <svg class="ic ic-lg" aria-hidden="true" style="color:var(--warn)"><use href="#i-warn"></use></svg>
+            <div>
+              <b>模型配置服务当前不可达 · 已自动降级</b>
+              <span>页面不会只甩一句报错。下面给出错误细节、重试入口、逐步排查指引，以及可继续工作的缓存兜底。</span>
+            </div>
+          </div>
+
+          <section class="sec">
+            <div class="sec-hd">
+              <div>
+                <span class="eyebrow">ERROR DETAIL</span>
+                <h2>读取失败</h2>
+              </div>
+              <span class="mono-note">首次失败 14:37:02 · 已自动重试 2 次</span>
+            </div>
+
+            <div class="err-box">
+              <h3>GET /api/model/config → 502 Bad Gateway</h3>
+              <p>网关无法连接上游配置服务 <span class="mono">model-config-svc</span>（10.0.12.7:18080）。这不是页面问题，是后端进程没起来或端口不通。</p>
+
+              <div class="trace" style="margin-top:var(--sp-4);margin-bottom:0">
+                <div class="trace-hd"><span>错误链路</span><span>trace_id 7f3a9c2e</span></div>
+                <div class="trace-step"><span class="trace-dot skip"></span><span>浏览器发出请求 <span class="mono">GET /api/model/config</span></span><span class="trace-time">14:37:02.104</span></div>
+                <div class="trace-step"><span class="trace-dot done"></span><span>Nginx 反向代理命中上游</span><span class="trace-time">14:37:02.118</span></div>
+                <div class="trace-step"><span class="trace-dot run"></span><span>连接上游 10.0.12.7:18080 被拒绝（ECONNREFUSED）</span><span class="trace-time">502 · 5.00 s</span></div>
+                <div class="trace-step"><span class="trace-dot skip"></span><span>网关按重试策略第 2 次发起请求，同样失败</span><span class="trace-time">14:37:12</span></div>
+                <div class="trace-step"><span class="trace-dot skip"></span><span>放弃重试，回传 502 给前端</span><span class="trace-time">14:37:22</span></div>
+              </div>
+
+              <div class="err-actions">
+                <button type="button" class="btn btn-primary"><svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg>重试读取</button>
+                <button type="button" class="btn">复制诊断信息</button>
+                <button type="button" class="btn btn-ghost">查看服务日志</button>
+              </div>
+              <p class="guide-hint" style="margin-top:var(--sp-3)">重试按钮有 10 秒防连点冷却；服务恢复后本页会自动切回「正常配置态」，无需手动刷新。</p>
+            </div>
+          </section>
+
+          <section class="sec">
+            <div class="sec-hd">
+              <div>
+                <span class="eyebrow">TROUBLESHOOTING</span>
+                <h2>排查指引</h2>
+              </div>
+              <span class="mono-note">按顺序执行，多数问题在前两步就能定位</span>
+            </div>
+
+            <div class="panel">
+              <div class="panel-body">
+                <div class="trace" style="margin-bottom:0">
+                  <div class="trace-hd"><span>4 步定位</span><span>CHECKLIST</span></div>
+                  <div class="trace-step">
+                    <span class="trace-dot run"></span>
+                    <span>确认进程存活：<span class="mono">systemctl status model-config-svc</span> · 期望 active (running)</span>
+                    <span class="trace-time">STEP 1</span>
+                  </div>
+                  <div class="trace-step">
+                    <span class="trace-dot skip"></span>
+                    <span>确认端口监听：<span class="mono">ss -lntp | grep 18080</span> · 期望有 LISTEN 条目</span>
+                    <span class="trace-time">STEP 2</span>
+                  </div>
+                  <div class="trace-step">
+                    <span class="trace-dot skip"></span>
+                    <span>确认密钥注入：<span class="mono">{env:DASHSCOPE_API_KEY}</span> 非空 · 期望长度 &gt; 32</span>
+                    <span class="trace-time">STEP 3</span>
+                  </div>
+                  <div class="trace-step">
+                    <span class="trace-dot skip"></span>
+                    <span>确认上游未被限流：检查响应头 <span class="mono">x-ratelimit-remaining</span> · 期望 &gt; 0</span>
+                    <span class="trace-time">STEP 4</span>
+                  </div>
+                </div>
+                <div class="err-actions">
+                  <button type="button" class="btn btn-primary">重试读取</button>
+                  <button type="button" class="btn">一键复制排查命令</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="sec">
+            <div class="sec-hd">
+              <div>
+                <span class="eyebrow">DEGRADED BUT USABLE</span>
+                <h2>缓存兜底</h2>
+              </div>
+              <span class="badge badge-warn">只读 · 缓存于 14:02</span>
+            </div>
+
+            <div class="panel">
+              <div class="panel-head">
+                <h3>最近一次成功读取的快照（r40）</h3>
+                <span class="t-mini mono">35 分钟前的数据</span>
+              </div>
+              <div class="tbl-wrap">
+                <table class="tbl">
+                  <caption class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">配置快照，只读</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">模型名</th><th scope="col">供应商</th>
+                      <th scope="col">用途</th><th scope="col">上下文长度</th><th scope="col">状态</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="cell-model"><b>qwen-max</b><span>qwen-max-2024-01-15</span></td>
+                      <td>通义千问</td><td>意图识别 / 三轨路由决策</td><td class="cell-num">32 K</td>
+                      <td><div class="cell-switch"><span class="switch" aria-disabled="true" style="cursor:not-allowed"><span class="switch-track" aria-hidden="true" style="background:var(--success-tint);border-color:var(--success)"><span class="switch-thumb" style="transform:translateX(20px);background:var(--success)"></span></span></span><span class="st">ON · 缓存</span></div></td>
+                    </tr>
+                    <tr>
+                      <td class="cell-model"><b>deepseek-chat</b><span>deepseek-chat-v3</span></td>
+                      <td>DeepSeek</td><td>闲聊轨应答</td><td class="cell-num">64 K</td>
+                      <td><div class="cell-switch"><span class="switch" aria-disabled="true" style="cursor:not-allowed"><span class="switch-track" aria-hidden="true" style="background:var(--success-tint);border-color:var(--success)"><span class="switch-thumb" style="transform:translateX(20px);background:var(--success)"></span></span></span><span class="st">ON · 缓存</span></div></td>
+                    </tr>
+                    <tr>
+                      <td class="cell-model"><b>BGE-M3</b><span>bge-m3-embedding</span></td>
+                      <td>BAAI</td><td>向量召回（Embedding）</td><td class="cell-num">8 K</td>
+                      <td><div class="cell-switch"><span class="switch" aria-disabled="true" style="cursor:not-allowed"><span class="switch-track" aria-hidden="true" style="background:var(--success-tint);border-color:var(--success)"><span class="switch-thumb" style="transform:translateX(20px);background:var(--success)"></span></span></span><span class="st">ON · 缓存</span></div></td>
+                    </tr>
+                    <tr>
+                      <td class="cell-model"><b>qwen-turbo</b><span>qwen-turbo-2024-02-15</span></td>
+                      <td>通义千问</td><td>知识咨询轨生成</td><td class="cell-num">128 K</td>
+                      <td><div class="cell-switch"><span class="switch" aria-disabled="true" style="cursor:not-allowed"><span class="switch-track" aria-hidden="true" style="background:var(--success-tint);border-color:var(--success)"><span class="switch-thumb" style="transform:translateX(20px);background:var(--success)"></span></span></span><span class="st">ON · 缓存</span></div></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="tbl-note" style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;padding:var(--sp-3) var(--sp-4);border-top:1px solid var(--border);background:var(--surface-subtle);font-family:var(--font-mono);font-size:var(--fs-mini);color:var(--muted)">
+                <svg class="ic ic-sm" aria-hidden="true"><use href="#i-warn"></use></svg>
+                <span>缓存快照仅供查看，编辑与保存已禁用 —— 避免在服务不可达时写入一份与线上不一致的配置。</span>
+              </div>
+            </div>
+
+            <div class="panel" style="margin-top:var(--sp-4)">
+              <div class="panel-head">
+                <h3>编辑区（已禁用）</h3>
+                <span class="badge badge-warn">写入被阻止</span>
+              </div>
+              <div class="panel-body">
+                <div class="form-grid">
+                  <div class="field">
+                    <label for="d-id">模型标识 model_id</label>
+                    <input class="input" id="d-id" value="qwen-max" disabled>
+                  </div>
+                  <div class="field">
+                    <label for="d-temp">温度 temperature</label>
+                    <input class="input" id="d-temp" value="0.30" disabled>
+                  </div>
+                </div>
+                <div class="form-actions">
+                  <button type="button" class="btn btn-primary" disabled>保存配置</button>
+                  <button type="button" class="btn" disabled>保存并测试</button>
+                  <span class="t-mini" style="align-self:center">服务恢复后自动解锁，当前请使用上方「重试读取」。</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+        </div>
+
+        <p class="t-mini mono" style="margin-top:var(--sp-6);color:var(--faint)">
+          设计稿说明：模型清单与测试结果为示意数据，不接任何后端接口；三态切换仅用于演示，可通过 #ready / #loading / #down 深链直达。
+        </p>
+
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<script src="icons.js" defer></script>
+<script>
+  /* ---- 三态切换（纯静态，不发任何请求） ---- */
+  (function () {
+    var btns = Array.prototype.slice.call(document.querySelectorAll('.seg button'));
+    var panes = Array.prototype.slice.call(document.querySelectorAll('.state'));
+
+    function show(name, push) {
+      panes.forEach(function (p) { p.hidden = p.getAttribute('data-state') !== name; });
+      btns.forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-state') === name ? 'true' : 'false'); });
+      if (push && location.hash.slice(1) !== name) history.replaceState(null, '', '#' + name);
+    }
+
+    btns.forEach(function (b) {
+      b.addEventListener('click', function () { show(b.getAttribute('data-state'), true); });
+    });
+
+    var initial = location.hash.replace('#', '');
+    show(['ready', 'loading', 'down'].indexOf(initial) >= 0 ? initial : 'ready', false);
+  })();
+
+  /* ---- 状态开关（只切视觉与 aria，不改后端） ---- */
+  (function () {
+    Array.prototype.forEach.call(document.querySelectorAll('.switch[role="switch"]'), function (sw) {
+      sw.addEventListener('click', function () {
+        var on = sw.getAttribute('aria-checked') === 'true';
+        sw.setAttribute('aria-checked', on ? 'false' : 'true');
+        var st = sw.parentNode.querySelector('.st');
+        if (st) st.textContent = (on ? 'OFF' : 'ON') + (st.textContent.indexOf('·') > -1 ? st.textContent.slice(st.textContent.indexOf('·')) : '');
+      });
+    });
+  })();
+</script>
+</body>
+</html>
