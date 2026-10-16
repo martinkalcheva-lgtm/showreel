@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" class="js">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>导入中心 · 多智能体运营平台 UI 设计稿</title>
+  <meta name="description" content="静态设计稿：运营智能体导入中心，模板下载、CSV 分步导入向导、预览校验、能力矩阵。">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f8f7f4'/%3E%3Cg fill='%230d1218'%3E%3Crect x='12' y='12' width='8' height='8'/%3E%3Crect x='4' y='4' width='4' height='4'/%3E%3Crect x='24' y='4' width='4' height='4'/%3E%3Crect x='4' y='24' width='4' height='4'/%3E%3Crect x='24' y='24' width='4' height='4'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="stylesheet" href="design-system.css">
+  <style>
+    /* ====================================================================
+       页面级布局规则（imports）
+       硬约束：只消费 design-system.css 的 token 与组件类，不新增视觉值。
+       ==================================================================== */
+    .app-top nav a { min-height: 44px; display: inline-flex; align-items: center; }
+    .app-top .top-actions { display: flex; align-items: center; gap: var(--sp-2); }
+
+    .stack   { display: flex; flex-direction: column; gap: var(--sp-6); }
+    .stack-5 { display: flex; flex-direction: column; gap: var(--sp-5); }
+    .stack-4 { display: flex; flex-direction: column; gap: var(--sp-4); }
+    .stack-3 { display: flex; flex-direction: column; gap: var(--sp-3); }
+    .stack-2 { display: flex; flex-direction: column; gap: var(--sp-2); }
+    .row     { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
+    .row-between { justify-content: space-between; }
+
+    .page-hd { display: flex; flex-direction: column; gap: var(--sp-3); }
+    .page-hd .t-lead { max-width: 52em; }
+
+    /* ---- 侧栏 ---- */
+    .rail-group { display: flex; flex-direction: column; gap: var(--sp-2); }
+    .rail-cap {
+      font-family: var(--font-mono); font-size: var(--fs-mini); font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase; color: var(--faint);
+      padding: 0 .75rem;
+    }
+    .rail-link {
+      display: flex; align-items: center; gap: .5rem;
+      min-height: 44px; padding: 0 .75rem;
+      border: 1px solid transparent; border-radius: var(--radius);
+      font-size: var(--fs-meta); color: var(--muted);
+      transition: background-color var(--t-2) var(--ease-state),
+                  border-color var(--t-2) var(--ease-state),
+                  color var(--t-2) var(--ease-state);
+    }
+    .rail-link .code { margin-left: auto; font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+    .rail-link:hover { color: var(--fg); background: var(--surface-subtle); }
+    .rail-link[aria-current="page"] { color: var(--fg); background: var(--surface-subtle); border-color: var(--border); font-weight: 600; }
+
+    /* ---- 模板卡 ---- */
+    .tpl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: var(--sp-4); }
+    .tpl .panel-head { align-items: center; justify-content: flex-start; gap: .5rem; }
+    .tpl-ic { font-size: 1.25rem; color: var(--muted); line-height: 1.1; }
+    .card-foot { margin-top: auto; }
+    .tpl-meta { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .375rem var(--sp-3); font-size: var(--fs-mini); }
+    .tpl-meta dt { font-family: var(--font-mono); color: var(--faint); white-space: nowrap; }
+    .tpl-meta dd { color: var(--fg-secondary); text-align: right; }
+
+    /* ---- 表单选择卡（3 个 CSV 导入表单） ---- */
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr)); gap: var(--sp-3); }
+    .form-card {
+      display: flex; flex-direction: column; gap: .5rem;
+      min-height: 44px; padding: var(--sp-4);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      background: var(--surface); text-align: left; width: 100%;
+      transition: background-color var(--t-2) var(--ease-state),
+                  border-color var(--t-2) var(--ease-state);
+    }
+    .form-card:hover { background: var(--surface-subtle); }
+    .form-card[aria-selected="true"] { border-color: var(--border-strong); background: var(--surface-subtle); }
+    .form-card[aria-selected="true"] .form-name { font-weight: 700; }
+    .form-name { font-weight: 600; font-size: var(--fs-meta); }
+
+    /* ---- 分步指示器 ---- */
+    .wiz { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-3); }
+    .wiz-step {
+      display: flex; align-items: center; gap: .5rem;
+      min-height: 44px; padding: .5rem .75rem;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      background: var(--surface); font-size: var(--fs-mini); color: var(--muted);
+    }
+    .wiz-step .no { font-family: var(--font-mono); color: var(--faint); }
+    .wiz-step.is-done { border-color: var(--border); }
+    .wiz-step.is-done .label { color: var(--fg); }
+    .wiz-step.is-run  { border-color: var(--border-accent); background: var(--accent-tint); }
+    .wiz-step.is-run  .label { color: var(--fg); font-weight: 600; }
+
+    /* ---- 选项组 ---- */
+    .opt-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+    .opt {
+      display: inline-flex; align-items: center; gap: .5rem;
+      min-height: 44px; padding: 0 .875rem;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      background: var(--surface); color: var(--fg-secondary); font-size: var(--fs-mini);
+    }
+    .opt[aria-pressed="true"] { border-color: var(--border-strong); background: var(--surface-subtle); color: var(--fg); font-weight: 600; }
+    .opt-mark { width: 8px; height: 8px; border-radius: 50%; background: var(--border-strong); flex: none; }
+    .opt[aria-pressed="true"] .opt-mark { background: var(--accent); }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); }
+    .form-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); }
+
+    /* ---- 预览表脚注 ---- */
+    .pv-foot {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+      gap: var(--sp-2) var(--sp-4); padding: var(--sp-3) var(--sp-3) 0;
+      font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted);
+    }
+    .ta-r { text-align: right; }
+    .txt-warn { color: var(--warn); }
+    .txt-accent { color: var(--accent); }
+    .txt-ok { color: var(--success); }
+    .txt-faint { color: var(--faint); }
+    .b700 { font-weight: 700; }
+    .mt-3 { margin-top: var(--sp-3); }
+    .grow { flex: 1; min-width: 0; }
+
+    @media (max-width: 899px) {
+      .grid-2, .form-grid-2 { grid-template-columns: minmax(0, 1fr); }
+      .wiz { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 767px) {
+      .app-top .brand .sub { display: none; }
+      /* 窄屏表格：中文的最小内容宽度只有 1 个字，浏览器会把每列都压到最小内容宽度，
+         「原因」这类长文本列因此变成单字一行的竖排。改为按最大内容宽度铺开，
+        横向滚动交给 .tbl-wrap —— 它本来就是为这个场景准备的。 */
+      .tbl-wrap .tbl { width: max-content; max-width: 880px; min-width: 100%; }
+      /* 预览脚注两段在 390 下各自折行，第一段尾巴只剩一个「过」字 */
+      .pv-foot span { text-wrap: balance; }
+    }
+
+    /* 页眉眉标在窄屏会折成「…非线上系 / 统」的单字孤行，按标题同一手法配平换行 */
+    .page-hd .eyebrow { text-wrap: balance; }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ================================================================
+       应用顶栏
+       ================================================================ -->
+  <header class="app-top">
+    <a class="brand" href="../index.html">
+      <svg class="mark ic-lg" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <rect x="12" y="12" width="8" height="8" rx="2"/>
+        <rect x="4" y="4" width="4" height="4" rx="1"/>
+        <rect x="24" y="4" width="4" height="4" rx="1"/>
+        <rect x="4" y="24" width="4" height="4" rx="1"/>
+        <rect x="24" y="24" width="4" height="4" rx="1"/>
+      </svg>
+      <span>运营智能体</span>
+      <span class="sub">:80 / IMPORTS</span>
+    </a>
+
+    <nav aria-label="页面导航">
+      <a href="#templates">模板下载</a>
+      <a href="#wizard" aria-current="page">导入向导</a>
+      <a href="#matrix">能力矩阵</a>
+    </nav>
+
+    <div class="top-actions">
+      <a class="btn btn-sm" href="index.html">
+        <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg>
+        <span>设计稿总览</span>
+      </a>
+      <button type="button" class="btn btn-sm" id="themeBtn" aria-label="切换明暗主题">
+        <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-agent"></use></svg>
+        <span id="themeBtnText" class="mono">DARK</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="app-body has-rail">
+    <!-- ============================================================
+         左栏导航
+         ============================================================ -->
+    <nav class="rail" aria-label="运营智能体导航">
+      <div class="rail-group">
+        <span class="rail-cap">工作台</span>
+        <a class="rail-link" href="#" aria-current="page">
+          <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-doc"></use></svg>
+          <span>导入中心</span>
+          <span class="code">/imports</span>
+        </a>
+        <a class="rail-link" href="workspace.html">
+          <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-server"></use></svg>
+          <span>运营智能体</span>
+          <span class="code">/workspace</span>
+        </a>
+      </div>
+
+      <div class="rail-group">
+        <span class="rail-cap">模板下载</span>
+        <a class="rail-link" href="#tpl-performance"><span>绩效数据模板</span></a>
+        <a class="rail-link" href="#tpl-product"><span>商品数据模板</span></a>
+        <a class="rail-link" href="#tpl-sku"><span>SKU 数据模板</span></a>
+        <a class="rail-link" href="#tpl-operation"><span>经营数据模板</span></a>
+      </div>
+
+      <div class="rail-group">
+        <span class="rail-cap">导入表单</span>
+        <a class="rail-link" href="#form-performance"><span>绩效数据导入</span></a>
+        <a class="rail-link" href="#form-product"><span>商品数据导入</span></a>
+        <a class="rail-link" href="#form-sku"><span>SKU 数据导入</span></a>
+      </div>
+
+      <div class="rail-group">
+        <span class="rail-cap">说明</span>
+        <a class="rail-link" href="#matrix">
+          <span>已接入能力矩阵</span>
+          <span class="code">9</span>
+        </a>
+      </div>
+    </nav>
+
+    <!-- ============================================================
+         主栏
+         ============================================================ -->
+    <main class="pane">
+      <div class="stack">
+
+        <!-- 页头 -->
+        <header class="page-hd">
+          <span class="eyebrow">DESIGN PROPOSAL · 静态设计稿 · 非线上系统</span>
+          <h1 class="t-h1">导入中心</h1>
+          <p class="t-lead">
+            运营数据的唯一入口。先下载模板对齐字段，再走「选平台 → 选文件 → 预览 → 确认」四步向导 ——
+            预览阶段就把脏行拦在库外，不让一次手滑的表格污染三个月的经营分析。
+          </p>
+          <div class="row">
+            <span class="badge badge-accent">4 TEMPLATES</span>
+            <span class="badge">3 CSV FORMS</span>
+            <span class="badge">9 CAPABILITIES</span>
+            <span class="status-led" aria-hidden="true"></span>
+            <span class="t-mini mono">最近成功同步 10-14 06:05</span>
+          </div>
+        </header>
+
+        <!-- 模板下载 -->
+        <section class="stack-4 reveal" id="templates" aria-labelledby="h-tpl">
+          <div class="row row-between">
+            <div class="stack-2">
+              <span class="eyebrow">STEP 00 · 模板</span>
+              <h2 class="t-h2" id="h-tpl">模板下载</h2>
+            </div>
+            <span class="badge mono">TEMPLATES · CSV WITH HEADER</span>
+          </div>
+
+          <div class="tpl-grid">
+
+            <article class="panel tpl" id="tpl-performance">
+              <div class="panel-head">
+                <span class="tpl-ic" aria-hidden="true"><svg class="ic"><use href="#i-terminal"></use></svg></span>
+                <h3 class="t-h3">绩效数据模板</h3>
+              </div>
+              <div class="panel-body stack-3">
+                <div class="row row-between">
+                  <span class="t-mini mono">PERFORMANCE</span>
+                  <span class="badge">18 字段 / 6 表</span>
+                </div>
+                <p class="t-meta">
+                  门店日粒度经营口径：营业额、订单数、客单价、翻台率，外加早/午/晚三个时段拆分。
+                  是绩效同比环比的唯一口径来源。
+                </p>
+                <dl class="tpl-meta">
+                  <dt>主键</dt><dd>date + store_id</dd>
+                  <dt>时间粒度</dt><dd>日</dd>
+                  <dt>最近更新</dt><dd>10-12</dd>
+                </dl>
+                <button type="button" class="btn btn-sm card-foot">
+                  <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-search"></use></svg>
+                  <span>下载示例 CSV</span>
+                </button>
+              </div>
+            </article>
+
+            <article class="panel tpl" id="tpl-product">
+              <div class="panel-head">
+                <span class="tpl-ic" aria-hidden="true"><svg class="ic"><use href="#i-doc"></use></svg></span>
+                <h3 class="t-h3">商品数据模板</h3>
+              </div>
+              <div class="panel-body stack-3">
+                <div class="row row-between">
+                  <span class="t-mini mono">PRODUCT</span>
+                  <span class="badge">24 字段 / 5 表</span>
+                </div>
+                <p class="t-meta">
+                  商品主档：类目路径、品牌、规格重量、保质期、主图与详情图地址。
+                  商品上下文工作流的输入，缺类目会导致创意生成跑偏。
+                </p>
+                <dl class="tpl-meta">
+                  <dt>主键</dt><dd>platform_item_id</dd>
+                  <dt>类目</dt><dd>三级，必填</dd>
+                  <dt>最近更新</dt><dd>10-14</dd>
+                </dl>
+                <button type="button" class="btn btn-sm card-foot">
+                  <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-search"></use></svg>
+                  <span>下载示例 CSV</span>
+                </button>
+              </div>
+            </article>
+
+            <article class="panel tpl" id="tpl-sku">
+              <div class="panel-head">
+                <span class="tpl-ic" aria-hidden="true"><svg class="ic"><use href="#i-db"></use></svg></span>
+                <h3 class="t-h3">SKU 数据模板</h3>
+              </div>
+              <div class="panel-body stack-3">
+                <div class="row row-between">
+                  <span class="t-mini mono">SKU</span>
+                  <span class="badge">32 字段 / 7 表</span>
+                </div>
+                <p class="t-meta">
+                  SKU 维度价格与库存，支撑库存建议与断货预警。
+                  与商品主档是一对多关系，导入时按 platform_sku_id 对齐。
+                </p>
+                <dl class="tpl-meta">
+                  <dt>主键</dt><dd>platform_sku_id</dd>
+                  <dt>关联</dt><dd>商品主档</dd>
+                  <dt>最近更新</dt><dd>10-11</dd>
+                </dl>
+                <button type="button" class="btn btn-sm card-foot">
+                  <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-search"></use></svg>
+                  <span>下载示例 CSV</span>
+                </button>
+              </div>
+            </article>
+
+            <article class="panel tpl" id="tpl-operation">
+              <div class="panel-head">
+                <span class="tpl-ic" aria-hidden="true"><svg class="ic"><use href="#i-server"></use></svg></span>
+                <h3 class="t-h3">经营数据模板</h3>
+              </div>
+              <div class="panel-body stack-3">
+                <div class="row row-between">
+                  <span class="t-mini mono">OPERATION</span>
+                  <span class="badge">21 字段 / 4 表</span>
+                </div>
+                <p class="t-meta">
+                  门店 / 区域 / 全国三层汇总口径，含人工成本、租金摊销与门店分级。
+                  汇总层是自动聚合的，不要手工填。
+                </p>
+                <dl class="tpl-meta">
+                  <dt>层级</dt><dd>门店 / 区域 / 全国</dd>
+                  <dt>汇总层</dt><dd>自动计算</dd>
+                  <dt>最近更新</dt><dd>10-09</dd>
+                </dl>
+                <button type="button" class="btn btn-sm card-foot">
+                  <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-search"></use></svg>
+                  <span>下载示例 CSV</span>
+                </button>
+              </div>
+            </article>
+
+          </div>
+        </section>
+
+        <!-- 导入向导 -->
+        <section class="panel reveal" id="wizard" aria-labelledby="h-wiz">
+          <div class="panel-head">
+            <h3 id="h-wiz">CSV 导入向导 · 商品数据</h3>
+            <div class="row">
+              <span class="badge">4 STEPS</span>
+              <span class="badge badge-warn mono">STEP 03 / 04</span>
+            </div>
+          </div>
+          <div class="panel-body stack-5">
+
+            <!-- 3 个 CSV 导入表单 -->
+            <div class="stack-3" id="forms">
+              <span class="eyebrow">选择导入表单</span>
+              <div class="form-grid" role="tablist" aria-label="CSV 导入表单">
+                <button type="button" class="form-card" id="form-performance" role="tab" aria-selected="false">
+                  <span class="form-name">绩效数据导入</span>
+                  <span class="t-mini">18 字段 · 日粒度 · 上次 10-13</span>
+                  <span class="tag-row"><span class="tag">CUSTOMER</span><span class="tag">DAILY</span></span>
+                </button>
+                <button type="button" class="form-card" id="form-product" role="tab" aria-selected="true">
+                  <span class="form-name">商品数据导入</span>
+                  <span class="t-mini">24 字段 · 商品主档 · 上次 10-14</span>
+                  <span class="tag-row"><span class="tag">PRODUCT</span><span class="tag">MASTER</span></span>
+                </button>
+                <button type="button" class="form-card" id="form-sku" role="tab" aria-selected="false">
+                  <span class="form-name">SKU 数据导入</span>
+                  <span class="t-mini">32 字段 · SKU 维度 · 上次 10-11</span>
+                  <span class="tag-row"><span class="tag">SKU</span><span class="tag">STOCK</span></span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 分步指示器 -->
+            <ol class="wiz">
+              <li class="wiz-step is-done">
+                <span class="trace-dot done" aria-hidden="true"></span>
+                <span class="no">01</span><span class="label">选平台</span>
+              </li>
+              <li class="wiz-step is-done">
+                <span class="trace-dot done" aria-hidden="true"></span>
+                <span class="no">02</span><span class="label">选文件</span>
+              </li>
+              <li class="wiz-step is-run" aria-current="step">
+                <span class="trace-dot run" aria-hidden="true"></span>
+                <span class="no">03</span><span class="label">预览校验</span>
+              </li>
+              <li class="wiz-step">
+                <span class="trace-dot" aria-hidden="true"></span>
+                <span class="no">04</span><span class="label">确认导入</span>
+              </li>
+            </ol>
+
+            <!-- 步骤 1 / 2 的结果（只读回显） -->
+            <div class="grid-2">
+              <section class="stack-3">
+                <span class="eyebrow">STEP 01 · 已选平台</span>
+                <div class="opt-row">
+                  <button type="button" class="opt" aria-pressed="true">
+                    <span class="opt-mark" aria-hidden="true"></span><span>抖音电商</span>
+                  </button>
+                  <button type="button" class="opt" aria-pressed="false"><span>淘宝天猫</span></button>
+                  <button type="button" class="opt" aria-pressed="false"><span>拼多多</span></button>
+                  <button type="button" class="opt" aria-pressed="false"><span>Amazon</span></button>
+                  <button type="button" class="opt" aria-pressed="false"><span>自营后台</span></button>
+                </div>
+                <p class="t-mini">
+                  平台决定字段映射表与合规口径：抖音走商品主档模板，淘宝天猫多一层「宝贝 ID」映射。
+                </p>
+                <dl class="tpl-meta">
+                  <dt>平台代号</dt><dd>DY</dd>
+                  <dt>授权状态</dt><dd>已授权 · 2026-03-11</dd>
+                  <dt>字段映射表</dt><dd>douyin_product_v4</dd>
+                </dl>
+                <div class="row">
+                  <button type="button" class="btn btn-sm">
+                    <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-copy"></use></svg>
+                    <span>查看映射表</span>
+                  </button>
+                </div>
+              </section>
+
+              <section class="stack-3">
+                <span class="eyebrow">STEP 02 · 已选文件</span>
+                <div class="field">
+                  <label for="csvPath">CSV 文件路径</label>
+                  <input class="input mono" id="csvPath" value="douyin_product_2026-10-14.csv" readonly>
+                </div>
+                <dl class="tpl-meta">
+                  <dt>大小</dt><dd>1.84 MB</dd>
+                  <dt>编码</dt><dd>UTF-8 with BOM</dd>
+                  <dt>解析行数</dt><dd>1,284</dd>
+                  <dt>表头匹配</dt><dd class="txt-ok">24 / 24 列已映射</dd>
+                </dl>
+                <div class="row">
+                  <button type="button" class="btn btn-sm">重新选文件</button>
+                  <button type="button" class="btn btn-sm btn-ghost">
+                    <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-copy"></use></svg>
+                    <span>复制映射配置</span>
+                  </button>
+                </div>
+              </section>
+            </div>
+
+            <!-- 步骤 03：预览 -->
+            <section class="panel" aria-labelledby="h-pv">
+              <div class="panel-head">
+                <h3 id="h-pv">STEP 03 · 数据预览</h3>
+                <div class="row">
+                  <span class="badge mono">前 5 行 / 共 1,284 行</span>
+                  <span class="badge badge-accent">预览为只读</span>
+                </div>
+              </div>
+              <div class="tbl-wrap">
+                <table class="tbl">
+                  <thead>
+                    <tr>
+                      <th scope="col">行</th>
+                      <th scope="col">platform_item_id</th>
+                      <th scope="col">商品名称</th>
+                      <th scope="col">类目路径</th>
+                      <th scope="col">品牌</th>
+                      <th scope="col">规格</th>
+                      <th scope="col" class="ta-r">售价</th>
+                      <th scope="col">校验</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="mono">1</td>
+                      <td class="mono">3291847261</td>
+                      <td>经典原味奶茶 500ml</td>
+                      <td>茶饮 / 奶茶 / 原味</td>
+                      <td>茶里</td>
+                      <td>500ml × 12 盒</td>
+                      <td class="mono ta-r">59.00</td>
+                      <td><span class="badge badge-online">通过</span></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">2</td>
+                      <td class="mono">3291847262</td>
+                      <td>零卡轻乳茶 280ml</td>
+                      <td>茶饮 / 奶茶 / 轻乳茶</td>
+                      <td>茶里</td>
+                      <td>280ml × 24 盒</td>
+                      <td class="mono ta-r">78.00</td>
+                      <td><span class="badge badge-online">通过</span></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">3</td>
+                      <td class="mono">3291847288</td>
+                      <td>手作芋泥波波</td>
+                      <td class="txt-warn">茶饮 / 芋泥系列</td>
+                      <td>茶里</td>
+                      <td>—</td>
+                      <td class="mono ta-r">12.50</td>
+                      <td><span class="badge badge-warn">警告</span></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">4</td>
+                      <td class="mono">3291847301</td>
+                      <td>冷萃美式咖啡</td>
+                      <td>咖啡 / 冷萃</td>
+                      <td>茶里</td>
+                      <td>330ml × 15 瓶</td>
+                      <td class="mono ta-r">96.00</td>
+                      <td><span class="badge badge-online">通过</span></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">5</td>
+                      <td class="mono">3291847315</td>
+                      <td>季节限定桂花酿</td>
+                      <td>茶饮 / 季节限定</td>
+                      <td class="txt-accent">未填写</td>
+                      <td>—</td>
+                      <td class="mono ta-r">18.80</td>
+                      <td><span class="badge">错误</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="pv-foot">
+                <span>显示 1 – 5 行，共 1,284 行 · 表头 1 行已跳过</span>
+                <span>仅预览前 200 行做全字段校验，余下按 1,000 行分块流式校验</span>
+              </div>
+            </section>
+
+            <!-- 校验反馈 -->
+            <section class="panel" aria-labelledby="h-val">
+              <div class="panel-head">
+                <h3 id="h-val">校验反馈</h3>
+                <div class="row">
+                  <span class="badge badge-online">通过 1,279</span>
+                  <span class="badge badge-warn">警告 4</span>
+                  <span class="badge">错误 1</span>
+                </div>
+              </div>
+              <div class="tbl-wrap">
+                <table class="tbl">
+                  <thead>
+                    <tr>
+                      <th scope="col">行号</th>
+                      <th scope="col">字段</th>
+                      <th scope="col">原值</th>
+                      <th scope="col">原因</th>
+                      <th scope="col">处理</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="mono">5</td>
+                      <td class="mono">brand</td>
+                      <td class="txt-faint">（空）</td>
+                      <td>品牌为必填，缺失会导致创意生成的竞品对齐失败</td>
+                      <td><span class="badge">阻止导入</span></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">37</td>
+                      <td class="mono">store_id</td>
+                      <td class="mono">S00123</td>
+                      <td>门店编码在门店主档中不存在，无法归属区域</td>
+                      <td><span class="badge badge-warn">跳过该行</span></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">128</td>
+                      <td class="mono">launch_date</td>
+                      <td class="mono">2026/13/02</td>
+                      <td>日期格式非法（月份 13），已尝试按邻近格式推断但不可靠</td>
+                      <td><span class="badge badge-warn">跳过该行</span></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">402</td>
+                      <td class="mono">price</td>
+                      <td class="mono">-1</td>
+                      <td>售价为负值，疑似导出时未做减法保号</td>
+                      <td><span class="badge badge-warn">转人工确认</span></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">655</td>
+                      <td class="mono">category_path</td>
+                      <td class="mono">茶饮/芋泥系列</td>
+                      <td>类目层级分隔符为半角 /，已按平台标准归一为「茶饮 / 芋泥系列」</td>
+                      <td><span class="badge badge-info">已自动修正</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="panel-body">
+                <p class="t-mini">
+                  错误行会阻塞整批导入；警告行按策略跳过并在导入结果里列出；自动修正行保留原始值以便回溯。
+                </p>
+              </div>
+            </section>
+
+            <!-- 步骤 04：确认 -->
+            <section class="panel" aria-labelledby="h-cfm">
+              <div class="panel-head">
+                <h3 id="h-cfm">STEP 04 · 确认导入</h3>
+                <span class="badge">待提交</span>
+              </div>
+              <div class="panel-body stack-4">
+                <div class="form-grid-2">
+                  <div class="field">
+                    <label for="strategy">重复数据策略</label>
+                    <select class="input" id="strategy">
+                      <option>按主键 upsert（推荐）</option>
+                      <option>整批拒绝</option>
+                      <option>仅新增不更新</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="owner">数据责任人</label>
+                    <select class="input" id="owner">
+                      <option>运营管理员 · 张</option>
+                      <option>华东区运营 · 李</option>
+                    </select>
+                  </div>
+                </div>
+
+                <dl class="tpl-meta">
+                  <dt>平台</dt><dd>抖音电商</dd>
+                  <dt>数据集</dt><dd>商品主档 / product_master</dd>
+                  <dt>计划写入</dt><dd>1,283 行（跳过 1 行错误）</dd>
+                  <dt>新增 / 更新</dt><dd>新增 412 · 更新 871</dd>
+                  <dt>预计耗时</dt><dd>约 18 秒</dd>
+                </dl>
+
+                <div class="row">
+                  <button type="button" class="btn btn-primary">
+                    <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-check"></use></svg>
+                    <span>确认导入 1,283 行</span>
+                  </button>
+                  <button type="button" class="btn">上一步</button>
+                  <button type="button" class="btn btn-ghost">存为草稿</button>
+                </div>
+              </div>
+            </section>
+
+          </div>
+        </section>
+
+        <!-- 能力矩阵 -->
+        <section class="panel reveal" id="matrix" aria-labelledby="h-matrix">
+          <div class="panel-head">
+            <h3 id="h-matrix">已接入能力</h3>
+            <span class="badge mono">CAPABILITY MATRIX · 9</span>
+          </div>
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th scope="col">能力</th>
+                  <th scope="col">平台</th>
+                  <th scope="col">状态</th>
+                  <th scope="col" class="ta-r">字段数</th>
+                  <th scope="col">最近同步</th>
+                  <th scope="col">承载页面</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>商品主档</td><td>抖音电商</td>
+                  <td><span class="badge badge-online">已接入</span></td>
+                  <td class="mono ta-r">24</td><td class="mono">10-14 06:00</td>
+                  <td>商品上下文工作流</td>
+                </tr>
+                <tr>
+                  <td>商品主档</td><td>淘宝天猫</td>
+                  <td><span class="badge badge-online">已接入</span></td>
+                  <td class="mono ta-r">26</td><td class="mono">10-13 06:00</td>
+                  <td>商品上下文工作流</td>
+                </tr>
+                <tr>
+                  <td>SKU 库存</td><td>抖音电商</td>
+                  <td><span class="badge badge-info">已授权</span></td>
+                  <td class="mono ta-r">32</td><td class="mono txt-faint">—</td>
+                  <td>库存建议</td>
+                </tr>
+                <tr>
+                  <td>订单流水</td><td>拼多多</td>
+                  <td><span class="badge badge-online">已接入</span></td>
+                  <td class="mono ta-r">42</td><td class="mono">10-14 05:40</td>
+                  <td>门店经营看板</td>
+                </tr>
+                <tr>
+                  <td>退款记录</td><td>抖音电商</td>
+                  <td><span class="badge badge-online">已接入</span></td>
+                  <td class="mono ta-r">16</td><td class="mono">10-14 06:00</td>
+                  <td>诊断工作流</td>
+                </tr>
+                <tr>
+                  <td>绩效日报</td><td>自营后台</td>
+                  <td><span class="badge badge-online">已接入</span></td>
+                  <td class="mono ta-r">18</td><td class="mono">10-14 06:05</td>
+                  <td>绩效对比</td>
+                </tr>
+                <tr>
+                  <td>门店信息</td><td>自营后台</td>
+                  <td><span class="badge badge-online">已接入</span></td>
+                  <td class="mono ta-r">12</td><td class="mono">10-14 06:05</td>
+                  <td>全平台共用</td>
+                </tr>
+                <tr>
+                  <td>评价数据</td><td>拼多多</td>
+                  <td><span class="badge badge-warn">部分支持</span></td>
+                  <td class="mono ta-r">9</td><td class="mono">09-28 06:00</td>
+                  <td>素材生成</td>
+                </tr>
+                <tr>
+                  <td>结算账单</td><td>淘宝天猫</td>
+                  <td><span class="badge badge-warn">部分支持</span></td>
+                  <td class="mono ta-r">21</td><td class="mono txt-faint">—</td>
+                  <td>经营核算</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="panel-body">
+            <p class="t-mini">
+              能力经 ToolGateway 统一收敛，按租户 / 角色 / 租约 / 幂等四重管控；未开通的能力在工具面板里显示为不可用，而不是隐藏。
+            </p>
+          </div>
+        </section>
+
+        <p class="t-mini">
+          本页为静态设计稿：模板、预览数据与能力清单均为示意，不连接任何后端服务。
+        </p>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="icons.js"></script>
+<script>
+  (function () {
+    'use strict';
+
+    var lbl = document.getElementById('themeBtnText');
+    var root = document.documentElement;
+    function syncThemeLabel() {
+      if (!lbl) return;
+      lbl.textContent = root.getAttribute('data-theme') === 'dark' ? 'LIGHT' : 'DARK';
+    }
+    syncThemeLabel();
+    var btn = document.getElementById('themeBtn');
+    if (btn) btn.addEventListener('click', syncThemeLabel);
+
+    /* 3 个 CSV 导入表单的单选态（纯视觉，不切数据） */
+    var tabs = document.querySelectorAll('.form-card[role="tab"]');
+    Array.prototype.forEach.call(tabs, function (t) {
+      t.addEventListener('click', function () {
+        Array.prototype.forEach.call(tabs, function (x) { x.setAttribute('aria-selected', 'false'); });
+        t.setAttribute('aria-selected', 'true');
+      });
+    });
+
+    /* 平台 / 策略单选按钮组 */
+    Array.prototype.forEach.call(document.querySelectorAll('.opt-row'), function (group) {
+      var opts = group.querySelectorAll('.opt');
+      Array.prototype.forEach.call(opts, function (o) {
+        o.addEventListener('click', function () {
+          Array.prototype.forEach.call(opts, function (x) { x.setAttribute('aria-pressed', 'false'); });
+          o.setAttribute('aria-pressed', 'true');
+        });
+      });
+    });
+  })();
+</script>
+</body>
+</html>

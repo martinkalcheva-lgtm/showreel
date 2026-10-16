@@ -28,12 +28,12 @@ if errorlevel 1 (
 )
 echo.
 
-REM ---------- 2/4 主后端 18082 ----------
-echo [2/4] 启动主后端 FastAPI (端口 18082) ...
+REM ---------- 2/4 主后端 18083 ----------
+echo [2/4] 启动主后端 FastAPI (端口 18083) ...
 if not exist ".venv\Scripts\python.exe" (
     echo    [警告] 未找到 .venv\Scripts\python.exe，主后端可能起不来。请先执行: uv sync
 ) else (
-    start "szr-backend-18082" cmd /k ".venv\Scripts\python.exe main.py"
+    start "szr-backend-18083" cmd /k ".venv\Scripts\python.exe main.py"
 )
 echo.
 
@@ -46,21 +46,21 @@ if not exist "external\ecommerce-service-backend\.venv\Scripts\python.exe" (
 )
 echo.
 
-REM ---------- 4/4 前端 5173 ----------
-echo [4/4] 启动前端 Vite (端口 5173) ...
-start "szr-frontend-5173" cmd /k "cd /d ""%~dp0external\customer-service-frontend"" && npm run dev"
+REM ---------- 4/4 前端 18082 ----------
+echo [4/4] 启动前端 Vite (端口 18082) ...
+start "szr-frontend-18082" cmd /k "cd /d ""%~dp0external\customer-service-frontend"" && npm run dev"
 echo.
 
 echo 等待前端就绪后自动打开浏览器 ...
-call :wait_port 5173 60
-start "" "http://127.0.0.1:5173"
+call :wait_port 18082 60
+start "" "http://127.0.0.1:18082"
 
 echo.
 echo ------------------------------------------------------------
 echo  启动指令已全部下发，各服务在独立窗口运行。
-echo   - 主后端   : http://127.0.0.1:18082/docs
+echo   - 主后端   : http://127.0.0.1:18083/docs
 echo   - 电商后端 : http://127.0.0.1:18081/docs
-echo   - 前端     : http://127.0.0.1:5173
+echo   - 前端     : http://127.0.0.1:18082
 echo  关闭单个服务：直接关掉它自己的窗口。
 echo  全部关闭    ：双击「一键停止.bat」。
 echo ------------------------------------------------------------

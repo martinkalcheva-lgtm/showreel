@@ -1,0 +1,3196 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" class="js">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="静态设计稿：单品运营页 /products/[id]，覆盖建档、SKU 库存、竞品监控快照、诊断、创意生成、素材库、链接、投放、任务与复盘。">
+<title>单品运营页 /products/[id] · 多智能体运营平台 UI 设计稿</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f8f7f4'/%3E%3Cg fill='%230d1218'%3E%3Crect x='12' y='12' width='8' height='8'/%3E%3Crect x='4' y='4' width='4' height='4'/%3E%3Crect x='24' y='4' width='4' height='4'/%3E%3Crect x='4' y='24' width='4' height='4'/%3E%3Crect x='24' y='24' width='4' height='4'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="stylesheet" href="design-system.css">
+<style>
+  /* ========================================================================
+     页面级布局（product-detail）
+     硬约束：只消费 design-system.css 的 token 与组件类，不新增颜色/圆角/阴影/字体。
+     线上原版 /products/[id] 的 5 处问题与本稿修法：
+       1. 首屏不回答「现在什么状态、下一步干什么」 → 反白 lead 面板：状态 + 下一步 + 待处理清单
+       2. 10 个页签平铺、层级相同              → 页签只做导航；内容按运营闭环重排为 10 个带编号的区块
+       3. 关键数字散落在 6 个面板里              → 首屏统一为 4 个 KPI，只有 1 个是 accent 顶边（当前关注项）
+       4. 生成任务只有失败态有动作              → 三态齐备：进行中可取消 / 完成可入库评价 / 失败可重试
+       5. 竞品监控只列 changes 字符串           → 快照对比表：字段 / 上次 / 本次 / 变化 + 涨跌方向
+     ======================================================================== */
+  .app { grid-template-rows: auto auto 1fr; }
+
+  /* --- 声明带 ------------------------------------------------------------ */
+  .ribbon {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--sp-2) var(--sp-4); flex-wrap: wrap;
+    padding: .5rem var(--pad-x);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-subtle);
+  }
+  .legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); }
+  .legend > span {
+    display: inline-flex; align-items: center; gap: .4rem;
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted);
+  }
+  .sw { width: 10px; height: 10px; border: 1px solid var(--border); border-radius: var(--radius); flex: none; }
+  .sw-accent { background: var(--accent); }
+  .sw-ok     { background: var(--success); }
+  .sw-warn   { background: var(--warn); }
+  .sw-info   { background: var(--info); }
+  .sw-idle   { background: var(--surface-sunken); }
+
+  /* --- 骨架 -------------------------------------------------------------- */
+  /* 宽表格 min-width 会经由 grid 项的自动最小尺寸把整页撑宽（375px 会溢出 32px），
+     这里把外壳轨道的最小值钉成 0，让 .tbl-wrap 自己横向滚动。 */
+  .app, .app-body { grid-template-columns: minmax(0, 1fr); }
+  .pane, .wrap { min-width: 0; }
+  .wrap { width: 100%; max-width: var(--max-w); margin-inline: auto; }
+  .stack   { display: flex; flex-direction: column; gap: var(--sp-6); }
+  .stack-5 { display: flex; flex-direction: column; gap: var(--sp-5); }
+  .stack-4 { display: flex; flex-direction: column; gap: var(--sp-4); }
+  .stack-3 { display: flex; flex-direction: column; gap: var(--sp-3); }
+  .stack-2 { display: flex; flex-direction: column; gap: var(--sp-2); }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); }
+  .row-between { justify-content: space-between; }
+  .row-end { align-items: flex-end; }
+  .grow { flex: 1; min-width: 0; }
+  .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-4); }
+  .grid-2-1 { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: var(--sp-4); }
+  .grid-1-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: var(--sp-4); }
+  .code { font-family: var(--font-mono); font-size: var(--fs-mini); line-height: 1.75; color: var(--fg-secondary);
+          background: var(--surface-sunken); border: 1px solid var(--border); border-radius: var(--radius);
+          padding: var(--sp-3); overflow-x: auto; white-space: pre; }
+  .url { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted); overflow-wrap: anywhere; }
+  .mono-note { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  /* 375px 下导航文字不被挤成两行；容器自身可横向滚动（design-system 767 断点已给出 overflow-x） */
+  .app-top nav a { min-height: 44px; display: inline-flex; align-items: center; white-space: nowrap; flex: 0 0 auto; }
+  .ic-back { transform: rotate(90deg); }
+  [id] { scroll-margin-top: 130px; }
+
+  /* --- 区块头：长页面的节奏标记（eyebrow + 中文标题 + 口径） -------------- */
+  .sec { display: flex; flex-direction: column; gap: var(--sp-4); }
+  .sec-hd {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: var(--sp-3) var(--sp-4); flex-wrap: wrap;
+    margin-bottom: var(--sp-1); padding-bottom: var(--sp-3);
+    border-bottom: 1px solid var(--border);
+  }
+  .sec-hd h2 { font-size: var(--fs-h2); }
+  .sec-hd .mono-note { max-width: 62ch; text-align: right; }
+
+  /* --- 粘性页签导航（对应源码 10 个 tab 锚点） -------------------------- */
+  .subnav { border-bottom: 1px solid var(--border); background: var(--bg); }
+  .tabs { display: flex; gap: .25rem; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex: 0 0 auto;
+    display: inline-flex; align-items: center; justify-content: center; gap: .4em;
+    min-height: 44px; padding: .5rem .875rem;
+    border: 1px solid transparent; border-bottom: 0;
+    border-radius: var(--radius) var(--radius) 0 0;
+    background: transparent; color: var(--muted);
+    font-family: var(--font-mono); font-size: var(--fs-mini);
+    font-weight: 600; letter-spacing: .06em; white-space: nowrap;
+    transition: color var(--t-2) var(--ease-state), background-color var(--t-2) var(--ease-state);
+  }
+  .tab:hover { color: var(--fg); background: var(--surface-subtle); }
+  .tab[aria-selected="true"] { background: var(--surface); border-color: var(--border); color: var(--fg); margin-bottom: -1px; }
+  .tab .n { color: var(--faint); }
+  .tab[aria-selected="true"] .n { color: var(--accent); }
+
+  /* --- 页头与 KPI -------------------------------------------------------- */
+  .page-hd { display: flex; flex-direction: column; gap: var(--sp-4); }
+  .crumb {
+    display: inline-flex; align-items: center; gap: .4rem; min-height: 44px;
+    font-size: var(--fs-meta); color: var(--muted);
+  }
+  .crumb:hover { color: var(--fg); }
+  .hd-split { display: flex; flex-direction: column; gap: var(--sp-4); }
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-4); }
+  .kpi {
+    min-width: 0; padding: var(--sp-4);
+    border: 1px solid var(--border); border-top-width: 2px; border-radius: var(--radius);
+    background: var(--surface);
+    display: flex; flex-direction: column; gap: .5rem;
+  }
+  .kpi.is-lead { border-top-color: var(--accent); }
+  .kpi-lbl {
+    display: flex; align-items: center; gap: .5rem;
+    font-family: var(--font-mono); font-size: var(--fs-mini); font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--faint);
+  }
+  .kpi-val { font-family: var(--font-display); font-size: var(--fs-h1); font-weight: 700; line-height: 1.12; }
+  .kpi-val.is-idle { color: var(--muted); }
+  .kpi-desc { color: var(--muted); line-height: 1.7; flex: 1; }
+  .kpi-foot {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: .5rem; flex-wrap: wrap;
+    padding-top: var(--sp-3); border-top: 1px solid var(--border);
+  }
+
+  /* --- 反白 lead 面板（全页唯一最高层级） -------------------------------- */
+  .panel-inverted .lead-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+  .panel-inverted .lead-main { padding: var(--sp-5); border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: var(--sp-3); }
+  .panel-inverted .lead-side { padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-3); }
+  .panel-inverted h3, .panel-inverted h2 { font-size: var(--fs-h2); }
+  /* design-system.css 只给 .panel-inverted h3 反白；标题升为 h2 后需要同样的反白 */
+  .panel-inverted h2 { color: var(--bg); }
+  .panel-inverted .do { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-3); align-items: center; }
+  .panel-inverted .trace { background: transparent; border-color: color-mix(in oklch, var(--bg) 26%, var(--fg)); margin-bottom: 0; }
+  .panel-inverted .trace-hd {
+    border-bottom-color: color-mix(in oklch, var(--bg) 26%, var(--fg));
+    color: color-mix(in oklch, var(--bg) 74%, var(--fg));
+  }
+  .panel-inverted .trace-step { border-bottom-color: color-mix(in oklch, var(--bg) 18%, var(--fg)); }
+  .panel-inverted .trace-step p { color: color-mix(in oklch, var(--bg) 82%, var(--fg)); }
+  .panel-inverted .trace-time { color: color-mix(in oklch, var(--bg) 66%, var(--fg)); }
+  .panel-inverted .trace-dot { background: color-mix(in oklch, var(--bg) 46%, var(--fg)); }
+  .panel-inverted .trace-dot.done { background: var(--success); }
+  .panel-inverted .trace-dot.run { background: var(--warn); }
+  .panel-inverted .btn:not(.btn-primary) {
+    background: transparent;
+    border-color: color-mix(in oklch, var(--bg) 42%, var(--fg));
+    color: var(--bg);
+  }
+
+  /* --- 闭环进度轨（7 步 / 5 步共用） ------------------------------------- */
+  .flow {
+    display: grid; gap: 0; border: 1px solid var(--border);
+    border-radius: var(--radius); background: var(--surface); overflow: hidden;
+  }
+  .flow-7 { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .flow-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .flow-step {
+    min-width: 0; padding: var(--sp-3);
+    border-right: 1px solid var(--border);
+    border-top: 2px solid transparent;
+    display: flex; flex-direction: column; gap: .375rem;
+  }
+  .flow-step:last-child { border-right: 0; }
+  .flow-step.is-done { border-top-color: var(--success); }
+  .flow-step.is-next { border-top-color: var(--accent); background: var(--accent-tint); }
+  .flow-step.is-idle h4, .flow-step.is-idle h3 { color: var(--muted); }
+  .flow-idx { font-family: var(--font-mono); font-size: var(--fs-mini); font-weight: 700; letter-spacing: .1em; color: var(--faint); }
+  .flow-step h4, .flow-step h3 { font-size: var(--fs-body); }
+  .flow-step p { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted); line-height: 1.6; }
+  .flow-mark { display: inline-flex; align-items: center; gap: .375rem; font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  .flow-step.is-next .flow-mark { color: var(--accent); }
+
+  /* --- 语义 tint 块（来源字段的取值色，不新增颜色） ---------------------- */
+  .tint {
+    border: 1px solid var(--border); border-left: 3px solid var(--border-strong);
+    border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); min-width: 0;
+  }
+  .tint-lbl {
+    display: block; margin-bottom: .375rem;
+    font-family: var(--font-mono); font-size: var(--fs-mini); font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--faint);
+  }
+  .tint p { color: var(--fg-secondary); }
+  .tint-ok     { background: var(--success-tint); border-left-color: var(--success); }
+  .tint-warn   { background: var(--warn-tint);    border-left-color: var(--warn); }
+  .tint-info   { background: var(--info-tint);    border-left-color: var(--info); }
+  .tint-accent { background: var(--accent-tint);  border-left-color: var(--accent); }
+  .tint-accent .tint-lbl { color: var(--accent); }
+  .tint-ok .tint-lbl { color: var(--success); }
+  .tint-warn .tint-lbl { color: var(--warn); }
+  .tint-info .tint-lbl { color: var(--info); }
+
+  /* --- 提示条 ------------------------------------------------------------ */
+  .alert {
+    display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: .75rem;
+    align-items: center; min-height: 44px;
+    border: 1px solid var(--border); border-left: 3px solid var(--border-strong);
+    border-radius: var(--radius); background: var(--surface);
+    padding: var(--sp-3) var(--sp-4);
+  }
+  .alert-ok     { background: var(--success-tint); border-left-color: var(--success); }
+  .alert-warn   { background: var(--warn-tint);    border-left-color: var(--warn); }
+  .alert-fail   { background: var(--accent-tint);  border-left-color: var(--accent); }
+  .alert-info   { background: var(--info-tint);    border-left-color: var(--info); }
+  .alert .h { font-weight: 700; }
+
+  /* --- 指标小卡（源码 InsightMetric） ----------------------------------- */
+  .metrics { display: grid; gap: var(--sp-2); grid-template-columns: repeat(auto-fit, minmax(min(118px, 100%), 1fr)); }
+  .metrics-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .metric {
+    min-width: 0; padding: .5rem .75rem;
+    border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-sunken);
+  }
+  .metric .lbl { display: block; font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  .metric .val { display: block; margin-top: .125rem; font-family: var(--font-mono); font-weight: 700; }
+  .metric .val.is-ok { color: var(--success); }
+  .metric .val.is-warn { color: var(--warn); }
+  .metric .val.is-accent { color: var(--accent); }
+  .metric .val.is-idle { color: var(--muted); font-weight: 400; }
+
+  /* --- 生成任务三态 ------------------------------------------------------ */
+  .job {
+    display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0;
+    border: 1px solid var(--border); border-left-width: 3px; border-left-color: var(--border-strong);
+    border-radius: var(--radius); background: var(--surface); padding: var(--sp-3);
+  }
+  .job.is-run  { border-left-color: var(--warn); }
+  .job.is-ok   { border-left-color: var(--success); }
+  .job.is-fail { border-left-color: var(--accent); }
+  .job-hd { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); flex-wrap: wrap; }
+  .job-body { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--sp-3); align-items: start; }
+  .job-id { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+
+  /* --- 进度条 / 趋势条（只用 token 颜色） ------------------------------- */
+  .bar { height: 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-sunken); overflow: hidden; }
+  .bar > i { display: block; height: 100%; background: var(--border-strong); }
+  .bar > .is-run { background: var(--warn); }
+  .bar > .is-ok { background: var(--success); }
+  .bar > .is-accent { background: var(--accent); }
+  .bar > .is-info { background: var(--info); }
+  .trend { display: grid; grid-template-columns: 52px minmax(0, 1fr) 84px; gap: .5rem; align-items: center; }
+  .trend .t-lbl { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  .trend .t-val { text-align: right; font-family: var(--font-mono); font-size: var(--fs-mini); font-weight: 700; }
+
+  /* --- 快照对比 ---------------------------------------------------------- */
+  .delta { font-family: var(--font-mono); font-size: var(--fs-mini); font-weight: 700; white-space: nowrap; }
+  .d-up { color: var(--success); }
+  .d-down { color: var(--warn); }
+  .d-flat { color: var(--muted); }
+  .d-fail { color: var(--accent); }
+  .was { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); text-decoration: line-through; }
+  .now { font-family: var(--font-mono); font-weight: 700; }
+  .snap-hd {
+    display: grid; grid-template-columns: 130px minmax(0, 1fr);
+    gap: var(--sp-3); padding: .5rem var(--sp-3);
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted);
+    border-bottom: 1px solid var(--border); background: var(--surface-subtle);
+  }
+
+  /* --- 媒体占位（零外部依赖：不引图片，用标注块表达素材） ---------------- */
+  .thumb {
+    aspect-ratio: 1 / 1; width: 100%;
+    display: grid; place-items: center; text-align: center;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface-sunken);
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint);
+    padding: var(--sp-2);
+  }
+  .thumb-169 { aspect-ratio: 16 / 9; }
+  .thumb-sm { width: 64px; aspect-ratio: 1 / 1; }
+  .asset { display: flex; flex-direction: column; gap: var(--sp-3); }
+  .asset-fig { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface-sunken); }
+
+  /* --- 键值表 / 表单 ---------------------------------------------------- */
+  .kv { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .375rem var(--sp-3); }
+  .kv dt { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); white-space: nowrap; }
+  .kv dd { color: var(--fg-secondary); min-width: 0; overflow-wrap: anywhere; }
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: var(--sp-3); }
+  .input, select.input, input.input, textarea.input { min-width: 0; }
+  .input { min-height: 44px; }
+  textarea.input { min-height: 44px; }
+  details > summary {
+    display: flex; align-items: center; gap: .5rem; min-height: 44px;
+    cursor: pointer; color: var(--fg-secondary); font-weight: 600;
+  }
+  details > summary:hover { color: var(--fg); }
+  details.boxed {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface-subtle); padding: 0 var(--sp-3) var(--sp-3);
+  }
+  details.boxed[open] { padding-bottom: var(--sp-4); }
+  .lnk { display: inline-flex; align-items: center; gap: .375rem; min-height: 44px; color: var(--info); font-weight: 600; }
+  .lnk:hover { text-decoration: underline; }
+  .chip-row { display: flex; flex-wrap: wrap; gap: .375rem .5rem; }
+  .todo-step { padding: .5rem 0; }
+
+  /* --- 表格：正文 16px；宽表横向滚动而不是撑破布局 ----------------------- */
+  .tbl { font-size: var(--fs-body); min-width: 100%; }
+  .tbl-l { min-width: 720px; }
+  .tbl-x { min-width: 980px; }
+  .tbl .num { font-family: var(--font-mono); text-align: right; white-space: nowrap; }
+  .tbl .key { font-family: var(--font-mono); color: var(--faint); white-space: nowrap; }
+  .tbl .wrap-cell { min-width: 14rem; }
+  .tbl .actions { display: flex; flex-wrap: wrap; gap: .375rem; }
+  .cell-goods { display: flex; align-items: center; gap: var(--sp-3); min-width: 14rem; }
+  .cell-goods b { font-weight: 600; }
+  .cell-goods span { display: block; font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  .tbl-note {
+    display: flex; align-items: flex-start; gap: .5rem;
+    padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--border);
+    background: var(--surface-subtle);
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted); line-height: 1.7;
+  }
+
+  /* --- 空态：指向下一步而不是只说「暂无数据」 --------------------------- */
+  .empty-actions { display: flex; justify-content: center; gap: var(--sp-3); flex-wrap: wrap; margin-top: var(--sp-4); }
+  .empty-next {
+    margin-top: var(--sp-4); padding-top: var(--sp-4); border-top: 1px solid var(--border);
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted);
+    display: flex; align-items: center; justify-content: center; gap: .5rem; flex-wrap: wrap;
+    text-align: left;
+  }
+
+  /* --- 响应式 ------------------------------------------------------------ */
+  @media (min-width: 768px) {
+    .subnav { position: sticky; top: 60px; z-index: 30; }
+  }
+  @media (max-width: 1199px) {
+    .metrics-6 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (max-width: 1023px) {
+    .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .flow-7, .flow-5 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .flow-step { border-bottom: 1px solid var(--border); }
+    .panel-inverted .lead-grid { grid-template-columns: minmax(0, 1fr); }
+    .panel-inverted .lead-main { border-right: 0; border-bottom: 1px solid var(--border); }
+  }
+  @media (max-width: 899px) {
+    .grid-2, .grid-3, .grid-2-1, .grid-1-2 { grid-template-columns: minmax(0, 1fr); }
+    .sec-hd .mono-note { text-align: left; }
+    .job-body { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 767px) {
+    .app-top .brand .sub { display: none; }
+    .kpi-grid { grid-template-columns: minmax(0, 1fr); }
+    .flow-7, .flow-5 { grid-template-columns: minmax(0, 1fr); }
+    .flow-step { border-right: 0; }
+    .metrics-6 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ribbon { align-items: flex-start; }
+    .thumb-sm { width: 44px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ================= 顶栏 ================= -->
+  <header class="app-top">
+    <a class="brand" href="workspace.html">
+      <svg class="mark ic-lg" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <rect x="12" y="12" width="8" height="8" rx="2"/>
+        <rect x="4" y="4" width="4" height="4" rx="1"/>
+        <rect x="24" y="4" width="4" height="4" rx="1"/>
+        <rect x="4" y="24" width="4" height="4" rx="1"/>
+        <rect x="24" y="24" width="4" height="4" rx="1"/>
+      </svg>
+      <span>运营智能体</span>
+      <span class="sub">:80 / PRODUCTS / [ID]</span>
+    </a>
+
+    <nav aria-label="主导航">
+      <a href="workspace.html">工作台</a>
+      <a href="#overview" aria-current="page">商品池 / 单品</a>
+      <a href="imports.html">导入中心</a>
+      <a href="#agent">Agent 中心</a>
+    </nav>
+
+    <div class="row">
+      <span class="badge badge-online"><span class="status-led" aria-hidden="true"></span>:80 ONLINE</span>
+      <a class="btn btn-sm" href="index.html">
+        <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg>
+        <span>设计稿总览</span>
+      </a>
+      <button type="button" class="btn" id="themeBtn" aria-label="切换明暗主题">
+        <svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>主题
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= 设计稿声明带 ================= -->
+  <div class="ribbon">
+    <span class="eyebrow">DESIGN PROPOSAL · 静态设计稿 · 非线上系统</span>
+    <div class="legend">
+      <span><span class="sw sw-accent"></span>朱红 · 当前步骤 / 主行动 / 失败</span>
+      <span><span class="sw sw-ok"></span>翠绿 · 已完成 / 系统在线</span>
+      <span><span class="sw sw-warn"></span>琥珀 · 进行中 / 待人工处理</span>
+      <span><span class="sw sw-info"></span>蓝 · 信息 / 链接 / 中性变更</span>
+      <span><span class="sw sw-idle"></span>灰 · 未开始 / 无数据</span>
+    </div>
+    <span class="mono-note">覆盖源码 10 个页签 · 数据为示意值 · 不接后端接口</span>
+  </div>
+
+  <!-- ================= 主体 ================= -->
+  <main class="app-body">
+    <div class="pane">
+      <div class="wrap">
+        <div class="stack">
+
+          <!-- ============================================================
+               页头：这个单品是谁 + 现在什么状态（首屏上半）
+               ============================================================ -->
+          <header class="page-hd">
+            <a class="crumb" href="workspace.html">
+              <svg class="ic ic-sm ic-back" aria-hidden="true"><use href="#i-chev"></use></svg>
+              返回商品池
+            </a>
+
+            <div class="hd-split">
+              <div class="row row-between row-end">
+                <div class="stack-3">
+                  <span class="eyebrow">拼多多 · 户外背包 · STORE #03 户外旗舰店</span>
+                  <h1 class="t-h1">城市骑行背包 22L</h1>
+                  <div class="chip-row">
+                    <span class="tag">防泼水</span>
+                    <span class="tag">夜间反光条</span>
+                    <span class="tag">16 寸笔电仓</span>
+                    <span class="tag">透气背板</span>
+                  </div>
+                  <div class="row">
+                    <span class="mono-note">商品 #128</span>
+                    <span class="mono-note">外部 ID PD-88213</span>
+                    <span class="mono-note">资料更新 10-14 06:05</span>
+                    <span class="mono-note">5 SKU · 4 竞品 · 6 素材</span>
+                  </div>
+                </div>
+                <div class="row">
+                  <button type="button" class="btn">
+                    <svg class="ic ic-sm" aria-hidden="true"><use href="#i-doc"></use></svg>编辑商品档案
+                  </button>
+                  <button type="button" class="btn">
+                    <svg class="ic ic-sm" aria-hidden="true"><use href="#i-agent"></use></svg>启动运营 Agent
+                  </button>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <!-- ============================================================
+               反白 lead 面板：全页唯一最高层级 = 状态 + 下一步 + 待处理
+               ============================================================ -->
+          <section class="panel panel-inverted" aria-labelledby="h-lead">
+            <div class="lead-grid">
+              <div class="lead-main">
+                <span class="eyebrow">CURRENT STATE · 单品闭环 6 / 7</span>
+                <h2 id="h-lead">复盘待生成：把「继续放量还是换图」固化下来</h2>
+                <p>
+                  建档、竞品、诊断、素材、投放、数据六个环节已跑通。最近周期 10-07 至 10-13 回填 4 条经营数据，
+                  整体 ROI 2.43；夜间反光主图 ROI 3.12 是本周期唯一可放量素材。现在缺一份周期复盘，
+                  把「放量到日预算 ¥200、灰色规格补货、视频补拍结尾」三个决定写成下一步动作。
+                </p>
+                <div class="do">
+                  <span class="badge badge-accent">下一步 · STEP 07 复盘</span>
+                  <button type="button" class="btn btn-primary">
+                    <svg class="ic ic-sm" aria-hidden="true"><use href="#i-check"></use></svg>生成周期复盘
+                  </button>
+                  <button type="button" class="btn">查看经营数据</button>
+                </div>
+              </div>
+
+              <div class="lead-side">
+                <span class="eyebrow">BLOCKERS · 待你处理 3 项</span>
+                <div class="trace">
+                  <div class="trace-hd">
+                    <span>需要人工介入</span>
+                    <span>3 项</span>
+                  </div>
+                  <div class="trace-step todo-step">
+                    <span class="trace-dot" style="background:var(--accent)" aria-hidden="true"></span>
+                    <p><b>生成任务 #4821 视频草稿失败</b> · 供应商 429 限流，尝试 1 / 3</p>
+                    <button type="button" class="btn">重试</button>
+                  </div>
+                  <div class="trace-step todo-step">
+                    <span class="trace-dot run" aria-hidden="true"></span>
+                    <p><b>Agent Run #77 待人工审核</b> · 结构化草稿 2 个创意方案</p>
+                    <button type="button" class="btn">去审核</button>
+                  </div>
+                  <div class="trace-step todo-step">
+                    <span class="trace-dot run" aria-hidden="true"></span>
+                    <p><b>投放建议 AD-31 待人工确认</b> · 确认后才进入实验计划</p>
+                    <button type="button" class="btn">去确认</button>
+                  </div>
+                </div>
+                <p class="t-mini mono">只读权限账号下，以上写操作按钮全部隐藏（源码 canEdit 逻辑）。</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============================================================
+               首屏下半：4 个 KPI（只有 1 个 accent 顶边 = 当前关注项）
+               ============================================================ -->
+          <section aria-label="关键数字">
+            <div class="kpi-grid">
+              <article class="kpi is-lead">
+                <span class="kpi-lbl"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-db"></use></svg>售价 / 成本</span>
+                <span class="kpi-val">¥349.00</span>
+                <p class="kpi-desc">成本 ¥168.00，毛利 51.9%。竞品 B 降价至 ¥299 后，本品在同类通勤带已无价格优势。</p>
+                <div class="kpi-foot">
+                  <span class="badge badge-accent">价格需要决策</span>
+                  <span class="mono-note">下一步 · 复盘决定是否调价</span>
+                </div>
+              </article>
+
+              <article class="kpi">
+                <span class="kpi-lbl"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-search"></use></svg>竞品样本</span>
+                <span class="kpi-val">4</span>
+                <p class="kpi-desc">价格带 ¥299–¥429，均价 ¥354.50；本品低于 2 个、高于 2 个。已启用监控 3 个。</p>
+                <div class="kpi-foot">
+                  <span class="badge badge-info">数据完整度 94%</span>
+                  <span class="mono-note">1 个竞品缺少链接</span>
+                </div>
+              </article>
+
+              <article class="kpi">
+                <span class="kpi-lbl"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-copy"></use></svg>素材资产</span>
+                <span class="kpi-val">6</span>
+                <p class="kpi-desc">主图 4 · 视频 2；通过 2 · 复测 1 · 待评估 2 · 弃用 1。2 个素材已挂上经营数据。</p>
+                <div class="kpi-foot">
+                  <span class="badge badge-online">有可放量素材</span>
+                  <span class="mono-note">下一步 · 评价与复测</span>
+                </div>
+              </article>
+
+              <article class="kpi">
+                <span class="kpi-lbl"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-check"></use></svg>整体 ROI</span>
+                <span class="kpi-val">2.43</span>
+                <p class="kpi-desc">4 条经营数据：花费 ¥1,086.40、成交额约 ¥2,645、成交 12 单、整体 CTR 3.92%。</p>
+                <div class="kpi-foot">
+                  <span class="badge">口径：人工回填</span>
+                  <span class="mono-note">非平台实时扣费数据</span>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <!-- ============================================================
+               单品运营流程（源码 ProductWorkflowPanel · 7 步）
+               ============================================================ -->
+          <section class="stack-3" aria-labelledby="h-flow">
+            <div class="row row-between">
+              <h2 class="t-h2" id="h-flow">单品运营流程</h2>
+              <span class="mono-note">buildProductWorkflowSteps() 依数据判定 done；nextStep = 第一个未完成步骤</span>
+            </div>
+            <ol class="flow flow-7">
+              <li class="flow-step is-done">
+                <span class="flow-idx">STEP 01</span>
+                <h3>建档 / SKU</h3>
+                <p>5 SKU · 库存 216 件</p>
+                <span class="flow-mark"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-check"></use></svg>已完成</span>
+              </li>
+              <li class="flow-step is-done">
+                <span class="flow-idx">STEP 02</span>
+                <h3>竞品</h3>
+                <p>4 个竞品样本</p>
+                <span class="flow-mark"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-check"></use></svg>已完成</span>
+              </li>
+              <li class="flow-step is-done">
+                <span class="flow-idx">STEP 03</span>
+                <h3>诊断</h3>
+                <p>已有诊断结果</p>
+                <span class="flow-mark"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-check"></use></svg>已完成</span>
+              </li>
+              <li class="flow-step is-done">
+                <span class="flow-idx">STEP 04</span>
+                <h3>素材</h3>
+                <p>已有主图 / 视频草稿</p>
+                <span class="flow-mark"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-check"></use></svg>已完成</span>
+              </li>
+              <li class="flow-step is-done">
+                <span class="flow-idx">STEP 05</span>
+                <h3>投放</h3>
+                <p>3 个实验 · 1 个执行中</p>
+                <span class="flow-mark"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-check"></use></svg>已完成</span>
+              </li>
+              <li class="flow-step is-done">
+                <span class="flow-idx">STEP 06</span>
+                <h3>数据</h3>
+                <p>4 条经营数据</p>
+                <span class="flow-mark"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-check"></use></svg>已完成</span>
+              </li>
+              <li class="flow-step is-next">
+                <span class="flow-idx">STEP 07</span>
+                <h3>复盘</h3>
+                <p>生成周期复盘</p>
+                <span class="flow-mark"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-arrow-r"></use></svg>当前步骤</span>
+              </li>
+            </ol>
+          </section>
+
+          <!-- ============================================================
+               页签导航（源码 10 个 tab，对应下方 10 个区块）
+               ============================================================ -->
+          <nav class="subnav" aria-label="商品运营工作区">
+            <div class="tabs" role="tablist">
+              <a class="tab" role="tab" aria-selected="true" href="#overview">商品&amp;竞品 <span class="n">04</span></a>
+              <a class="tab" role="tab" aria-selected="false" href="#agent">运营 Agent <span class="n">01</span></a>
+              <a class="tab" role="tab" aria-selected="false" href="#diagnosis">诊断 <span class="n">01</span></a>
+              <a class="tab" role="tab" aria-selected="false" href="#creative">主图 / 视频 <span class="n">03</span></a>
+              <a class="tab" role="tab" aria-selected="false" href="#assets">素材库 <span class="n">06</span></a>
+              <a class="tab" role="tab" aria-selected="false" href="#links">链接 <span class="n">03</span></a>
+              <a class="tab" role="tab" aria-selected="false" href="#ads">投放 <span class="n">03</span></a>
+              <a class="tab" role="tab" aria-selected="false" href="#jobs">任务 <span class="n">08</span></a>
+              <a class="tab" role="tab" aria-selected="false" href="#review">复盘 <span class="n">04</span></a>
+              <a class="tab" role="tab" aria-selected="false" href="#states">空态 / 权限 <span class="n">04</span></a>
+            </div>
+          </nav>
+
+          <!-- ============================================================
+               区块 01 · 商品&竞品（tab=overview）
+               ============================================================ -->
+          <section class="sec" id="overview" aria-labelledby="h-overview">
+            <div class="sec-hd">
+              <div class="stack-2">
+                <span class="eyebrow">SECTION 01 · TAB=OVERVIEW · 商品&amp;竞品</span>
+                <h2 id="h-overview">建档 · SKU 库存 · 平台映射 · 竞品洞察 · 快照监控</h2>
+              </div>
+              <span class="mono-note">源码此页签左侧 4 个录入表单、右侧 4 个数据面板；本稿把「录入」压缩成一个折叠区块，把「事实」提到前面</span>
+            </div>
+
+            <!-- SKU 与库存 -->
+            <div class="panel">
+              <div class="panel-head">
+                <h3>SKU 与库存</h3>
+                <div class="row">
+                  <span class="badge">5 SKU</span>
+                  <span class="badge">库存 216 · 锁定 14 · 可用 202</span>
+                  <button type="button" class="btn">新建 SKU</button>
+                </div>
+              </div>
+              <div class="tbl-wrap">
+                <table class="tbl tbl-x">
+                  <caption style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">SKU 与库存列表，共 5 条</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">SKU 编码</th>
+                      <th scope="col">规格</th>
+                      <th scope="col" class="num">售价</th>
+                      <th scope="col" class="num">成本</th>
+                      <th scope="col" class="num">库存</th>
+                      <th scope="col" class="num">锁定</th>
+                      <th scope="col" class="num">预警线</th>
+                      <th scope="col">状态</th>
+                      <th scope="col">动作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="key">BP-22L-BK</td>
+                      <td>曜石黑 · 标准版</td>
+                      <td class="num">¥349.00</td>
+                      <td class="num">¥168.00</td>
+                      <td class="num">128</td>
+                      <td class="num">6</td>
+                      <td class="num">20</td>
+                      <td><span class="badge badge-online">在售</span></td>
+                      <td><div class="actions"><button type="button" class="btn">调整库存</button></div></td>
+                    </tr>
+                    <tr>
+                      <td class="key">BP-22L-GY</td>
+                      <td>深空灰 · 标准版</td>
+                      <td class="num">¥349.00</td>
+                      <td class="num">¥168.00</td>
+                      <td class="num">12</td>
+                      <td class="num">6</td>
+                      <td class="num">12</td>
+                      <td><span class="badge badge-warn">低库存</span></td>
+                      <td><div class="actions"><button type="button" class="btn">补货</button></div></td>
+                    </tr>
+                    <tr>
+                      <td class="key">BP-22L-OL</td>
+                      <td>橄榄绿 · 标准版</td>
+                      <td class="num">¥359.00</td>
+                      <td class="num">¥172.00</td>
+                      <td class="num">54</td>
+                      <td class="num">0</td>
+                      <td class="num">12</td>
+                      <td><span class="badge badge-online">在售</span></td>
+                      <td><div class="actions"><button type="button" class="btn">调整库存</button></div></td>
+                    </tr>
+                    <tr>
+                      <td class="key">BP-22L-BK-L</td>
+                      <td>曜石黑 · 加宽肩带</td>
+                      <td class="num">¥379.00</td>
+                      <td class="num">¥181.00</td>
+                      <td class="num">22</td>
+                      <td class="num">2</td>
+                      <td class="num">8</td>
+                      <td><span class="badge badge-online">在售</span></td>
+                      <td><div class="actions"><button type="button" class="btn">调整库存</button></div></td>
+                    </tr>
+                    <tr>
+                      <td class="key">BP-22L-BK-V2</td>
+                      <td>曜石黑 · 旧版</td>
+                      <td class="num">¥299.00</td>
+                      <td class="num">¥160.00</td>
+                      <td class="num">0</td>
+                      <td class="num">0</td>
+                      <td class="num">0</td>
+                      <td><span class="badge">已停用</span></td>
+                      <td><div class="actions"><button type="button" class="btn">启用</button></div></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="tbl-note">
+                <svg class="ic ic-sm" aria-hidden="true"><use href="#i-warn"></use></svg>
+                <span>
+                  库存建议：SKU <b>BP-22L-GY</b> 可用 6 件，已跌破预警线 12 件，而夜间反光主图正在放量 ——
+                  灰色规格要么补货 50 件，要么在投放实验里排除该规格，否则会以「有流量没货」收场。
+                  库存变化全部可追溯到 InventoryMovement 流水（人工盘点 / 导入修正）。
+                </span>
+              </div>
+            </div>
+
+            <!-- 平台映射 -->
+            <div class="panel">
+              <div class="panel-head">
+                <h3>平台映射</h3>
+                <div class="row">
+                  <span class="badge">2 条映射</span>
+                  <button type="button" class="btn">新增映射</button>
+                </div>
+              </div>
+              <div class="tbl-wrap">
+                <table class="tbl tbl-l">
+                  <thead>
+                    <tr>
+                      <th scope="col">平台</th>
+                      <th scope="col">外部商品 ID</th>
+                      <th scope="col">外部 SKU</th>
+                      <th scope="col">店铺</th>
+                      <th scope="col">Listing</th>
+                      <th scope="col">状态</th>
+                      <th scope="col">动作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>拼多多</td>
+                      <td class="key">PD-88213</td>
+                      <td class="key">PD-88213-BK / GY / OL</td>
+                      <td>户外旗舰店</td>
+                      <td><a class="lnk" href="#overview"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-ext"></use></svg>打开</a></td>
+                      <td><span class="badge badge-online">已上架</span></td>
+                      <td><div class="actions"><button type="button" class="btn">编辑</button></div></td>
+                    </tr>
+                    <tr>
+                      <td>抖音</td>
+                      <td class="key">DY-556102</td>
+                      <td class="key">—</td>
+                      <td>户外旗舰店（抖音）</td>
+                      <td><span class="mono-note">未填</span></td>
+                      <td><span class="badge badge-warn">SKU 未映射</span></td>
+                      <td><div class="actions"><button type="button" class="btn">绑定 SKU</button></div></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 竞品洞察 -->
+            <div class="panel">
+              <div class="panel-head">
+                <h3>竞品洞察</h3>
+                <div class="row">
+                  <span class="badge">完整度 94%</span>
+                  <span class="mono-note">buildCompetitorInsights() 只做轻量提示，缺样本时不推断真实市场</span>
+                </div>
+              </div>
+              <div class="panel-body stack-4">
+                <div class="metrics">
+                  <div class="metric"><span class="lbl">竞品数量</span><span class="val">4 个</span></div>
+                  <div class="metric"><span class="lbl">价格带</span><span class="val">¥299.00 - ¥429.00</span></div>
+                  <div class="metric"><span class="lbl">均价</span><span class="val">¥354.50</span></div>
+                  <div class="metric"><span class="lbl">价格位置</span><span class="val">低于 2 个，高于 2 个</span></div>
+                </div>
+                <div>
+                  <span class="eyebrow">卖点频次（跨竞品）</span>
+                  <div class="chip-row" style="margin-top:.5rem">
+                    <span class="tag">防泼水 ×2</span>
+                    <span class="tag">大容量 ×2</span>
+                    <span class="tag">透气背板 ×2</span>
+                    <span class="tag">反光条 ×1</span>
+                    <span class="tag">轻量 ×1</span>
+                    <span class="tag">笔电仓 ×1</span>
+                    <span class="tag">加固底 ×1</span>
+                    <span class="tag">加厚肩带 ×1</span>
+                  </div>
+                </div>
+                <div class="tint tint-info">
+                  <span class="tint-lbl">读法</span>
+                  <p>「防泼水 / 大容量 / 透气背板」已在同类竞品里普及，不再是差异化点；「夜间反光条」只有 1 个竞品提到 —— 这正是本品主图方案 41 的支点。</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 竞品列表 -->
+            <div class="panel">
+              <div class="panel-head">
+                <h3>竞品列表</h3>
+                <div class="row">
+                  <span class="badge">价格样本 ¥299–¥429</span>
+                  <button type="button" class="btn">录入竞品</button>
+                </div>
+              </div>
+              <div class="tbl-wrap">
+                <table class="tbl tbl-x">
+                  <thead>
+                    <tr>
+                      <th scope="col">竞品</th>
+                      <th scope="col">平台</th>
+                      <th scope="col" class="num">售价</th>
+                      <th scope="col" class="wrap-cell">标题</th>
+                      <th scope="col" class="wrap-cell">卖点</th>
+                      <th scope="col">动作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <div class="cell-goods">
+                          <span class="thumb thumb-sm" aria-hidden="true">IMG</span>
+                          <span><b>竞品 A · 通勤防水背包 20L</b><span>淘宝 · 已监控</span></span>
+                        </div>
+                      </td>
+                      <td>淘宝</td>
+                      <td class="num">¥299.00</td>
+                      <td>加厚防泼水通勤背包 20L 男女情侣款</td>
+                      <td><div class="chip-row"><span class="tag">防泼水</span><span class="tag">大容量</span><span class="tag">反光条</span></div></td>
+                      <td><div class="actions"><button type="button" class="btn">查看链接</button></div></td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div class="cell-goods">
+                          <span class="thumb thumb-sm" aria-hidden="true">IMG</span>
+                          <span><b>竞品 B · 骑行双肩包 25L</b><span>拼多多 · 已监控 · 有快照变化</span></span>
+                        </div>
+                      </td>
+                      <td>拼多多</td>
+                      <td class="num">¥299.00</td>
+                      <td>城市骑行双肩包 25L 透气背板 加绒内胆</td>
+                      <td><div class="chip-row"><span class="tag">透气背板</span><span class="tag">大容量</span><span class="tag">加厚肩带</span><span class="tag">加绒内胆</span></div></td>
+                      <td><div class="actions"><button type="button" class="btn">查看链接</button></div></td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div class="cell-goods">
+                          <span class="thumb thumb-sm" aria-hidden="true">IMG</span>
+                          <span><b>竞品 C · 轻量通勤包 18L</b><span>天猫 · 已监控 · 快照失败</span></span>
+                        </div>
+                      </td>
+                      <td>天猫</td>
+                      <td class="num">¥429.00</td>
+                      <td>轻量尼龙通勤背包 18L 极简商务</td>
+                      <td><div class="chip-row"><span class="tag">轻量</span><span class="tag">笔电仓</span></div></td>
+                      <td><div class="actions"><button type="button" class="btn">查看链接</button></div></td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div class="cell-goods">
+                          <span class="thumb thumb-sm" aria-hidden="true">IMG</span>
+                          <span><b>竞品 D · 户外背包 22L</b><span>京东 · 缺少链接</span></span>
+                        </div>
+                      </td>
+                      <td>京东</td>
+                      <td class="num">¥361.00</td>
+                      <td>户外登山背包 22L 加固底</td>
+                      <td><div class="chip-row"><span class="tag">防泼水</span><span class="tag">加固底</span></div></td>
+                      <td><div class="actions"><button type="button" class="btn">补链接</button></div></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 竞品监控 + 快照对比（本页最需要「变化了什么、涨了还是跌了」） -->
+            <div class="panel">
+              <div class="panel-head">
+                <h3>竞品监控 · 快照对比</h3>
+                <div class="row">
+                  <span class="badge badge-online">已启用 3 个</span>
+                  <span class="mono-note">检查时只解析已录入的公开链接</span>
+                  <button type="button" class="btn">全部检查</button>
+                </div>
+              </div>
+
+              <div class="tbl-wrap">
+                <table class="tbl tbl-x">
+                  <thead>
+                    <tr>
+                      <th scope="col">竞品</th>
+                      <th scope="col">监控节奏</th>
+                      <th scope="col">上次检查</th>
+                      <th scope="col">下次检查</th>
+                      <th scope="col" class="wrap-cell">最新快照变化</th>
+                      <th scope="col">动作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><b>竞品 B · 骑行双肩包 25L</b><br><span class="mono-note">拼多多</span></td>
+                      <td class="key">每 1 天</td>
+                      <td class="key">10-14 06:05</td>
+                      <td class="key">10-15 06:00</td>
+                      <td>
+                        <div class="chip-row">
+                          <span class="badge badge-warn">降价 9.1%</span>
+                          <span class="badge badge-info">新增卖点「加绒内胆」</span>
+                          <span class="badge">主图已更换</span>
+                        </div>
+                      </td>
+                      <td><div class="actions"><button type="button" class="btn">立即检查</button></div></td>
+                    </tr>
+                    <tr>
+                      <td><b>竞品 A · 通勤防水背包 20L</b><br><span class="mono-note">淘宝</span></td>
+                      <td class="key">每 1 天</td>
+                      <td class="key">10-14 06:05</td>
+                      <td class="key">10-15 06:00</td>
+                      <td><div class="chip-row"><span class="badge">无变化</span></div></td>
+                      <td><div class="actions"><button type="button" class="btn">立即检查</button></div></td>
+                    </tr>
+                    <tr>
+                      <td><b>竞品 C · 轻量通勤包 18L</b><br><span class="mono-note">天猫</span></td>
+                      <td class="key">每 2 天</td>
+                      <td class="key">10-12 21:40（失败）</td>
+                      <td class="key">10-14 21:40</td>
+                      <td><span class="badge badge-accent">快照失败 · HTTP 403</span></td>
+                      <td><div class="actions"><button type="button" class="btn">重试检查</button></div></td>
+                    </tr>
+                    <tr>
+                      <td><b>竞品 D · 户外背包 22L</b><br><span class="mono-note">京东</span></td>
+                      <td class="key">未启用</td>
+                      <td class="key">—</td>
+                      <td class="key">—</td>
+                      <td><span class="badge">缺少链接，无法监控</span></td>
+                      <td><div class="actions"><button type="button" class="btn" disabled>启用监控</button></div></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- 单条快照对比：字段 / 上次 / 本次 / 变化 -->
+              <div class="panel-body">
+                <div class="panel">
+                  <div class="panel-head">
+                    <h3>快照对比 · 竞品 B（拼多多）</h3>
+                    <div class="row">
+                      <span class="badge badge-info">10-12 22:10 → 10-14 06:05</span>
+                      <span class="badge badge-warn">3 项变化需要跟进</span>
+                    </div>
+                  </div>
+                  <div class="snap-hd">
+                    <span>字段</span>
+                    <span>上次快照 10-12 / 本次快照 10-14 / 变化方向</span>
+                  </div>
+                  <div class="tbl-wrap">
+                    <table class="tbl tbl-l">
+                      <thead>
+                        <tr>
+                          <th scope="col">字段</th>
+                          <th scope="col">上次快照</th>
+                          <th scope="col">本次快照</th>
+                          <th scope="col">变化</th>
+                          <th scope="col">对本品的影响</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td class="key">售价</td>
+                          <td><span class="was">¥329.00</span></td>
+                          <td><span class="now">¥299.00</span></td>
+                          <td><span class="delta d-down">↓ 9.1%（−¥30.00）</span></td>
+                          <td>竞品跌到本品下方 ¥50，通勤价格带被压缩</td>
+                        </tr>
+                        <tr>
+                          <td class="key">卖点</td>
+                          <td><span class="was">4 项</span></td>
+                          <td><span class="now">5 项</span></td>
+                          <td><span class="delta d-up">↑ 新增「加绒内胆」</span></td>
+                          <td>冬季场景分流，本品透气背板不再独占</td>
+                        </tr>
+                        <tr>
+                          <td class="key">销量提示</td>
+                          <td><span class="was">2.1 万+</span></td>
+                          <td><span class="now">3.4 万+</span></td>
+                          <td><span class="delta d-up">↑ 61.9%</span></td>
+                          <td>降价已带来动销，需观察是否持续</td>
+                        </tr>
+                        <tr>
+                          <td class="key">主图</td>
+                          <td><span class="was">V3</span></td>
+                          <td><span class="now">V4</span></td>
+                          <td><span class="delta d-flat">已更换（中性）</span></td>
+                          <td>主图迭代频率变高，本品主图需同步更新</td>
+                        </tr>
+                        <tr>
+                          <td class="key">标题</td>
+                          <td><span class="was">城市骑行双肩包 25L 透气背板</span></td>
+                          <td><span class="now">城市骑行双肩包 25L 透气背板 加绒内胆</span></td>
+                          <td><span class="delta d-flat">追加关键词</span></td>
+                          <td>搜索词覆盖扩大，本品标题可补「反光条」</td>
+                        </tr>
+                        <tr>
+                          <td class="key">解析状态</td>
+                          <td><span class="mono-note">成功</span></td>
+                          <td><span class="mono-note">成功</span></td>
+                          <td><span class="delta d-flat">—</span></td>
+                          <td>快照失败也入库，用于区分页面变化与平台限制</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div class="tbl-note">
+                    <svg class="ic ic-sm" aria-hidden="true"><use href="#i-warn"></use></svg>
+                    <span>建议动作：不跟进降价；主图补一版「反光条 + 笔电仓」组合，标题补关键词「夜间反光」，并在复盘中记录该竞品的后续两个快照以判断降价是否持续。</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 录入区（折叠，避免与上面的事实面板抢层级） -->
+            <details class="boxed">
+              <summary>
+                <svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>
+                建档与录入（商品档案 / 新建 SKU / 竞品链接导入 / 手动录入竞品）· 4 个表单
+              </summary>
+              <div class="grid-2" style="margin-top:var(--sp-3)">
+                <div class="panel">
+                  <div class="panel-head"><h3>商品档案</h3><span class="badge">ProductEditForm</span></div>
+                  <div class="panel-body stack-3">
+                    <div class="form-grid">
+                      <div class="field"><label for="p-name">商品名称</label><input class="input" id="p-name" value="城市骑行背包 22L" readonly></div>
+                      <div class="field"><label for="p-plat">平台</label><select class="input" id="p-plat"><option>拼多多</option><option>抖音</option><option>淘宝</option><option>天猫</option><option>京东</option><option>Amazon</option></select></div>
+                      <div class="field"><label for="p-cat">类目</label><input class="input" id="p-cat" value="户外背包" readonly></div>
+                      <div class="field"><label for="p-price">售价</label><input class="input mono" id="p-price" value="349.00" readonly></div>
+                      <div class="field"><label for="p-cost">成本</label><input class="input mono" id="p-cost" value="168.00" readonly></div>
+                      <div class="field"><label for="p-aud">目标人群</label><input class="input" id="p-aud" value="城市通勤骑行者 · 25–35 岁 · 一二线" readonly></div>
+                    </div>
+                    <div class="field"><label for="p-sp">卖点（逗号分隔）</label><input class="input" id="p-sp" value="防泼水，夜间反光条，16 寸笔电仓，透气背板" readonly></div>
+                    <div class="row">
+                      <button type="button" class="btn">保存档案</button>
+                      <span class="mono-note">静态稿：表单为只读示意，不提交</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="panel">
+                  <div class="panel-head"><h3>新建 SKU</h3><span class="badge">SkuCreateForm</span></div>
+                  <div class="panel-body stack-3">
+                    <div class="form-grid">
+                      <div class="field"><label for="s-code">SKU 编码</label><input class="input mono" id="s-code" placeholder="BP-22L-RD"></div>
+                      <div class="field"><label for="s-name">规格名称</label><input class="input" id="s-name" placeholder="火山红 · 标准版"></div>
+                      <div class="field"><label for="s-price">售价</label><input class="input mono" id="s-price" placeholder="349.00"></div>
+                      <div class="field"><label for="s-cost">成本</label><input class="input mono" id="s-cost" placeholder="168.00"></div>
+                    </div>
+                    <div class="field"><label for="s-attr">属性（JSON）</label><textarea class="input mono" id="s-attr" rows="2" placeholder='{"color":"火山红","size":"标准"}'></textarea></div>
+                    <button type="button" class="btn btn-primary">创建 SKU</button>
+                  </div>
+                </div>
+
+                <div class="panel">
+                  <div class="panel-head"><h3>竞品链接导入</h3><span class="badge">CompetitorUrlImportForm</span></div>
+                  <div class="panel-body stack-3">
+                    <div class="field"><label for="ci-url">公开商品页 URL</label><input class="input mono" id="ci-url" placeholder="https://..."></div>
+                    <div class="form-grid">
+                      <div class="field"><label for="ci-plat">平台</label><select class="input" id="ci-plat"><option>拼多多</option><option>淘宝</option><option>天猫</option><option>京东</option></select></div>
+                      <div class="field"><label for="ci-int">监控节奏</label><select class="input" id="ci-int"><option>每 1 天</option><option>每 2 天</option><option>每 7 天</option></select></div>
+                    </div>
+                    <button type="button" class="btn">提交解析任务</button>
+                    <p class="mono-note">提交后进入「公开链接解析任务」队列，异步解析成竞品档案，失败可重试 3 次。</p>
+                  </div>
+                </div>
+
+                <div class="panel">
+                  <div class="panel-head"><h3>手动录入竞品</h3><span class="badge">CompetitorCreateForm</span></div>
+                  <div class="panel-body stack-3">
+                    <div class="form-grid">
+                      <div class="field"><label for="c-name">竞品名称</label><input class="input" id="c-name" placeholder="竞品 E · 通勤包 20L"></div>
+                      <div class="field"><label for="c-plat2">平台</label><select class="input" id="c-plat2"><option>淘宝</option><option>拼多多</option><option>天猫</option><option>京东</option></select></div>
+                      <div class="field"><label for="c-price">售价</label><input class="input mono" id="c-price" placeholder="299.00"></div>
+                      <div class="field"><label for="c-url">链接</label><input class="input mono" id="c-url" placeholder="https://..."></div>
+                    </div>
+                    <div class="field"><label for="c-title">标题</label><input class="input" id="c-title" placeholder="加厚防泼水通勤背包 20L"></div>
+                    <div class="field"><label for="c-sp">卖点（逗号分隔）</label><input class="input" id="c-sp" placeholder="防泼水，大容量"></div>
+                    <button type="button" class="btn">保存竞品</button>
+                  </div>
+                </div>
+              </div>
+            </details>
+          </section>
+
+          <!-- ============================================================
+               区块 02 · 运营 Agent（tab=agent）
+               ============================================================ -->
+          <section class="sec" id="agent" aria-labelledby="h-agent">
+            <div class="sec-hd">
+              <div class="stack-2">
+                <span class="eyebrow">SECTION 02 · TAB=AGENT · 运营 Agent</span>
+                <h2 id="h-agent">1 主 4 子协作 · 质量审核 · 人工审批 · 运行轨迹</h2>
+              </div>
+              <span class="mono-note">AgentRunPanel：最终结果只有人工确认后才写入诊断与创意方案；本步骤不自动执行投放或资金操作</span>
+            </div>
+
+            <div class="grid-2-1">
+              <div class="stack-4">
+                <!-- 启动 -->
+                <div class="panel">
+                  <div class="panel-head">
+                    <h3>商品运营 Agent</h3>
+                    <div class="row">
+                      <span class="badge badge-warn">Run #77 · v1.4.0 · 待审核</span>
+                      <span class="badge">workflow product_ops</span>
+                    </div>
+                  </div>
+                  <div class="panel-body stack-3">
+                    <p>内部专家按固定流程协作，质量不达标最多返修 1 次；从商品信息到可审核运营方案，全程留事件轨迹。</p>
+                    <div class="row row-between">
+                      <div class="row">
+                        <button type="button" class="btn btn-primary" disabled>
+                          <svg class="ic ic-sm" aria-hidden="true"><use href="#i-agent"></use></svg>运行进行中
+                        </button>
+                        <span class="mono-note">活动运行未结束前不可重复启动</span>
+                      </div>
+                      <div class="row">
+                        <span class="mono-note">返修 0 / 1</span>
+                        <span class="mono-note">模型调用 9 次</span>
+                        <span class="mono-note">Token 18,432</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 专家协作进度 -->
+                <div class="panel">
+                  <div class="panel-head">
+                    <h3>专家协作进度</h3>
+                    <span class="badge badge-warn">等待人工审核</span>
+                  </div>
+                  <div class="tbl-wrap">
+                    <table class="tbl tbl-l">
+                      <thead>
+                        <tr>
+                          <th scope="col">子智能体</th>
+                          <th scope="col">角色</th>
+                          <th scope="col">状态</th>
+                          <th scope="col" class="num">耗时</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td><b>商品上下文</b><br><span class="mono-note">product_context_agent</span></td>
+                          <td>汇总商品档案、SKU、库存与平台映射</td>
+                          <td><span class="badge badge-online">已完成</span></td>
+                          <td class="num">1,240 ms</td>
+                        </tr>
+                        <tr>
+                          <td><b>运营诊断</b><br><span class="mono-note">diagnosis_agent</span></td>
+                          <td>定位、价格带、痛点、风险与建议</td>
+                          <td><span class="badge badge-online">已完成</span></td>
+                          <td class="num">6,820 ms</td>
+                        </tr>
+                        <tr>
+                          <td><b>创意策略</b><br><span class="mono-note">creative_strategy_agent</span></td>
+                          <td>主图方案与短视频脚本草稿</td>
+                          <td><span class="badge badge-online">已完成</span></td>
+                          <td class="num">9,140 ms</td>
+                        </tr>
+                        <tr>
+                          <td><b>质量审核</b><br><span class="mono-note">quality_review_agent</span></td>
+                          <td>结构、差异性、合规规则检查</td>
+                          <td><span class="badge badge-online">已完成</span></td>
+                          <td class="num">2,060 ms</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- 质量审核 -->
+                <div class="panel">
+                  <div class="panel-head">
+                    <h3>质量审核</h3>
+                    <div class="row">
+                      <span class="badge badge-online">通过 · 88 分</span>
+                      <span class="mono-note">阈值 80 分</span>
+                    </div>
+                  </div>
+                  <div class="panel-body stack-3">
+                    <div class="alert alert-warn">
+                      <svg class="ic" aria-hidden="true"><use href="#i-warn"></use></svg>
+                      <span><b class="h">1 条警告</b> · creative_plans[1].hook 与主图文案重复度 0.62，建议替换首句（不影响通过）</span>
+                      <span class="badge badge-warn">warning</span>
+                    </div>
+                    <dl class="kv">
+                      <dt>结构校验</dt><dd>diagnosis 字段完整，creative_plans 2 条均含 content</dd>
+                      <dt>差异性</dt><dd>两条主图方案的角度差异 0.34，高于阈值 0.25</dd>
+                      <dt>合规规则</dt><dd>未出现绝对化用语、医疗宣称与价格承诺</dd>
+                    </dl>
+                  </div>
+                </div>
+
+                <!-- 人工审核 -->
+                <div class="panel" style="border-color:var(--border-accent)">
+                  <div class="panel-head" style="background:var(--warn-tint)">
+                    <h3>等待人工审核</h3>
+                    <span class="badge badge-warn">awaiting_review</span>
+                  </div>
+                  <div class="panel-body stack-4">
+                    <p>可直接通过、编辑完整结构化草稿后通过，或驳回。通过后草稿写入诊断与创意方案；驳回则保留轨迹不落库。</p>
+                    <div class="field">
+                      <label for="draft">结构化草稿（可编辑 · 只读示意）</label>
+                      <pre class="code" id="draft">{
+  "diagnosis": {
+    "positioning": "专业骑行通勤价格带上沿，防泼水与反光条是可直接感知的差异化点",
+    "price_band": "¥319–¥369",
+    "pain_points": ["背带压肩", "雨天进水", "笔电仓太薄", "反光条面积小"],
+    "recommendations": ["生成 2 版主图", "灰色规格补货或暂停投放", "视频优先拍雨天测试"]
+  },
+  "creative_plans": [
+    { "type": "main_image",   "title": "夜间反光 · 通勤安全", "content": { "headline": "夜骑有光，才敢晚归" } },
+    { "type": "video_script", "title": "雨天 30 秒实测",     "content": { "hook": "今天不测颜值，只测防水" } }
+  ]
+}</pre>
+                    </div>
+                    <div class="field">
+                      <label for="note">审核备注</label>
+                      <input class="input" id="note" placeholder="可选：记录修改原因或驳回原因">
+                    </div>
+                    <div class="row">
+                      <button type="button" class="btn btn-primary">
+                        <svg class="ic ic-sm" aria-hidden="true"><use href="#i-check"></use></svg>直接通过
+                      </button>
+                      <button type="button" class="btn">保存编辑并通过</button>
+                      <button type="button" class="btn btn-ghost">驳回</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 右栏：运行轨迹 + 最近运行 -->
+              <div class="stack-4">
+                <div class="trace">
+                  <div class="trace-hd">
+                    <span>运行轨迹 · RUN #77</span>
+                    <span>9 条事件</span>
+                  </div>
+                  <div class="trace-step">
+                    <span class="trace-dot done" aria-hidden="true"></span>
+                    <p>已进入队列</p>
+                    <span class="trace-time">09:12:04</span>
+                  </div>
+                  <div class="trace-step">
+                    <span class="trace-dot done" aria-hidden="true"></span>
+                    <p>工作流启动 · product_ops v1.4.0</p>
+                    <span class="trace-time">09:12:05</span>
+                  </div>
+                  <div class="trace-step">
+                    <span class="trace-dot done" aria-hidden="true"></span>
+                    <p>商品上下文 · 处理完成</p>
+                    <span class="trace-time">09:12:06 · 1,240 ms</span>
+                  </div>
+                  <div class="trace-step">
+                    <span class="trace-dot done" aria-hidden="true"></span>
+                    <p>运营诊断 · 处理完成</p>
+                    <span class="trace-time">09:12:13 · 6,820 ms</span>
+                  </div>
+                  <div class="trace-step">
+                    <span class="trace-dot done" aria-hidden="true"></span>
+                    <p>创意策略 · 生成 2 条创意方案</p>
+                    <span class="trace-time">09:12:22 · 9,140 ms</span>
+                  </div>
+                  <div class="trace-step">
+                    <span class="trace-dot done" aria-hidden="true"></span>
+                    <p>质量审核 · 88 分 / 1 条警告</p>
+                    <span class="trace-time">09:12:24 · 2,060 ms</span>
+                  </div>
+                  <div class="trace-step">
+                    <span class="trace-dot skip" aria-hidden="true"></span>
+                    <p>质量返修 · 未触发（分数达标）</p>
+                    <span class="trace-time">—</span>
+                  </div>
+                  <div class="trace-step">
+                    <span class="trace-dot run" aria-hidden="true"></span>
+                    <p>等待人工审核</p>
+                    <span class="trace-time">09:12:24 起</span>
+                  </div>
+                </div>
+
+                <div class="panel">
+                  <div class="panel-head"><h3>最近运行</h3><span class="badge">近 5 条</span></div>
+                  <div class="panel-body stack-2">
+                    <div class="row row-between"><span class="mono-note">Run #77 · 10-14 09:12</span><span class="badge badge-warn">待审核</span></div>
+                    <div class="row row-between"><span class="mono-note">Run #76 · 10-13 21:02</span><span class="badge badge-online">已完成</span></div>
+                    <div class="row row-between"><span class="mono-note">Run #75 · 10-13 20:41</span><span class="badge badge-accent">已驳回</span></div>
+                    <div class="row row-between"><span class="mono-note">Run #74 · 10-12 22:08</span><span class="badge badge-accent">失败</span></div>
+                    <div class="row row-between"><span class="mono-note">Run #73 · 10-12 09:30</span><span class="badge badge-online">已完成</span></div>
+                  </div>
+                </div>
+
+                <div class="panel">
+                  <div class="panel-head"><h3>批准后会写入</h3><span class="badge">幂等</span></div>
+                  <div class="panel-body">
+                    <dl class="kv">
+                      <dt>诊断</dt><dd>ProductDiagnosis 1 条（agent_run_id = 77）</dd>
+                      <dt>创意方案</dt><dd>CreativePlan 2 条（main_image / video_script，状态 draft）</dd>
+                      <dt>副作用</dt><dd>写入前先声明 operation_key，避免重复投递产生双份方案</dd>
+                      <dt>不写入</dt><dd>投放建议、预算、库存与任何资金动作</dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============================================================
+               区块 03 · 诊断（tab=diagnosis）
+               ============================================================ -->
+          <section class="sec" id="diagnosis" aria-labelledby="h-diagnosis">
+            <div class="sec-hd">
+              <div class="stack-2">
+                <span class="eyebrow">SECTION 03 · TAB=DIAGNOSIS · 诊断</span>
+                <h2 id="h-diagnosis">定位 · 价格带 · 痛点 · 卖点判断 · 风险 · 下一步建议</h2>
+              </div>
+              <span class="mono-note">诊断是下游一切生成物（主图 / 视频 / 投放建议）的输入；没有诊断时先补竞品再生成</span>
+            </div>
+
+            <div class="grid-2-1">
+              <div class="panel">
+                <div class="panel-head">
+                  <h3>商品诊断</h3>
+                  <div class="row">
+                    <span class="badge badge-info">来源：Agent Run #77</span>
+                    <span class="mono-note">10-14 09:12</span>
+                    <button type="button" class="btn">
+                      <svg class="ic ic-sm" aria-hidden="true"><use href="#i-arrow-r"></use></svg>重新生成诊断
+                    </button>
+                  </div>
+                </div>
+                <div class="panel-body stack-4">
+                  <div class="tint tint-ok">
+                    <span class="tint-lbl">定位判断</span>
+                    <p>本品处于「专业骑行通勤」价格带上沿：¥349 与同容量竞品（¥299–¥429）交叉覆盖，防泼水与夜间反光条是可直接感知的差异化点；但「加宽肩带」规格与竞品 B 新增的「加绒内胆」在冬季场景存在被替代风险。</p>
+                  </div>
+
+                  <div class="tint">
+                    <span class="tint-lbl">价格带判断</span>
+                    <p>舒适带 ¥319–¥369。竞品 B 降价至 ¥299 后已进入本品带下方 ¥50，建议不跟进降价，改用「反光条 + 16 寸笔电仓」组合强化夜间通勤人群的确定性收益。</p>
+                  </div>
+
+                  <div class="grid-2">
+                    <div class="tint">
+                      <span class="tint-lbl">用户痛点</span>
+                      <ul class="stack-2">
+                        <li>背带压肩，超过 20 分钟通勤明显</li>
+                        <li>背包底部雨天吸水</li>
+                        <li>笔电仓太薄，16 寸需要硬塞</li>
+                        <li>反光条面积小，车灯下不易被识别</li>
+                      </ul>
+                    </div>
+                    <div class="tint">
+                      <span class="tint-lbl">卖点判断</span>
+                      <ul class="stack-2">
+                        <li><b>防泼水</b> · 可感知，适合做镜头证据</li>
+                        <li><b>夜间反光条</b> · 差异化，竞品仅 1 个提及</li>
+                        <li><b>16 寸笔电仓</b> · 刚需，可直接对拍摄</li>
+                        <li><b>透气背板</b> · 弱感知，难在静图中表达</li>
+                      </ul>
+                    </div>
+                    <div class="tint tint-warn">
+                      <span class="tint-lbl">风险点</span>
+                      <ul class="stack-2">
+                        <li>灰色规格可用库存仅 6 件，放量即断货</li>
+                        <li>竞品 B 用「加绒内胆」分流冬季需求</li>
+                        <li>主图第 2 张未体现容量，转化承压</li>
+                      </ul>
+                    </div>
+                    <div class="tint tint-accent">
+                      <span class="tint-lbl">下一步建议</span>
+                      <ul class="stack-2">
+                        <li>生成 2 版主图：夜间反光 / 笔电仓容量</li>
+                        <li>灰色规格补货 50 件或排除出投放</li>
+                        <li>视频脚本优先拍「雨天测试」镜头</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <details class="boxed">
+                    <summary>
+                      <svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>
+                      编辑诊断（6 个字段 + 4 个列表，人工可改）
+                    </summary>
+                    <div class="stack-3" style="margin-top:var(--sp-2)">
+                      <div class="field"><label for="d-pos">定位判断</label><textarea class="input" id="d-pos" rows="2" readonly>专业骑行通勤价格带上沿……</textarea></div>
+                      <div class="field"><label for="d-band">价格带判断</label><input class="input" id="d-band" value="舒适带 ¥319–¥369" readonly></div>
+                      <div class="form-grid">
+                        <div class="field"><label for="d-pain">用户痛点（每行一条）</label><textarea class="input" id="d-pain" rows="3" readonly>背带压肩
+背包底部雨天吸水
+笔电仓太薄
+反光条面积小</textarea></div>
+                        <div class="field"><label for="d-risk">风险点（每行一条）</label><textarea class="input" id="d-risk" rows="3" readonly>灰色规格库存 6 件
+竞品 B 冬季分流
+主图未体现容量</textarea></div>
+                      </div>
+                      <div class="row">
+                        <button type="button" class="btn btn-primary">保存诊断</button>
+                        <span class="mono-note">保存后下游创意与投放建议不会自动重算，需手动重新生成</span>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+              </div>
+
+              <div class="stack-4">
+                <div class="panel">
+                  <div class="panel-head"><h3>主图方案</h3><span class="badge badge-online">已有 2 个</span></div>
+                  <div class="panel-body stack-3">
+                    <p>根据诊断结果生成可交给设计执行的画面方向。</p>
+                    <button type="button" class="btn"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-copy"></use></svg>生成主图</button>
+                  </div>
+                </div>
+                <div class="panel">
+                  <div class="panel-head"><h3>短视频脚本</h3><span class="badge badge-online">已有 1 个</span></div>
+                  <div class="panel-body stack-3">
+                    <p>生成开头钩子、镜头分镜、口播和转化引导。</p>
+                    <button type="button" class="btn"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-terminal"></use></svg>生成脚本</button>
+                  </div>
+                </div>
+                <div class="panel">
+                  <div class="panel-head"><h3>投放复盘</h3><span class="badge badge-warn">待生成</span></div>
+                  <div class="panel-body stack-3">
+                    <p>录入曝光、点击、转化、ROI 后判断下一步动作。</p>
+                    <button type="button" class="btn btn-primary">去复盘</button>
+                  </div>
+                </div>
+                <div class="alert alert-info">
+                  <svg class="ic" aria-hidden="true"><use href="#i-doc"></use></svg>
+                  <span>诊断一旦被编辑，质量审核分数不会回溯更新 —— 本稿把「来源 Run」与「编辑时间」并列显示，避免误判成模型原始输出。</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============================================================
+               区块 04 · 创意与生成（tab=main-images / tab=video）
+               ============================================================ -->
+          <section class="sec" id="creative" aria-labelledby="h-creative">
+            <div class="sec-hd">
+              <div class="stack-2">
+                <span class="eyebrow">SECTION 04 · TAB=MAIN-IMAGES / TAB=VIDEO · 创意与生成</span>
+                <h2 id="h-creative">方案方向 → 生成任务三态 → 结果入库</h2>
+              </div>
+              <span class="mono-note">CreativePlan（方向）与 GenerationJob（生成）是两层：方向可编辑，任务可取消 / 重试；生成结果进入素材库后才有评分与投放归因</span>
+            </div>
+
+            <!-- 生成任务三态规范：本页最关键的状态表达 -->
+            <div class="grid-3">
+              <div class="job is-run">
+                <div class="job-hd">
+                  <span class="badge badge-warn">进行中 · running</span>
+                  <span class="job-id">JOB #4823</span>
+                </div>
+                <div class="job-body">
+                  <span class="thumb thumb-sm" aria-hidden="true">IMG</span>
+                  <div class="stack-2">
+                    <p><b>图片草稿 · 夜间反光 v2</b></p>
+                    <div class="bar" role="img" aria-label="生成进度 62%"><i class="is-run" style="width:62%"></i></div>
+                    <dl class="kv">
+                      <dt>已用时</dt><dd>2 分 14 秒 · 预计剩余 1 分 20 秒</dd>
+                      <dt>尝试</dt><dd>1 / 3</dd>
+                    </dl>
+                    <div class="row">
+                      <button type="button" class="btn">取消任务</button>
+                      <span class="mono-note">页面每 5 秒自动刷新状态</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="job is-ok">
+                <div class="job-hd">
+                  <span class="badge badge-online">已完成 · succeeded</span>
+                  <span class="job-id">JOB #4820</span>
+                </div>
+                <div class="job-body">
+                  <span class="thumb thumb-sm" aria-hidden="true">IMG</span>
+                  <div class="stack-2">
+                    <p><b>图片草稿 · 夜间反光 v1</b></p>
+                    <dl class="kv">
+                      <dt>耗时</dt><dd>48 秒 · 10-13 21:04</dd>
+                      <dt>模型</dt><dd>seedream-3.0 · 1024×1024</dd>
+                    </dl>
+                    <div class="row">
+                      <button type="button" class="btn">
+                        <svg class="ic ic-sm" aria-hidden="true"><use href="#i-ext"></use></svg>打开结果
+                      </button>
+                      <button type="button" class="btn">评价入库</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="job is-fail">
+                <div class="job-hd">
+                  <span class="badge badge-accent">失败 · failed</span>
+                  <span class="job-id">JOB #4822</span>
+                </div>
+                <div class="job-body">
+                  <span class="thumb thumb-sm" aria-hidden="true">IMG</span>
+                  <div class="stack-2">
+                    <p><b>图片草稿 · 容量实证</b></p>
+                    <div class="alert alert-fail" style="grid-template-columns:18px minmax(0,1fr)">
+                      <svg class="ic" aria-hidden="true"><use href="#i-warn"></use></svg>
+                      <span class="mono" style="font-size:var(--fs-mini)">供应商 502：image provider timeout after 60s（attempt 2/3）</span>
+                    </div>
+                    <div class="row">
+                      <button type="button" class="btn btn-primary">
+                        <svg class="ic ic-sm" aria-hidden="true"><use href="#i-arrow-r"></use></svg>重试
+                      </button>
+                      <button type="button" class="btn">查看详情</button>
+                    </div>
+                    <p class="mono-note">重试沿用同一提示词与模型配置；3 次用尽后需人工判断是否换模型。</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 主图方案 -->
+            <div class="panel">
+              <div class="panel-head">
+                <h3>主图方案 · 2 个</h3>
+                <div class="row">
+                  <span class="badge">最近 2 个方案</span>
+                  <button type="button" class="btn"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-copy"></use></svg>生成主图</button>
+                </div>
+              </div>
+              <div class="panel-body grid-2">
+                <!-- 方案 41 -->
+                <div class="panel">
+                  <div class="panel-head">
+                    <div class="stack-2">
+                      <h3>方案 #41 · 夜间反光 · 通勤安全</h3>
+                      <span class="mono-note">main_image · draft / selected</span>
+                    </div>
+                    <span class="badge badge-online">已选中</span>
+                  </div>
+                  <div class="panel-body stack-4">
+                    <p>角度：用夜间骑行场景把反光条从参数变成可见证据。</p>
+                    <div class="tint tint-ok">
+                      <span class="tint-lbl">主文案</span>
+                      <p>夜骑有光，才敢晚归</p>
+                    </div>
+                    <div class="tint">
+                      <span class="tint-lbl">副文案</span>
+                      <p>3M 反光条 · 可视距离 30m · 雨天也亮</p>
+                    </div>
+                    <dl class="kv">
+                      <dt>画面布局</dt><dd>主体 2/3 做夜间侧逆光，右上角放反光条特写，底部留 1/5 放价格权益</dd>
+                      <dt>视觉重点</dt><dd>反光条高光边缘 + 背包轮廓识别度</dd>
+                      <dt>模型 / 尺寸</dt><dd>seedream-3.0 · 1024×1024</dd>
+                    </dl>
+                    <div>
+                      <span class="eyebrow">证明点</span>
+                      <div class="chip-row" style="margin-top:.5rem">
+                        <span class="tag">30m 可视</span>
+                        <span class="tag">3M 材质</span>
+                        <span class="tag">实测雨天</span>
+                      </div>
+                    </div>
+
+                    <div class="stack-2">
+                      <span class="eyebrow">图片草稿 · 3 个任务</span>
+
+                      <div class="job is-ok">
+                        <div class="job-hd">
+                          <span class="mono-note">JOB #4820 · 10-13 21:04</span>
+                          <span class="badge badge-online">已完成</span>
+                        </div>
+                        <div class="job-body">
+                          <span class="thumb thumb-sm" aria-hidden="true">IMG</span>
+                          <div class="stack-2">
+                            <p>夜间反光 v1 · 1024×1024</p>
+                            <div class="row">
+                              <button type="button" class="btn">打开结果</button>
+                              <button type="button" class="btn">评价入库</button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="job is-run">
+                        <div class="job-hd">
+                          <span class="mono-note">JOB #4823 · 09:31 起</span>
+                          <span class="badge badge-warn">生成中</span>
+                        </div>
+                        <div class="job-body">
+                          <span class="thumb thumb-sm" aria-hidden="true">IMG</span>
+                          <div class="stack-2">
+                            <p>夜间反光 v2 · 换背影与光位</p>
+                            <div class="bar" role="img" aria-label="生成进度 62%"><i class="is-run" style="width:62%"></i></div>
+                            <div class="row">
+                              <button type="button" class="btn">取消</button>
+                              <span class="mono-note">62% · 预计剩余 1 分 20 秒</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="job is-fail">
+                        <div class="job-hd">
+                          <span class="mono-note">JOB #4822 · 10-14 09:12</span>
+                          <span class="badge badge-accent">失败</span>
+                        </div>
+                        <div class="job-body">
+                          <span class="thumb thumb-sm" aria-hidden="true">IMG</span>
+                          <div class="stack-2">
+                            <p>容量实证 · 平铺构图</p>
+                            <p class="mono" style="font-size:var(--fs-mini);color:var(--accent)">供应商 502：image provider timeout after 60s</p>
+                            <div class="row">
+                              <button type="button" class="btn btn-primary">重试</button>
+                              <button type="button" class="btn">查看详情</button>
+                              <span class="mono-note">尝试 2 / 3</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <details class="boxed">
+                      <summary><svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>编辑方案</summary>
+                      <div class="stack-3" style="margin-top:var(--sp-2)">
+                        <div class="field"><label for="mi-hl">主文案</label><input class="input" id="mi-hl" value="夜骑有光，才敢晚归" readonly></div>
+                        <div class="field"><label for="mi-sub">副文案</label><input class="input" id="mi-sub" value="3M 反光条 · 可视距离 30m · 雨天也亮" readonly></div>
+                        <div class="field"><label for="mi-lay">画面布局</label><textarea class="input" id="mi-lay" rows="2" readonly>主体 2/3 做夜间侧逆光……</textarea></div>
+                        <button type="button" class="btn btn-primary">保存方案</button>
+                      </div>
+                    </details>
+                  </div>
+                </div>
+
+                <!-- 方案 42 -->
+                <div class="panel">
+                  <div class="panel-head">
+                    <div class="stack-2">
+                      <h3>方案 #42 · 容量实证 · 笔电仓</h3>
+                      <span class="mono-note">main_image · draft</span>
+                    </div>
+                    <span class="badge">草稿</span>
+                  </div>
+                  <div class="panel-body stack-4">
+                    <p>角度：用 16 寸笔电 + 通勤杂物一镜成像，打消「装不下」的疑虑。</p>
+                    <div class="tint tint-ok">
+                      <span class="tint-lbl">主文案</span>
+                      <p>16 寸笔电 + 雨伞 + 换洗衣物，一次装下</p>
+                    </div>
+                    <div class="tint">
+                      <span class="tint-lbl">副文案</span>
+                      <p>22L 主仓 · 独立笔电仓 · 侧面雨伞位</p>
+                    </div>
+                    <dl class="kv">
+                      <dt>画面布局</dt><dd>顶视俯拍平铺，网格背景，右下角容量标注</dd>
+                      <dt>视觉重点</dt><dd>平铺物品的秩序感 + 笔电仓开口结构</dd>
+                    </dl>
+                    <div>
+                      <span class="eyebrow">证明点</span>
+                      <div class="chip-row" style="margin-top:.5rem">
+                        <span class="tag">16 寸实测</span>
+                        <span class="tag">独立笔电仓</span>
+                        <span class="tag">22L 主仓</span>
+                      </div>
+                    </div>
+                    <div class="empty" style="padding:var(--sp-5)">
+                      <svg class="ic ic-lg" aria-hidden="true" style="color:var(--faint)"><use href="#i-copy"></use></svg>
+                      <h4 style="margin-top:var(--sp-3)">还没有图片草稿</h4>
+                      <p>方案方向已确认，但未生成图片。先生成 1 张测试图，评估构图与识别度后再批量出图。</p>
+                      <div class="empty-actions">
+                        <button type="button" class="btn btn-primary"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-copy"></use></svg>生成图片草稿</button>
+                      </div>
+                      <p class="empty-next">
+                        <svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>
+                        生成完成后，这里会出现结果缩略图、模型与尺寸，并可评价入库
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 短视频脚本 -->
+            <div class="panel">
+              <div class="panel-head">
+                <h3>短视频脚本 · 1 个</h3>
+                <div class="row">
+                  <span class="badge">最近 1 条脚本</span>
+                  <button type="button" class="btn"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-terminal"></use></svg>生成脚本</button>
+                </div>
+              </div>
+              <div class="panel-body stack-4">
+                <div class="panel">
+                  <div class="panel-head">
+                    <div class="stack-2">
+                      <h3>脚本 #18 · 雨天 30 秒实测</h3>
+                      <span class="mono-note">video_script · 15s · draft</span>
+                    </div>
+                    <div class="row">
+                      <span class="badge badge-info">15s</span>
+                      <span class="badge">草稿</span>
+                    </div>
+                  </div>
+                  <div class="panel-body stack-4">
+                    <p>角度：用一场雨把「防泼水」从文案变成可验证镜头。</p>
+                    <div class="tint tint-info">
+                      <span class="tint-lbl">开头钩子</span>
+                      <p>今天不测颜值，只测防水 —— 泼水特写直接开场，3 秒内给出结论性画面。</p>
+                    </div>
+
+                    <div class="tbl-wrap">
+                      <table class="tbl tbl-l">
+                        <caption style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">分镜表，共 4 镜</caption>
+                        <thead>
+                          <tr><th scope="col">镜头</th><th scope="col">画面</th><th scope="col">口播</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr><td class="key">01 · 0–3s</td><td>特写：水泼在包面，水珠滚落</td><td>今天不测颜值，只测防水。</td></tr>
+                          <tr><td class="key">02 · 3–8s</td><td>中景：雨中骑行，包挂在车把包内</td><td>通勤 40 分钟，包内保持干燥。</td></tr>
+                          <tr><td class="key">03 · 8–12s</td><td>特写：拉开笔电仓取出 16 寸笔电</td><td>笔电独立隔层，16 寸也能放下。</td></tr>
+                          <tr><td class="key">04 · 12–15s</td><td>全景：夜间反光条被车灯照亮</td><td>夜骑有光，才敢晚归。</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div class="grid-2">
+                      <div>
+                        <span class="eyebrow">卖点证明</span>
+                        <div class="chip-row" style="margin-top:.5rem">
+                          <span class="tag">防泼水</span>
+                          <span class="tag">反光条</span>
+                          <span class="tag">16 寸笔电仓</span>
+                        </div>
+                      </div>
+                      <div class="tint tint-ok">
+                        <span class="tint-lbl">转化引导</span>
+                        <p>点购物袋，先看 7 天无理由。</p>
+                      </div>
+                    </div>
+
+                    <div class="stack-2">
+                      <div class="row row-between">
+                        <span class="eyebrow">视频草稿 · 2 个任务</span>
+                        <button type="button" class="btn"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-terminal"></use></svg>生成视频草稿</button>
+                      </div>
+                      <div class="grid-2">
+                        <div class="job is-fail">
+                          <div class="job-hd">
+                            <span class="mono-note">JOB #4821 · 10-14 09:20</span>
+                            <span class="badge badge-accent">失败</span>
+                          </div>
+                          <div class="job-body">
+                            <span class="thumb thumb-sm thumb-169" aria-hidden="true">VID</span>
+                            <div class="stack-2">
+                              <p>雨天实测 15s v1</p>
+                              <p class="mono" style="font-size:var(--fs-mini);color:var(--accent)">供应商 429：video provider rate limit（attempt 1/3）</p>
+                              <div class="row">
+                                <button type="button" class="btn btn-primary">重试</button>
+                                <span class="mono-note">建议 5 分钟后重试</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="job is-ok">
+                          <div class="job-hd">
+                            <span class="mono-note">JOB #4819 · 10-13 20:12</span>
+                            <span class="badge badge-online">已完成</span>
+                          </div>
+                          <div class="job-body">
+                            <span class="thumb thumb-sm thumb-169" aria-hidden="true">VID</span>
+                            <div class="stack-2">
+                              <p>夜骑反光 15s v1 · 720p</p>
+                              <div class="row">
+                                <button type="button" class="btn">打开结果</button>
+                                <button type="button" class="btn">评价入库</button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <details class="boxed">
+                      <summary><svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>编辑脚本（钩子 / 分镜 / 口播 / 转化引导）</summary>
+                      <div class="stack-3" style="margin-top:var(--sp-2)">
+                        <div class="field"><label for="v-hook">开头钩子</label><textarea class="input" id="v-hook" rows="2" readonly>今天不测颜值，只测防水……</textarea></div>
+                        <div class="field"><label for="v-cta">转化引导</label><input class="input" id="v-cta" value="点购物袋，先看 7 天无理由" readonly></div>
+                        <div class="field"><label for="v-scenes">分镜（JSON）</label><pre class="code">[
+  { "shot": "01 · 0–3s",  "visual": "泼水特写", "voiceover": "今天不测颜值，只测防水。" },
+  { "shot": "02 · 3–8s",  "visual": "雨中骑行", "voiceover": "通勤 40 分钟，包内保持干燥。" }
+]</pre></div>
+                        <button type="button" class="btn btn-primary">保存脚本</button>
+                      </div>
+                    </details>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============================================================
+               区块 05 · 素材库（tab=assets）
+               ============================================================ -->
+          <section class="sec" id="assets" aria-labelledby="h-assets">
+            <div class="sec-hd">
+              <div class="stack-2">
+                <span class="eyebrow">SECTION 05 · TAB=ASSETS · 素材库</span>
+                <h2 id="h-assets">素材效果归因 · 放量建议 · 版本 / 评分 / 标签</h2>
+              </div>
+              <span class="mono-note">GeneratedAsset：status（待评估/通过/弃用/复测）· rating · tags · usage_contexts · asset_version；归因只汇总用户回填的经营数据</span>
+            </div>
+
+            <div class="alert alert-ok">
+              <svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg>
+              <span>已同步历史素材到独立资产表（10-14 06:12，6 个素材 · 新增 2 个）。</span>
+              <span class="badge badge-online">synced</span>
+            </div>
+
+            <div class="panel">
+              <div class="panel-head">
+                <h3>素材效果归因</h3>
+                <div class="row">
+                  <span class="badge">2 个有数据</span>
+                  <span class="mono-note">按经营数据里关联的 generated_asset_id 汇总</span>
+                </div>
+              </div>
+              <div class="tbl-wrap">
+                <table class="tbl tbl-x">
+                  <thead>
+                    <tr>
+                      <th scope="col">素材</th>
+                      <th scope="col">类型 / 版本</th>
+                      <th scope="col" class="num">数据条数</th>
+                      <th scope="col" class="num">点击</th>
+                      <th scope="col" class="num">成交</th>
+                      <th scope="col" class="num">CTR</th>
+                      <th scope="col" class="num">花费</th>
+                      <th scope="col" class="num">ROI</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><b>夜间反光主图 v2</b></td>
+                      <td>图片 · V2</td>
+                      <td class="num">2</td>
+                      <td class="num">524</td>
+                      <td class="num">7</td>
+                      <td class="num">5.24%</td>
+                      <td class="num">¥512.40</td>
+                      <td class="num" style="color:var(--success)">3.12</td>
+                    </tr>
+                    <tr>
+                      <td><b>夜骑反光 15s v1</b></td>
+                      <td>视频 · V1 · 15s</td>
+                      <td class="num">1</td>
+                      <td class="num">214</td>
+                      <td class="num">3</td>
+                      <td class="num">3.41%</td>
+                      <td class="num">¥306.00</td>
+                      <td class="num">2.18</td>
+                    </tr>
+                    <tr>
+                      <td><b>容量实证主图 v1</b></td>
+                      <td>图片 · V1</td>
+                      <td class="num">1</td>
+                      <td class="num">96</td>
+                      <td class="num">2</td>
+                      <td class="num">1.92%</td>
+                      <td class="num">¥268.00</td>
+                      <td class="num">1.42</td>
+                    </tr>
+                    <tr>
+                      <td><b>场景图 · 雨天通勤</b></td>
+                      <td>图片 · V1</td>
+                      <td class="num">0</td>
+                      <td class="num">—</td>
+                      <td class="num">—</td>
+                      <td class="num">—</td>
+                      <td class="num">—</td>
+                      <td class="num">—</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="tint tint-warn">
+              <span class="tint-lbl">素材放量建议 · assetScaleAction()</span>
+              <div class="row row-between">
+                <div class="stack-2 grow">
+                  <p><b>夜间反光主图 v2</b> — ROI 和 CTR 都表现较好，建议下一轮保留该素材结构，小幅提高预算，并复制同结构的不同卖点版本继续测试。</p>
+                  <div class="chip-row">
+                    <span class="tag">CTR 5.24%</span>
+                    <span class="tag">ROI 3.12</span>
+                    <span class="tag">2 条数据</span>
+                    <span class="tag">判定阈值 ROI ≥ 3 且 CTR ≥ 5%</span>
+                  </div>
+                </div>
+                <button type="button" class="btn">
+                  <svg class="ic ic-sm" aria-hidden="true"><use href="#i-ext"></use></svg>查看素材
+                </button>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-head">
+                <h3>素材资产库</h3>
+                <div class="row">
+                  <span class="badge">6 个素材</span>
+                  <button type="button" class="btn">同步历史素材</button>
+                </div>
+              </div>
+              <div class="panel-body grid-3">
+                <!-- 素材 1 -->
+                <article class="asset">
+                  <div class="asset-fig"><div class="thumb" aria-hidden="true">IMG · night-reflection-02.png<br>1024 × 1024</div></div>
+                  <div class="stack-2">
+                    <div class="row row-between">
+                      <b>夜间反光主图 v2</b>
+                      <span class="badge badge-online">通过</span>
+                    </div>
+                    <div class="row">
+                      <span class="badge">主图</span>
+                      <span class="badge">V2</span>
+                      <span class="badge badge-warn">5 分</span>
+                    </div>
+                    <p class="mono-note">seedream-3.0 · 1024×1024</p>
+                    <div class="chip-row">
+                      <span class="tag">高点击潜力</span>
+                      <span class="tag">通勤</span>
+                      <span class="tag">夜间</span>
+                    </div>
+                    <div class="chip-row">
+                      <span class="tag">使用场景：冷启动</span>
+                      <span class="tag">人群测试</span>
+                    </div>
+                    <p class="mono-note">备注：放量候选，复制 2 个同结构不同卖点版本。</p>
+                    <div class="row">
+                      <button type="button" class="btn">打开素材</button>
+                    </div>
+                    <details class="boxed">
+                      <summary><svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>评价素材</summary>
+                      <div class="stack-3" style="margin-top:var(--sp-2)">
+                        <div class="form-grid">
+                          <div class="field"><label for="a1-r">评分</label><input class="input mono" id="a1-r" value="5" readonly></div>
+                          <div class="field"><label for="a1-s">状态</label><select class="input" id="a1-s"><option>通过</option><option>待评估</option><option>复测</option><option>弃用</option></select></div>
+                          <div class="field"><label for="a1-v">素材版本</label><input class="input mono" id="a1-v" value="2" readonly></div>
+                          <div class="field"><label for="a1-u">使用场景</label><input class="input" id="a1-u" value="冷启动，人群测试" readonly></div>
+                        </div>
+                        <div class="field"><label for="a1-t">标签</label><input class="input" id="a1-t" value="高点击潜力，通勤，夜间" readonly></div>
+                        <button type="button" class="btn btn-primary">保存评价</button>
+                      </div>
+                    </details>
+                  </div>
+                </article>
+
+                <!-- 素材 2 -->
+                <article class="asset">
+                  <div class="asset-fig"><div class="thumb" aria-hidden="true">IMG · rain-commute-01.png<br>1024 × 1024</div></div>
+                  <div class="stack-2">
+                    <div class="row row-between">
+                      <b>场景图 · 雨天通勤</b>
+                      <span class="badge badge-warn">待评估</span>
+                    </div>
+                    <div class="row">
+                      <span class="badge">主图</span>
+                      <span class="badge">V1</span>
+                    </div>
+                    <p class="mono-note">seedream-3.0 · 1024×1024</p>
+                    <div class="chip-row">
+                      <span class="tag">场景</span>
+                      <span class="tag">雨天</span>
+                    </div>
+                    <p class="mono-note">备注：未挂经营数据，建议作为视频素材的封面候选。</p>
+                    <div class="row">
+                      <button type="button" class="btn">打开素材</button>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- 素材 3 -->
+                <article class="asset">
+                  <div class="asset-fig"><div class="thumb" aria-hidden="true">VID · night-ride-15s-v1.mp4<br>720p · 15s</div></div>
+                  <div class="stack-2">
+                    <div class="row row-between">
+                      <b>夜骑反光 15s v1</b>
+                      <span class="badge badge-online">通过</span>
+                    </div>
+                    <div class="row">
+                      <span class="badge">视频</span>
+                      <span class="badge">V1</span>
+                      <span class="badge badge-warn">5 分</span>
+                    </div>
+                    <p class="mono-note">doubao-video-1.0 · 720p · 15s</p>
+                    <div class="chip-row">
+                      <span class="tag">反光条</span>
+                      <span class="tag">夜间</span>
+                      <span class="tag">使用场景：短视频投放</span>
+                    </div>
+                    <p class="mono-note">备注：点击好但转化偏低，建议补拍实测结尾。</p>
+                    <div class="row">
+                      <button type="button" class="btn">打开素材</button>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- 素材 4 -->
+                <article class="asset">
+                  <div class="asset-fig"><div class="thumb" aria-hidden="true">IMG · capacity-flatlay-01.png<br>1024 × 1024</div></div>
+                  <div class="stack-2">
+                    <div class="row row-between">
+                      <b>容量实证主图 v1</b>
+                      <span class="badge badge-warn">复测</span>
+                    </div>
+                    <div class="row">
+                      <span class="badge">主图</span>
+                      <span class="badge">V1</span>
+                      <span class="badge">4 分</span>
+                    </div>
+                    <p class="mono-note">seedream-3.0 · 1024×1024</p>
+                    <div class="chip-row">
+                      <span class="tag">容量</span>
+                      <span class="tag">笔电</span>
+                      <span class="tag">使用场景：复测</span>
+                    </div>
+                    <p class="mono-note">备注：CTR 1.92% 偏低，复测改用平铺 + 容量标注版本。</p>
+                    <div class="row">
+                      <button type="button" class="btn">打开素材</button>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- 素材 5 -->
+                <article class="asset">
+                  <div class="asset-fig"><div class="thumb" aria-hidden="true">IMG · night-reflection-01.png<br>1024 × 1024</div></div>
+                  <div class="stack-2">
+                    <div class="row row-between">
+                      <b>夜间反光主图 v1</b>
+                      <span class="badge badge-accent">弃用</span>
+                    </div>
+                    <div class="row">
+                      <span class="badge">主图</span>
+                      <span class="badge">V1</span>
+                      <span class="badge">2 分</span>
+                    </div>
+                    <p class="mono-note">seedream-3.0 · 1024×1024</p>
+                    <div class="chip-row">
+                      <span class="tag">曝光不足</span>
+                      <span class="tag">使用场景：弃用</span>
+                    </div>
+                    <p class="mono-note">备注：整体压暗导致包体识别度低，被 v2 取代。</p>
+                    <div class="row">
+                      <button type="button" class="btn">打开素材</button>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- 素材 6 -->
+                <article class="asset">
+                  <div class="asset-fig"><div class="thumb thumb-169" aria-hidden="true">VID · rain-test-15s-v1.mp4<br>720p · 15s</div></div>
+                  <div class="stack-2">
+                    <div class="row row-between">
+                      <b>雨天实测 15s v1</b>
+                      <span class="badge badge-warn">待评估</span>
+                    </div>
+                    <div class="row">
+                      <span class="badge">视频</span>
+                      <span class="badge">V1</span>
+                      <span class="badge">生成任务 #4821 失败后重试待出结果</span>
+                    </div>
+                    <p class="mono-note">doubao-video-1.0 · 720p · 15s</p>
+                    <div class="chip-row">
+                      <span class="tag">防泼水</span>
+                      <span class="tag">实测</span>
+                    </div>
+                    <div class="row">
+                      <button type="button" class="btn btn-primary">重试生成任务</button>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============================================================
+               区块 06 · 链接（tab=links）
+               ============================================================ -->
+          <section class="sec" id="links" aria-labelledby="h-links">
+            <div class="sec-hd">
+              <div class="stack-2">
+                <span class="eyebrow">SECTION 06 · TAB=LINKS · 链接</span>
+                <h2 id="h-links">系统生成链接 · 手动录入 · 短链归因</h2>
+              </div>
+              <span class="mono-note">PromotionLink：link_type（承接页/投放追踪/达人分销/活动页）· short_code 短链 · tracking_code 归因参数 · click_count 点击计数</span>
+            </div>
+
+            <div class="grid-1-2">
+              <div class="stack-4">
+                <div class="panel">
+                  <div class="panel-head"><h3>生成推荐链接</h3><span class="badge badge-accent">系统链接</span></div>
+                  <div class="panel-body stack-3">
+                    <p>按商品承接页、短视频投放和主图测试三种场景各生成一条带 tracking_code 的链接。</p>
+                    <button type="button" class="btn btn-primary"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-ext"></use></svg>生成链接</button>
+                    <p class="mono-note">生成失败会提示检查商品 ID 与承接页配置。</p>
+                  </div>
+                </div>
+
+                <div class="panel">
+                  <div class="panel-head"><h3>手动添加链接</h3><span class="badge">PromotionLinkCreateForm</span></div>
+                  <div class="panel-body stack-3">
+                    <div class="field"><label for="l-label">链接名称</label><input class="input" id="l-label" placeholder="例如：6 月短视频 A 组链接"></div>
+                    <div class="field"><label for="l-url">URL</label><input class="input mono" id="l-url" placeholder="https://..."></div>
+                    <div class="form-grid">
+                      <div class="field"><label for="l-type">类型</label><select class="input" id="l-type"><option>承接页</option><option>投放追踪</option><option>达人 / 分销</option><option>活动页</option></select></div>
+                      <div class="field"><label for="l-scene">场景</label><input class="input" id="l-scene" placeholder="短视频投放"></div>
+                    </div>
+                    <div class="field"><label for="l-note">备注</label><textarea class="input" id="l-note" rows="2" placeholder="记录链接来源、投放人群、素材版本或活动周期"></textarea></div>
+                    <button type="button" class="btn">保存链接</button>
+                  </div>
+                </div>
+
+                <div class="alert alert-warn">
+                  <svg class="ic" aria-hidden="true"><use href="#i-warn"></use></svg>
+                  <span>链接保存失败：请检查 URL 与字段格式（源码 links=failed 提示）。短链点击只计数，不触发投放或库存动作。</span>
+                </div>
+              </div>
+
+              <div class="stack-4">
+                <div class="panel">
+                  <div class="panel-head">
+                    <h3>链接效果归因</h3>
+                    <div class="row">
+                      <span class="badge">2 个有数据</span>
+                      <span class="mono-note">按 performance_records.promotion_link_id 汇总</span>
+                    </div>
+                  </div>
+                  <div class="tbl-wrap">
+                    <table class="tbl tbl-l">
+                      <thead>
+                        <tr>
+                          <th scope="col">链接</th>
+                          <th scope="col">类型</th>
+                          <th scope="col" class="num">点击</th>
+                          <th scope="col" class="num">成交</th>
+                          <th scope="col" class="num">CTR</th>
+                          <th scope="col" class="num">花费</th>
+                          <th scope="col" class="num">ROI</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td><b>拼多多主链接 · 承接页</b><br><span class="mono-note">2 条数据</span></td>
+                          <td>承接页</td>
+                          <td class="num">524</td>
+                          <td class="num">7</td>
+                          <td class="num">5.24%</td>
+                          <td class="num">¥512.40</td>
+                          <td class="num" style="color:var(--success)">3.12</td>
+                        </tr>
+                        <tr>
+                          <td><b>达人分销 · 骑行垂类</b><br><span class="mono-note">1 条数据</span></td>
+                          <td>达人 / 分销</td>
+                          <td class="num">214</td>
+                          <td class="num">3</td>
+                          <td class="num">3.41%</td>
+                          <td class="num">¥306.00</td>
+                          <td class="num">2.18</td>
+                        </tr>
+                        <tr>
+                          <td><b>主图 A 测试链接</b><br><span class="mono-note">1 条数据</span></td>
+                          <td>投放追踪</td>
+                          <td class="num">96</td>
+                          <td class="num">2</td>
+                          <td class="num">1.92%</td>
+                          <td class="num">¥268.00</td>
+                          <td class="num">1.42</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div class="tbl-note">
+                    <svg class="ic ic-sm" aria-hidden="true"><use href="#i-warn"></use></svg>
+                    <span>归因只汇总已回填的经营记录和短链点击，不代表平台广告后台的实时花费。</span>
+                  </div>
+                </div>
+
+                <div class="panel">
+                  <div class="panel-head">
+                    <h3>推荐链接库</h3>
+                    <div class="row"><span class="badge">3 个链接</span><button type="button" class="btn">导出清单</button></div>
+                  </div>
+                  <div class="panel-body stack-3">
+                    <article class="panel">
+                      <div class="panel-body stack-3">
+                        <div class="row row-between">
+                          <div class="row">
+                            <b>拼多多主链接 · 承接页</b>
+                            <span class="badge">承接页</span>
+                            <span class="badge badge-online">启用</span>
+                            <span class="badge badge-info">短链点击 1,284</span>
+                          </div>
+                          <div class="row">
+                            <button type="button" class="btn">打开短链</button>
+                            <button type="button" class="btn">打开原链</button>
+                          </div>
+                        </div>
+                        <p class="url">原链：https://mobile.yangkeduo.com/goods.html?goods_id=88213001</p>
+                        <p class="url">短链：https://ops.example.com/api/v1/links/r/aX9Kd2</p>
+                        <dl class="kv">
+                          <dt>tracking_code</dt><dd class="mono">tc_pdd_main_01</dd>
+                          <dt>场景</dt><dd>短视频投放</dd>
+                          <dt>备注</dt><dd>主投放链路，配合夜间反光主图使用</dd>
+                        </dl>
+                      </div>
+                    </article>
+
+                    <article class="panel">
+                      <div class="panel-body stack-3">
+                        <div class="row row-between">
+                          <div class="row">
+                            <b>达人分销 · 骑行垂类</b>
+                            <span class="badge">达人 / 分销</span>
+                            <span class="badge badge-online">启用</span>
+                            <span class="badge badge-info">短链点击 342</span>
+                          </div>
+                          <div class="row">
+                            <button type="button" class="btn">打开短链</button>
+                            <button type="button" class="btn">打开原链</button>
+                          </div>
+                        </div>
+                        <p class="url">短链：https://ops.example.com/api/v1/links/r/k7Qm1p</p>
+                        <dl class="kv">
+                          <dt>tracking_code</dt><dd class="mono">tc_koc_08</dd>
+                          <dt>场景</dt><dd>达人合作 · 骑行俱乐部</dd>
+                        </dl>
+                      </div>
+                    </article>
+
+                    <article class="panel">
+                      <div class="panel-body stack-3">
+                        <div class="row row-between">
+                          <div class="row">
+                            <b>主图 A 测试链接</b>
+                            <span class="badge">投放追踪</span>
+                            <span class="badge">已归档</span>
+                            <span class="badge badge-info">短链点击 96</span>
+                          </div>
+                          <div class="row"><button type="button" class="btn">打开原链</button></div>
+                        </div>
+                        <dl class="kv">
+                          <dt>tracking_code</dt><dd class="mono">tc_img_a_02</dd>
+                          <dt>场景</dt><dd>主图测试（已结束）</dd>
+                        </dl>
+                        <p class="mono-note">源码中非 active 状态直接显示原始 status 值；本稿统一译为中文（启用 / 已归档 / 已暂停）。</p>
+                      </div>
+                    </article>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============================================================
+               区块 07 · 投放（tab=ads）
+               ============================================================ -->
+          <section class="sec" id="ads" aria-labelledby="h-ads">
+            <div class="sec-hd">
+              <div class="stack-2">
+                <span class="eyebrow">SECTION 07 · TAB=ADS · 投放</span>
+                <h2 id="h-ads">投放工作流 · 实验看板 · 实验计划 · 投放建议与人工确认</h2>
+              </div>
+              <span class="mono-note">系统只做计划与记录，不自动执行资金操作；建议确认（confirmation_status）与实验状态（draft/active/paused/completed）都必须由人工维护</span>
+            </div>
+
+            <div class="stack-3">
+              <div class="row row-between">
+                <h3 class="t-h3">投放工作流</h3>
+                <span class="mono-note">buildAdWorkflowSteps()：素材 → 链接 → 实验 → 人工确认 → 数据复盘</span>
+              </div>
+              <ol class="flow flow-5">
+                <li class="flow-step is-done">
+                  <span class="flow-idx">STEP 01</span>
+                  <h4>素材建议</h4>
+                  <p>已有素材或创意方案</p>
+                  <span class="flow-mark"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-check"></use></svg>已完成</span>
+                </li>
+                <li class="flow-step is-done">
+                  <span class="flow-idx">STEP 02</span>
+                  <h4>承接链接</h4>
+                  <p>3 个链接可用</p>
+                  <span class="flow-mark"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-check"></use></svg>已完成</span>
+                </li>
+                <li class="flow-step is-done">
+                  <span class="flow-idx">STEP 03</span>
+                  <h4>实验计划</h4>
+                  <p>3 个实验</p>
+                  <span class="flow-mark"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-check"></use></svg>已完成</span>
+                </li>
+                <li class="flow-step is-done">
+                  <span class="flow-idx">STEP 04</span>
+                  <h4>人工确认</h4>
+                  <p>已有非草稿实验</p>
+                  <span class="flow-mark"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-check"></use></svg>已完成</span>
+                </li>
+                <li class="flow-step is-next">
+                  <span class="flow-idx">STEP 05</span>
+                  <h4>数据复盘</h4>
+                  <p>回填数据后生成复盘</p>
+                  <span class="flow-mark"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-arrow-r"></use></svg>当前步骤</span>
+                </li>
+              </ol>
+            </div>
+
+            <div class="grid-2">
+              <div class="tint tint-ok">
+                <span class="tint-lbl">推荐投放链接 · 归因最优</span>
+                <div class="row row-between">
+                  <div class="stack-2 grow">
+                    <p><b>拼多多主链接 · 承接页</b></p>
+                    <p>已关联 2 条经营数据，ROI 3.12，CTR 5.24%。下一轮投放可优先沿用该链接，并继续观察转化稳定性。</p>
+                  </div>
+                  <button type="button" class="btn">打开链接</button>
+                </div>
+              </div>
+              <div class="tint tint-info">
+                <span class="tint-lbl">推荐投放素材 · 归因最优</span>
+                <div class="row row-between">
+                  <div class="stack-2 grow">
+                    <p><b>夜间反光主图 v2</b></p>
+                    <p>当前素材 ROI 3.12，CTR 5.24%。下一轮建议继续小步放量，并复制 2-3 个同结构不同卖点版本。</p>
+                  </div>
+                  <button type="button" class="btn">打开素材</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 实验看板 -->
+            <div class="panel">
+              <div class="panel-head">
+                <h3>实验看板</h3>
+                <div class="row">
+                  <span class="badge">2 / 3 已回填</span>
+                  <span class="mono-note">按投放实验汇总回填数据，快速判断继续 / 暂停 / 复制 / 放量</span>
+                </div>
+              </div>
+              <div class="panel-body stack-4">
+                <div class="metrics">
+                  <div class="metric"><span class="lbl">执行中</span><span class="val">1</span></div>
+                  <div class="metric"><span class="lbl">总花费</span><span class="val">¥818.40</span></div>
+                  <div class="metric"><span class="lbl">总成交额</span><span class="val">约 ¥2,265</span></div>
+                  <div class="metric"><span class="lbl">整体 ROI</span><span class="val is-ok">2.77</span></div>
+                </div>
+
+                <div class="tint tint-ok">
+                  <span class="tint-lbl">当前优胜实验</span>
+                  <div class="row row-between">
+                    <div class="stack-2 grow">
+                      <p><b>夜间反光主图 × 主链接 · 冷启动</b></p>
+                      <p>ROI 3.12，CTR 5.24%。高于整体 ROI 2.77，且 CTR 连续两个周期上行，建议小步放量并复制 2 个同结构变体。</p>
+                    </div>
+                    <span class="badge badge-online">可放量</span>
+                  </div>
+                </div>
+
+                <div class="tbl-wrap">
+                  <table class="tbl tbl-x">
+                    <caption style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">实验看板，共 3 条</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">实验</th>
+                        <th scope="col">状态</th>
+                        <th scope="col">周期</th>
+                        <th scope="col" class="num">日预算</th>
+                        <th scope="col" class="num">曝光</th>
+                        <th scope="col" class="num">点击</th>
+                        <th scope="col" class="num">成交</th>
+                        <th scope="col" class="num">CTR</th>
+                        <th scope="col" class="num">花费</th>
+                        <th scope="col" class="num">ROI</th>
+                        <th scope="col">决策</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>
+                          <div class="cell-goods">
+                            <span><b>夜间反光主图 × 主链接 · 冷启动</b><span>图片 · 夜间反光主图 v2 · 拼多多主链接</span></span>
+                          </div>
+                        </td>
+                        <td><span class="badge badge-online">执行中</span></td>
+                        <td class="key">10-07 至 10-13</td>
+                        <td class="num">¥150.00</td>
+                        <td class="num">10,000</td>
+                        <td class="num">524</td>
+                        <td class="num">7</td>
+                        <td class="num">5.24%</td>
+                        <td class="num">¥512.40</td>
+                        <td class="num" style="color:var(--success)">3.12</td>
+                        <td><span class="badge badge-online">可放量</span></td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <div class="cell-goods">
+                            <span><b>夜骑视频 × 达人链接 · 复测</b><span>视频 · 夜骑反光 15s v1 · 达人分销链接</span></span>
+                          </div>
+                        </td>
+                        <td><span class="badge badge-warn">已暂停</span></td>
+                        <td class="key">10-01 至 10-06</td>
+                        <td class="num">¥120.00</td>
+                        <td class="num">6,280</td>
+                        <td class="num">214</td>
+                        <td class="num">3</td>
+                        <td class="num">3.41%</td>
+                        <td class="num">¥306.00</td>
+                        <td class="num">2.18</td>
+                        <td><span class="badge badge-info">观察</span></td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <div class="cell-goods">
+                            <span><b>容量实证主图 · 补测</b><span>图片 · 容量实证主图 v1 · 主图 A 测试链接</span></span>
+                          </div>
+                        </td>
+                        <td><span class="badge">待确认</span></td>
+                        <td class="key">10-14 至 10-20</td>
+                        <td class="num">¥80.00</td>
+                        <td class="num">—</td>
+                        <td class="num">—</td>
+                        <td class="num">—</td>
+                        <td class="num">—</td>
+                        <td class="num">—</td>
+                        <td class="num">—</td>
+                        <td><span class="badge badge-warn">待回填</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- 实验计划 -->
+            <div class="panel">
+              <div class="panel-head">
+                <h3>投放实验计划</h3>
+                <div class="row">
+                  <span class="badge">3 个实验</span>
+                  <button type="button" class="btn"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-arrow-r"></use></svg>生成实验</button>
+                </div>
+              </div>
+              <div class="panel-body stack-3">
+                <div class="alert alert-ok">
+                  <svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg>
+                  <span>已生成投放实验计划，实际投放前仍需人工确认。</span>
+                  <span class="badge badge-online">generated</span>
+                </div>
+
+                <div class="grid-2">
+                  <article class="panel">
+                    <div class="panel-head">
+                      <div class="stack-2">
+                        <h3>E-01 · 夜间反光主图 × 主链接</h3>
+                        <span class="mono-note">generated_asset_id 21 · promotion_link_id 3</span>
+                      </div>
+                      <div class="row"><span class="badge badge-online">执行中</span><span class="badge badge-warn">日预算 ¥150.00</span></div>
+                    </div>
+                    <div class="panel-body stack-3">
+                      <p>目标：验证夜间反光主图在通勤人群的点击率是否显著高于容量实证版本。</p>
+                      <dl class="kv">
+                        <dt>关联素材</dt><dd>图片 · 夜间反光主图 v2</dd>
+                        <dt>承接链接</dt><dd>拼多多主链接 · 承接页</dd>
+                        <dt>人群</dt><dd>25–35 岁 / 一二线城市 / 骑行与通勤兴趣</dd>
+                        <dt>成功指标</dt><dd><b>CTR ≥ 4.5% 且 ROI ≥ 2.0</b></dd>
+                      </dl>
+                      <div class="tint tint-info">
+                        <span class="tint-lbl">假设</span>
+                        <p>夜间场景下「反光条可见」比「容量更大」更能撬动点击。</p>
+                      </div>
+                      <div class="row">
+                        <button type="button" class="btn">标记暂停</button>
+                        <button type="button" class="btn">标记完成</button>
+                      </div>
+                    </div>
+                  </article>
+
+                  <article class="panel">
+                    <div class="panel-head">
+                      <div class="stack-2">
+                        <h3>E-02 · 夜骑视频 × 达人链接</h3>
+                        <span class="mono-note">generated_asset_id 24 · promotion_link_id 5</span>
+                      </div>
+                      <div class="row"><span class="badge badge-warn">已暂停</span><span class="badge badge-warn">日预算 ¥120.00</span></div>
+                    </div>
+                    <div class="panel-body stack-3">
+                      <p>目标：复测视频素材在达人流量下的转化稳定性。</p>
+                      <dl class="kv">
+                        <dt>关联素材</dt><dd>视频 · 夜骑反光 15s v1</dd>
+                        <dt>承接链接</dt><dd>达人分销 · 骑行垂类</dd>
+                        <dt>人群</dt><dd>骑行俱乐部 / 学生 / 达人粉丝</dd>
+                        <dt>成功指标</dt><dd><b>转化率 ≥ 2.5%</b></dd>
+                      </dl>
+                      <p class="mono-note">暂停原因：转化率 1.40% 低于线，先补拍实测结尾镜头再恢复。</p>
+                      <div class="row">
+                        <button type="button" class="btn btn-primary">恢复执行</button>
+                        <button type="button" class="btn">编辑实验</button>
+                      </div>
+                    </div>
+                  </article>
+
+                  <article class="panel">
+                    <div class="panel-head">
+                      <div class="stack-2">
+                        <h3>E-03 · 容量实证主图 · 补测</h3>
+                        <span class="mono-note">generated_asset_id — · promotion_link_id 7</span>
+                      </div>
+                      <div class="row"><span class="badge">待确认</span><span class="badge badge-warn">日预算 ¥80.00</span></div>
+                    </div>
+                    <div class="panel-body stack-3">
+                      <p>目标：补测容量卖点在通勤白领人群的点击表现。</p>
+                      <dl class="kv">
+                        <dt>关联素材</dt><dd>未关联（等图片草稿 #4822 重试成功）</dd>
+                        <dt>承接链接</dt><dd>主图 A 测试链接</dd>
+                        <dt>人群</dt><dd>通勤白领 / 笔电随身</dd>
+                        <dt>成功指标</dt><dd><b>CTR ≥ 3.5%</b></dd>
+                      </dl>
+                      <div class="row">
+                        <button type="button" class="btn btn-primary">标记执行中</button>
+                        <span class="mono-note">草稿状态不计入看板花费</span>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </div>
+            </div>
+
+            <!-- 投放建议 -->
+            <div class="panel">
+              <div class="panel-head">
+                <h3>投放建议</h3>
+                <div class="row">
+                  <span class="badge badge-info">LLM 生成</span>
+                  <span class="badge badge-warn">待人工确认</span>
+                  <button type="button" class="btn"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-arrow-r"></use></svg>生成投放建议</button>
+                </div>
+              </div>
+              <div class="panel-body stack-4">
+                <div class="tint tint-ok">
+                  <span class="tint-lbl">建议摘要 · AD-31</span>
+                  <p>本轮把预算集中在「夜间反光」素材族：主链接承接、日预算 ¥200、人群收窄至一二线通勤与骑行兴趣；容量实证版本作为对照保留日预算 ¥80；达人链路暂不追加，等视频实测版出来再复测。</p>
+                </div>
+
+                <div class="tint tint-accent">
+                  <span class="tint-lbl">本轮目标</span>
+                  <p>在 7 天内把可放量素材的日花费从 ¥150 提到 ¥200，同时守住整体 ROI ≥ 2.4，不新增 SKU 库存风险。</p>
+                </div>
+
+                <div class="grid-2">
+                  <div class="panel">
+                    <div class="panel-head"><h3>人群建议</h3><span class="badge">2 组</span></div>
+                    <div class="panel-body stack-3">
+                      <div class="tint">
+                        <span class="tint-lbl">通勤主力</span>
+                        <p><b>25–35 岁 · 一二线城市 · 通勤 30 分钟以上</b></p>
+                        <p>依据：夜间反光主图在该人群的 CTR 5.24%，高于通盘 3.92%。</p>
+                        <div class="chip-row" style="margin-top:.5rem">
+                          <span class="tag">骑行兴趣</span>
+                          <span class="tag">数码配件</span>
+                          <span class="tag">成功指标 CTR ≥ 4.5%</span>
+                        </div>
+                      </div>
+                      <div class="tint">
+                        <span class="tint-lbl">对照人群</span>
+                        <p><b>25–40 岁 · 全国 · 笔电随身 / 出差</b></p>
+                        <p>依据：容量实证主图 CTR 1.92%，用较小预算验证容量卖点是否存在真实需求。</p>
+                        <div class="chip-row" style="margin-top:.5rem">
+                          <span class="tag">商旅</span>
+                          <span class="tag">成功指标 CTR ≥ 3.5%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="panel">
+                    <div class="panel-head"><h3>预算计划</h3><span class="badge badge-warn">止损线明确</span></div>
+                    <div class="panel-body stack-3">
+                      <div class="tint tint-ok">
+                        <span class="tint-lbl">日预算</span>
+                        <p>主实验 ¥200.00 / 天，对照实验 ¥80.00 / 天，合计 ¥280.00 / 天。</p>
+                      </div>
+                      <div class="tint">
+                        <span class="tint-lbl">分配</span>
+                        <ul class="stack-2">
+                          <li>夜间反光主图 × 主链接：70%</li>
+                          <li>容量实证主图 × 测试链接：20%</li>
+                          <li>夜骑视频 × 达人链接：10%（观察）</li>
+                        </ul>
+                      </div>
+                      <div class="tint tint-warn">
+                        <span class="tint-lbl">止损规则</span>
+                        <p>连续 2 天 ROI &lt; 1.5 或单日花费超过日预算 130% 立即暂停；灰色规格库存低于 10 件时暂停该规格投放。</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="panel">
+                    <div class="panel-head"><h3>素材测试</h3><span class="badge">2 项</span></div>
+                    <div class="panel-body stack-3">
+                      <div class="tint">
+                        <span class="tint-lbl">复制结构</span>
+                        <p>以夜间反光主图为模板，复制 2 个同结构、不同卖点版本（笔电仓 / 透气背板）。</p>
+                        <div class="chip-row" style="margin-top:.5rem"><span class="tag">素材方向：夜间侧逆光</span><span class="tag">成功指标 CTR ≥ 4.5%</span></div>
+                      </div>
+                      <div class="tint">
+                        <span class="tint-lbl">视频补拍</span>
+                        <p>夜骑视频补拍 3 秒实测结尾镜头，验证转化率能否从 1.40% 提到 2.5%。</p>
+                        <div class="chip-row" style="margin-top:.5rem"><span class="tag">素材方向：实测对比</span><span class="tag">成功指标 转化率 ≥ 2.5%</span></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="panel">
+                    <div class="panel-head"><h3>出价策略</h3><span class="badge">3 条</span></div>
+                    <div class="panel-body stack-3">
+                      <p class="tint">主实验从低成本起投，出价或不高于行业均值的 1.1 倍。</p>
+                      <p class="tint">对照实验维持低价，只用于验证素材方向，不做放量。</p>
+                      <p class="tint">夜间 19:00–23:00 单独提价 15%，匹配反光条场景。</p>
+                    </div>
+                  </div>
+
+                  <div class="panel">
+                    <div class="panel-head"><h3>风险控制</h3><span class="badge badge-warn">3 条</span></div>
+                    <div class="panel-body stack-3">
+                      <p class="tint tint-warn">灰色规格可用库存 6 件，放量前先补货或排除该规格。</p>
+                      <p class="tint tint-warn">竞品 B 降价至 ¥299，若本品 ROI 跌破 2.0 需重新评估价格。</p>
+                      <p class="tint tint-warn">禁用绝对化用语；不承诺价格保护与时效。</p>
+                    </div>
+                  </div>
+
+                  <div class="panel">
+                    <div class="panel-head"><h3>下一步动作</h3><span class="badge badge-accent">4 条</span></div>
+                    <div class="panel-body stack-3">
+                      <p class="tint tint-accent">1. 人工确认本建议后，把 E-03 标记为执行中。</p>
+                      <p class="tint tint-accent">2. 重试生成任务 #4821 / #4822，补齐素材缺口。</p>
+                      <p class="tint tint-accent">3. 灰色规格补货 50 件或暂停该规格投放。</p>
+                      <p class="tint tint-accent">4. 10-20 回填本周期数据并生成复盘。</p>
+                    </div>
+                  </div>
+                </div>
+
+                <details class="boxed" open>
+                  <summary><svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>人工确认建议（投放前必须确认）</summary>
+                  <div class="stack-3" style="margin-top:var(--sp-2)">
+                    <div class="field">
+                      <label for="cf-note">确认备注</label>
+                      <textarea class="input" id="cf-note" rows="2" placeholder="记录确认人判断、预算边界或暂不执行原因">放量到 ¥200/天可以，但灰色规格库存低于 10 件时必须暂停该规格。</textarea>
+                    </div>
+                    <div class="row">
+                      <button type="button" class="btn btn-primary"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-check"></use></svg>确认建议</button>
+                      <button type="button" class="btn">暂不采纳</button>
+                      <span class="mono-note">确认后记录 confirmed_at 与备注，进入实验计划；不触发任何扣费动作。</span>
+                    </div>
+                  </div>
+                </details>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============================================================
+               区块 08 · 任务（tab=jobs）
+               ============================================================ -->
+          <section class="sec" id="jobs" aria-labelledby="h-jobs">
+            <div class="sec-hd">
+              <div class="stack-2">
+                <span class="eyebrow">SECTION 08 · TAB=JOBS · 任务</span>
+                <h2 id="h-jobs">生成任务中心 · 公开链接解析任务</h2>
+              </div>
+              <span class="mono-note">GenerationJob（图片 / 视频）与 PublicLinkParseTask（竞品解析）分开管理；有活动任务时页面自动刷新</span>
+            </div>
+
+            <div class="panel">
+              <div class="panel-head">
+                <h3>生成任务中心</h3>
+                <div class="row">
+                  <span class="badge">5 个生成任务</span>
+                  <span class="badge badge-warn"><span class="status-led is-busy" aria-hidden="true"></span>自动刷新中</span>
+                </div>
+              </div>
+              <div class="tbl-wrap">
+                <table class="tbl tbl-x">
+                  <thead>
+                    <tr>
+                      <th scope="col">ID</th>
+                      <th scope="col">类型</th>
+                      <th scope="col">状态</th>
+                      <th scope="col" class="wrap-cell">结果 / 错误</th>
+                      <th scope="col" class="num">尝试</th>
+                      <th scope="col">时间</th>
+                      <th scope="col">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="key">#4823</td>
+                      <td>图片</td>
+                      <td><span class="badge badge-warn">生成中</span></td>
+                      <td>开始于 10-14 09:31 · 进度 62%</td>
+                      <td class="num">1 / 3</td>
+                      <td class="key">09:31</td>
+                      <td><div class="actions"><button type="button" class="btn">详情</button><button type="button" class="btn">取消</button></div></td>
+                    </tr>
+                    <tr>
+                      <td class="key">#4822</td>
+                      <td>图片</td>
+                      <td><span class="badge badge-accent">失败</span></td>
+                      <td><span style="color:var(--accent)">供应商 502：image provider timeout after 60s</span></td>
+                      <td class="num">2 / 3</td>
+                      <td class="key">09:12</td>
+                      <td><div class="actions"><button type="button" class="btn">详情</button><button type="button" class="btn btn-primary">重试</button></div></td>
+                    </tr>
+                    <tr>
+                      <td class="key">#4821</td>
+                      <td>视频</td>
+                      <td><span class="badge badge-accent">失败</span></td>
+                      <td><span style="color:var(--accent)">供应商 429：video provider rate limit</span></td>
+                      <td class="num">1 / 3</td>
+                      <td class="key">09:20</td>
+                      <td><div class="actions"><button type="button" class="btn">详情</button><button type="button" class="btn btn-primary">重试</button></div></td>
+                    </tr>
+                    <tr>
+                      <td class="key">#4820</td>
+                      <td>图片</td>
+                      <td><span class="badge badge-online">已完成</span></td>
+                      <td><a class="lnk" href="#jobs"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-ext"></use></svg>打开生成结果</a></td>
+                      <td class="num">1 / 3</td>
+                      <td class="key">10-13 21:04</td>
+                      <td><div class="actions"><button type="button" class="btn">详情</button></div></td>
+                    </tr>
+                    <tr>
+                      <td class="key">#4818</td>
+                      <td>图片</td>
+                      <td><span class="badge">已取消</span></td>
+                      <td><span class="mono-note">用户取消 · 未产生费用</span></td>
+                      <td class="num">1 / 3</td>
+                      <td class="key">10-13 20:38</td>
+                      <td><div class="actions"><button type="button" class="btn">详情</button></div></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="tbl-note">
+                <svg class="ic ic-sm" aria-hidden="true"><use href="#i-warn"></use></svg>
+                <span>三态动作规则：进行中 / 排队中只给「取消」；已完成给「打开结果」与素材入库；失败给「重试」并显示尝试次数与错误原文。</span>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-head">
+                <h3>公开链接解析任务</h3>
+                <div class="row">
+                  <span class="badge">3 个任务</span>
+                  <span class="mono-note">把用户提交的公开商品页异步解析成竞品档案，最多重试 3 次</span>
+                </div>
+              </div>
+              <div class="tbl-wrap">
+                <table class="tbl tbl-x">
+                  <thead>
+                    <tr>
+                      <th scope="col">ID</th>
+                      <th scope="col">状态</th>
+                      <th scope="col" class="wrap-cell">链接</th>
+                      <th scope="col" class="wrap-cell">结果 / 错误</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="key">#27</td>
+                      <td><span class="badge badge-warn">等待中</span></td>
+                      <td class="url">https://mobile.yangkeduo.com/goods.html?goods_id=90211477</td>
+                      <td class="mono-note">等待执行：10-14 06:20</td>
+                    </tr>
+                    <tr>
+                      <td class="key">#26</td>
+                      <td><span class="badge badge-online">成功</span></td>
+                      <td class="url">https://item.taobao.com/item.htm?id=7788112200</td>
+                      <td>已生成竞品 #41（竞品 B · 骑行双肩包 25L）</td>
+                    </tr>
+                    <tr>
+                      <td class="key">#25</td>
+                      <td><span class="badge badge-accent">失败</span></td>
+                      <td class="url">https://detail.tmall.com/item.htm?id=66019928</td>
+                      <td><span style="color:var(--accent)">页面结构无法解析：未找到价格节点（尝试 3 / 3）</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============================================================
+               区块 09 · 复盘（tab=review）
+               ============================================================ -->
+          <section class="sec" id="review" aria-labelledby="h-review">
+            <div class="sec-hd">
+              <div class="stack-2">
+                <span class="eyebrow">SECTION 09 · TAB=REVIEW · 数据与复盘</span>
+                <h2 id="h-review">回填经营数据 · 汇总与趋势 · 周期复盘报告</h2>
+              </div>
+              <span class="mono-note">PerformanceRecord 可关联素材 / 链接 / 实验用于归因；ReviewReport 拆成 insights 与 next_actions 两个可编辑列表</span>
+            </div>
+
+            <div class="grid-1-2">
+              <div class="stack-4">
+                <div class="panel">
+                  <div class="panel-head"><h3>录入经营数据</h3><span class="badge">PerformanceRecordForm</span></div>
+                  <div class="panel-body stack-3">
+                    <div class="form-grid">
+                      <div class="field"><label for="r-start">周期开始</label><input class="input mono" id="r-start" value="2026-10-14" readonly></div>
+                      <div class="field"><label for="r-end">周期结束</label><input class="input mono" id="r-end" value="2026-10-20" readonly></div>
+                    </div>
+                    <div class="field"><label for="r-exp">关联实验</label><select class="input" id="r-exp"><option>E-01 夜间反光主图 × 主链接</option><option>E-02 夜骑视频 × 达人链接</option><option>E-03 容量实证主图 · 补测</option></select></div>
+                    <div class="field"><label for="r-asset">关联素材</label><select class="input" id="r-asset"><option>图片 · 夜间反光主图 v2</option><option>视频 · 夜骑反光 15s v1</option></select></div>
+                    <div class="field"><label for="r-link">关联链接</label><select class="input" id="r-link"><option>拼多多主链接 · 承接页</option><option>达人分销 · 骑行垂类</option></select></div>
+                    <div class="form-grid">
+                      <div class="field"><label for="r-imp">曝光</label><input class="input mono" id="r-imp" placeholder="12000"></div>
+                      <div class="field"><label for="r-click">点击</label><input class="input mono" id="r-click" placeholder="640"></div>
+                      <div class="field"><label for="r-conv">成交</label><input class="input mono" id="r-conv" placeholder="9"></div>
+                      <div class="field"><label for="r-spend">花费</label><input class="input mono" id="r-spend" placeholder="820.00"></div>
+                      <div class="field"><label for="r-rev">成交额</label><input class="input mono" id="r-rev" placeholder="2340.00"></div>
+                    </div>
+                    <div class="field"><label for="r-notes">备注</label><textarea class="input" id="r-notes" rows="2" placeholder="记录口径、异常或需要复盘关注的点"></textarea></div>
+                    <button type="button" class="btn btn-primary">保存经营数据</button>
+                  </div>
+                </div>
+
+                <div class="panel">
+                  <div class="panel-head"><h3>CSV 导入经营数据</h3><span class="badge">PerformanceImportForm</span></div>
+                  <div class="panel-body stack-3">
+                    <div class="field"><label for="r-csv">CSV 文件</label><input class="input mono" id="r-csv" value="performance_2026-10-07_10-13.csv" readonly></div>
+                    <dl class="kv">
+                      <dt>解析行数</dt><dd>4 行 · 表头 11 列全部匹配</dd>
+                      <dt>重复策略</dt><dd>按周期 + 实验 upsert</dd>
+                    </dl>
+                    <button type="button" class="btn">导入并回填</button>
+                    <p class="mono-note">导入为空时提示检查日期列与表头；数字格式或素材 ID 不属于当前商品会整批拒绝。</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="stack-4">
+                <div class="panel">
+                  <div class="panel-head"><h3>经营数据汇总</h3><span class="badge">4 条记录</span></div>
+                  <div class="panel-body">
+                    <div class="metrics metrics-6">
+                      <div class="metric"><span class="lbl">数据周期</span><span class="val">4 条</span></div>
+                      <div class="metric"><span class="lbl">总曝光</span><span class="val">21,280</span></div>
+                      <div class="metric"><span class="lbl">整体 CTR</span><span class="val">3.92%</span></div>
+                      <div class="metric"><span class="lbl">总成交</span><span class="val">12</span></div>
+                      <div class="metric"><span class="lbl">总花费</span><span class="val">¥1,086.40</span></div>
+                      <div class="metric"><span class="lbl">整体 ROI</span><span class="val is-ok">2.43</span></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="panel">
+                  <div class="panel-head">
+                    <h3>经营趋势</h3>
+                    <div class="row"><span class="badge">最近 4 条</span><span class="mono-note">CTR / 转化率按 8% 满格，ROI 按区间最大值满格</span></div>
+                  </div>
+                  <div class="panel-body stack-4">
+                    <div class="stack-3">
+                      <div class="row row-between"><span class="mono-note">10-07 至 10-09 · E-01</span><span class="mono-note">4 单</span></div>
+                      <div class="trend"><span class="t-lbl">CTR</span><div class="bar"><i class="is-info" style="width:66%"></i></div><span class="t-val">5.30%</span></div>
+                      <div class="trend"><span class="t-lbl">转化</span><div class="bar"><i class="is-info" style="width:16%"></i></div><span class="t-val">1.26%</span></div>
+                      <div class="trend"><span class="t-lbl">ROI</span><div class="bar"><i class="is-accent" style="width:97%"></i></div><span class="t-val">3.08</span></div>
+                    </div>
+                    <div class="stack-3">
+                      <div class="row row-between"><span class="mono-note">10-10 至 10-13 · E-01</span><span class="mono-note">3 单</span></div>
+                      <div class="trend"><span class="t-lbl">CTR</span><div class="bar"><i class="is-info" style="width:64%"></i></div><span class="t-val">5.15%</span></div>
+                      <div class="trend"><span class="t-lbl">转化</span><div class="bar"><i class="is-info" style="width:18%"></i></div><span class="t-val">1.46%</span></div>
+                      <div class="trend"><span class="t-lbl">ROI</span><div class="bar"><i class="is-accent" style="width:100%"></i></div><span class="t-val">3.18</span></div>
+                    </div>
+                    <div class="stack-3">
+                      <div class="row row-between"><span class="mono-note">10-01 至 10-06 · E-02</span><span class="mono-note">3 单</span></div>
+                      <div class="trend"><span class="t-lbl">CTR</span><div class="bar"><i class="is-info" style="width:43%"></i></div><span class="t-val">3.41%</span></div>
+                      <div class="trend"><span class="t-lbl">转化</span><div class="bar"><i class="is-info" style="width:18%"></i></div><span class="t-val">1.40%</span></div>
+                      <div class="trend"><span class="t-lbl">ROI</span><div class="bar"><i class="is-accent" style="width:69%"></i></div><span class="t-val">2.18</span></div>
+                    </div>
+                    <div class="stack-3">
+                      <div class="row row-between"><span class="mono-note">09-24 至 09-30 · 无实验</span><span class="mono-note">2 单</span></div>
+                      <div class="trend"><span class="t-lbl">CTR</span><div class="bar"><i class="is-info" style="width:24%"></i></div><span class="t-val">1.92%</span></div>
+                      <div class="trend"><span class="t-lbl">转化</span><div class="bar"><i class="is-info" style="width:26%"></i></div><span class="t-val">2.08%</span></div>
+                      <div class="trend"><span class="t-lbl">ROI</span><div class="bar"><i class="is-accent" style="width:45%"></i></div><span class="t-val">1.42</span></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="panel">
+                  <div class="panel-head">
+                    <h3>投放复盘报告</h3>
+                    <div class="row">
+                      <span class="badge badge-info">10-07 至 10-13</span>
+                      <button type="button" class="btn btn-primary"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-check"></use></svg>生成复盘</button>
+                    </div>
+                  </div>
+                  <div class="panel-body stack-4">
+                    <div class="tint tint-warn">
+                      <span class="tint-lbl">本期摘要</span>
+                      <p>本周期数据集中在「夜间反光」素材族：2 条记录合计花费 ¥512.40、成交 7 单、ROI 3.12，明显高于其余素材（ROI 1.42–2.18）。整体 CTR 3.92% 主要由视频素材拉动，但视频类转化率仅 1.40% —— 点击好而承接偏弱。</p>
+                    </div>
+                    <div class="grid-2">
+                      <div class="tint">
+                        <span class="tint-lbl">复盘洞察</span>
+                        <ul class="stack-2">
+                          <li>夜间反光主图是本周期唯一 ROI &gt; 3 的素材</li>
+                          <li>视频点击高、转化低，疑与达人链路承接页不匹配</li>
+                          <li>灰色规格库存 6 件已成为放量瓶颈</li>
+                          <li>竞品 B 降价至 ¥299 后本品价格优势消失</li>
+                        </ul>
+                      </div>
+                      <div class="tint tint-accent">
+                        <span class="tint-lbl">下一步动作</span>
+                        <ul class="stack-2">
+                          <li>夜间反光主图放量至日预算 ¥200，复制 2 个变体</li>
+                          <li>夜骑视频补拍「实测对比」结尾镜头再测</li>
+                          <li>灰色规格补货 50 件或暂缓该规格投放</li>
+                          <li>下周补测「容量实证」版本二</li>
+                        </ul>
+                      </div>
+                    </div>
+                    <details class="boxed">
+                      <summary><svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>编辑复盘（摘要 / 洞察 / 下一步动作）</summary>
+                      <div class="stack-3" style="margin-top:var(--sp-2)">
+                        <div class="field"><label for="rv-sum">本期摘要</label><textarea class="input" id="rv-sum" rows="2" readonly>本周期数据集中在「夜间反光」素材族……</textarea></div>
+                        <div class="form-grid">
+                          <div class="field"><label for="rv-ins">复盘洞察（每行一条）</label><textarea class="input" id="rv-ins" rows="3" readonly>夜间反光主图唯一 ROI > 3
+视频点击高转化低
+灰色规格库存是瓶颈</textarea></div>
+                          <div class="field"><label for="rv-act">下一步动作（每行一条）</label><textarea class="input" id="rv-act" rows="3" readonly>放量至 ¥200/天
+补拍实测结尾镜头
+灰色规格补货 50 件</textarea></div>
+                        </div>
+                        <button type="button" class="btn btn-primary">保存复盘</button>
+                      </div>
+                    </details>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-head">
+                <h3>最近经营数据 · 最近 5 条</h3>
+                <span class="badge">4 条记录</span>
+              </div>
+              <div class="tbl-note" style="border-top:0;border-bottom:1px solid var(--border)">
+                <svg class="ic ic-sm" aria-hidden="true"><use href="#i-doc"></use></svg>
+                <span>列口径：周期 / 实验 / 素材 / 链接 / CTR / 转化率 / 花费 / ROI —— 与 PerformanceRecord 字段一一对应，ROI 由 成交额 ÷ 花费 计算。</span>
+              </div>
+              <div class="tbl-wrap">
+                <table class="tbl tbl-x">
+                  <thead>
+                    <tr>
+                      <th scope="col">周期</th>
+                      <th scope="col">实验</th>
+                      <th scope="col">素材</th>
+                      <th scope="col">链接</th>
+                      <th scope="col" class="num">CTR</th>
+                      <th scope="col" class="num">转化率</th>
+                      <th scope="col" class="num">花费</th>
+                      <th scope="col" class="num">ROI</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="key">10-10 至 10-13</td>
+                      <td>E-01 夜间反光主图 × 主链接</td>
+                      <td>图片 · 夜间反光主图 v2</td>
+                      <td>拼多多主链接 · 承接页</td>
+                      <td class="num">5.15%</td>
+                      <td class="num">1.46%</td>
+                      <td class="num">¥214.00</td>
+                      <td class="num" style="color:var(--success)">3.18</td>
+                    </tr>
+                    <tr>
+                      <td class="key">10-07 至 10-09</td>
+                      <td>E-01 夜间反光主图 × 主链接</td>
+                      <td>图片 · 夜间反光主图 v2</td>
+                      <td>拼多多主链接 · 承接页</td>
+                      <td class="num">5.30%</td>
+                      <td class="num">1.26%</td>
+                      <td class="num">¥298.40</td>
+                      <td class="num" style="color:var(--success)">3.08</td>
+                    </tr>
+                    <tr>
+                      <td class="key">10-01 至 10-06</td>
+                      <td>E-02 夜骑视频 × 达人链接</td>
+                      <td>视频 · 夜骑反光 15s v1</td>
+                      <td>达人分销 · 骑行垂类</td>
+                      <td class="num">3.41%</td>
+                      <td class="num">1.40%</td>
+                      <td class="num">¥306.00</td>
+                      <td class="num">2.18</td>
+                    </tr>
+                    <tr>
+                      <td class="key">09-24 至 09-30</td>
+                      <td>未关联</td>
+                      <td>图片 · 容量实证主图 v1</td>
+                      <td>主图 A 测试链接</td>
+                      <td class="num">1.92%</td>
+                      <td class="num">2.08%</td>
+                      <td class="num">¥268.00</td>
+                      <td class="num">1.42</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============================================================
+               区块 10 · 空态与权限态
+               ============================================================ -->
+          <section class="sec" id="states" aria-labelledby="h-states">
+            <div class="sec-hd">
+              <div class="stack-2">
+                <span class="eyebrow">SECTION 10 · EMPTY / PERMISSION STATES</span>
+                <h2 id="h-states">空态要有引导 · 只读权限要说明白</h2>
+              </div>
+              <span class="mono-note">线上原版的空态只有一句「暂无数据」；本稿每个空态都回答三件事：为什么空 · 下一步点什么 · 完成后这里会出现什么</span>
+            </div>
+
+            <div class="alert alert-warn">
+              <svg class="ic" aria-hidden="true"><use href="#i-warn"></use></svg>
+              <span><b class="h">当前账号为只读权限</b> —— 生成、保存、取消、重试和导入等写操作按钮已隐藏。真实鉴权仍由后端 API 兜底，前端隐藏只是减少误操作。</span>
+              <span class="badge badge-warn">canEdit = false</span>
+            </div>
+
+            <div class="grid-3">
+              <div class="panel">
+                <div class="panel-head"><h3>还没有竞品</h3><span class="badge">Competitor 为空</span></div>
+                <div class="panel-body">
+                  <div class="empty">
+                    <svg class="ic ic-lg" aria-hidden="true" style="color:var(--faint)"><use href="#i-search"></use></svg>
+                    <h4 style="margin-top:var(--sp-3)">还没有竞品样本</h4>
+                    <p>建议先录入 3 个同价位或同类目爆款。没有竞品，价格带与卖点判断只能靠猜，诊断和主图方向都会偏。</p>
+                    <div class="empty-actions">
+                      <button type="button" class="btn btn-primary"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-ext"></use></svg>粘贴竞品链接</button>
+                      <button type="button" class="btn">手动录入</button>
+                    </div>
+                    <p class="empty-next">
+                      <svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>
+                      录入后这里出现价格带 / 均价 / 卖点频次，以及每条竞品的监控节奏与快照变化
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-head"><h3>还没有素材</h3><span class="badge">GeneratedAsset 为空</span></div>
+                <div class="panel-body">
+                  <div class="empty">
+                    <svg class="ic ic-lg" aria-hidden="true" style="color:var(--faint)"><use href="#i-copy"></use></svg>
+                    <h4 style="margin-top:var(--sp-3)">还没有生成素材</h4>
+                    <p>素材来自主图方案与视频脚本。先生成方向（免费），确认角度后再出图出片，避免把钱花在错的方向上。</p>
+                    <div class="empty-actions">
+                      <button type="button" class="btn btn-primary"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-copy"></use></svg>生成主图方案</button>
+                      <button type="button" class="btn">生成视频脚本</button>
+                    </div>
+                    <p class="empty-next">
+                      <svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>
+                      素材入库后可按版本 / 评分 / 标签管理，并挂上经营数据做效果归因
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-head"><h3>还没有生成任务</h3><span class="badge">GenerationJob 为空</span></div>
+                <div class="panel-body">
+                  <div class="empty">
+                    <svg class="ic ic-lg" aria-hidden="true" style="color:var(--faint)"><use href="#i-terminal"></use></svg>
+                    <h4 style="margin-top:var(--sp-3)">还没有生成任务</h4>
+                    <p>生成任务由创意方案触发。每张图 / 每条视频都会留下任务记录，失败可重试，取消不留费用。</p>
+                    <div class="empty-actions">
+                      <button type="button" class="btn btn-primary">去主图页签出图</button>
+                    </div>
+                    <p class="empty-next">
+                      <svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>
+                      出任务后这里按状态分组：排队中 · 生成中 · 已完成 · 失败 · 已取消
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="panel">
+                <div class="panel-head"><h3>Agent 空态</h3><span class="badge">AgentRun 为空</span></div>
+                <div class="panel-body">
+                  <div class="empty">
+                    <svg class="ic ic-lg" aria-hidden="true" style="color:var(--faint)"><use href="#i-agent"></use></svg>
+                    <h4 style="margin-top:var(--sp-3)">还没有 Agent 运行记录</h4>
+                    <p>启动后将显示专家协作、质量检查和人工审批过程。运行不产生任何投放或资金动作，可放心试跑。</p>
+                    <div class="empty-actions">
+                      <button type="button" class="btn btn-primary"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-agent"></use></svg>启动运营 Agent</button>
+                    </div>
+                    <p class="empty-next">
+                      <svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>
+                      运行期间右栏会出现事件轨迹与最近运行列表；结果必须人工确认才落库
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-head"><h3>还没有经营数据</h3><span class="badge">PerformanceRecord 为空</span></div>
+                <div class="panel-body">
+                  <div class="empty">
+                    <svg class="ic ic-lg" aria-hidden="true" style="color:var(--faint)"><use href="#i-db"></use></svg>
+                    <h4 style="margin-top:var(--sp-3)">还没有经营数据</h4>
+                    <p>录入一条数据，才谈得上归因与复盘。没有数据时，素材放量建议、实验决策与复盘都不会出现。</p>
+                    <div class="empty-actions">
+                      <button type="button" class="btn btn-primary">手动录入一条</button>
+                      <button type="button" class="btn">下载 CSV 模板</button>
+                    </div>
+                    <p class="empty-next">
+                      <svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>
+                      录入后出现汇总卡、趋势条，以及按素材 / 链接维度的归因表
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <p class="mono-note" style="margin-top:var(--sp-6)">
+            设计稿说明：商品、竞品、任务与经营数据均为示意值，不接任何后端接口；颜色 / 圆角 / 字体全部取自 design-system.css，
+            图标全部来自 icons.js 的 13 枚 #i-* 符号，页面零外部依赖（无 CDN、无字体、无图片）。变化方向的 ↑ / ↓ 为文本箭头（U+2191 / U+2193），非表情符号。
+          </p>
+
+        </div>
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<script src="icons.js" defer></script>
+<script>
+  /* 静态稿：页签锚点在滚动时同步选中态（真实系统是 ?tab= 路由切换）。 */
+  (function () {
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+    if (!tabs.length || !('IntersectionObserver' in window)) return;
+    var map = {};
+    tabs.forEach(function (t) {
+      var id = (t.getAttribute('href') || '').replace('#', '');
+      if (id) map[id] = t;
+      t.addEventListener('click', function () {
+        tabs.forEach(function (x) { x.setAttribute('aria-selected', x === t ? 'true' : 'false'); });
+      });
+    });
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        var tab = map[en.target.id];
+        if (!tab) return;
+        tabs.forEach(function (x) { x.setAttribute('aria-selected', x === tab ? 'true' : 'false'); });
+      });
+    }, { rootMargin: '-40% 0px -55% 0px' });
+    document.querySelectorAll('section[id]').forEach(function (s) { io.observe(s); });
+  })();
+</script>
+</body>
+</html>

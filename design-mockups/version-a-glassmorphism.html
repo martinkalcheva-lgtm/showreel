@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>作品集 · 玻璃拟态 Pro | G.</title>
+<style>
+/* ============================================================
+   方案 A：iOS 玻璃拟态增强版（Glassmorphism Pro）
+   设计语言 / 核心原则：
+   - 毛玻璃 backdrop-filter: blur() + 高光边框
+   - iOS 26 玻璃设计：悬浮、通透、柔和投影
+   - 渐变背景 + 噪点纹理增加质感
+   - 8pt 网格、大圆角、弹性微交互、依次入场动画
+   - 完整浅色 / 深色（Apple 语义色）双模式
+   所有设计 Token 集中在 :root 与 [data-theme="dark"]
+   ============================================================ */
+
+/* ---------- 设计令牌（Design Tokens） ---------- */
+:root {
+  /* 字体与排版 */
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "PingFang SC", "Helvetica Neue", "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-ui);
+
+  /* 圆角 —— 遵循 iOS 圆角体系 */
+  --radius-sm: 10px;   /* 8pt */
+  --radius-md: 16px;   /* 12pt */
+  --radius-lg: 24px;   /* 18pt */
+  --radius-xl: 32px;   /* 24pt */
+
+  /* 间距 —— 8pt 网格 */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 48px;
+  --space-6: 64px;
+
+  /* 栅格 —— 桌面3列 / 平板2列 / 手机1列 */
+  --grid-gap: 24px;
+
+  /* 动效曲线（Apple 弹簧曲线） */
+  --ease: cubic-bezier(0.45, 0, 0.21, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* 语义色 / 玻璃色板 */
+  --el-violet: rgba(155, 135, 245, 0.45);
+  --el-blue:   rgba(90, 150, 255, 0.40);
+  --el-mint:   rgba(90, 230, 200, 0.38);
+  --el-pink:   rgba(255, 130, 190, 0.40);
+  --el-amber:  rgba(255, 190, 90, 0.42);
+}
+
+/* ---------- 浅色模式（默认玻璃） ---------- */
+[data-theme="light"] {
+  /* Apple 浅色玻璃 */
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-bg-strong: rgba(255, 255, 255, 0.78);
+  --glass-border: rgba(255, 255, 255, 0.65);
+  --highlight: rgba(255, 255, 255, 0.85); /* 顶部内高光 */
+  --shadow-color: rgba(30, 40, 80, 0.18);
+
+  --text-primary: #11131c;
+  --text-secondary: #565b6b;
+  --text-tertiary: #8a909e;
+
+  --accent: #0a7cff;            /* iOS 系统蓝 */
+  --accent-soft: rgba(10, 124, 255, 0.10);
+
+  --nav-bg: rgba(255, 255, 255, 0.45);
+  --nav-border: rgba(255, 255, 255, 0.50);
+
+  /* 渐变背景（淡紫 → 青 → 粉，通透） */
+  --bg-grad-1: #eef1fb;
+  --bg-grad-2: #e8f6ff;
+  --bg-grad-3: #f5eefc;
+  --bg-noise-opacity: 0.05;
+}
+
+/* ---------- 深色模式 ---------- */
+[data-theme="dark"] {
+  /* Apple 深色玻璃 */
+  --glass-bg: rgba(30, 32, 42, 0.55);
+  --glass-bg-strong: rgba(24, 26, 36, 0.78);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --highlight: rgba(255, 255, 255, 0.08);
+  --shadow-color: rgba(0, 0, 0, 0.55);
+
+  --text-primary: #f5f6fa;
+  --text-secondary: #a6abba;
+  --text-tertiary: #707584;
+
+  --accent: #3d9bff;
+  --accent-soft: rgba(61, 155, 255, 0.14);
+
+  --nav-bg: rgba(28, 30, 40, 0.50);
+  --nav-border: rgba(255, 255, 255, 0.10);
+
+  /* 渐变背景（深靛 → 深蓝 → 深紫） */
+  --bg-grad-1: #1a1f33;
+  --bg-grad-2: #17232e;
+  --bg-grad-3: #221b31;
+  --bg-noise-opacity: 0.09;
+}
+
+/* ---------- 基础重置 ---------- */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+
+body {
+  font-family: var(--font-ui);
+  color: var(--text-primary);
+  min-height: 100vh;
+  line-height: 1.6;
+  overflow-x: hidden;
+  /* 通过 body 上的动态背景实现渐变 + 噪点叠加 */
+  position: relative;
+}
+
+/* 渐变背景层 */
+.bg-gradient {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background: linear-gradient(135deg,
+    var(--bg-grad-1) 0%,
+    var(--bg-grad-2) 50%,
+    var(--bg-grad-3) 100%);
+  transition: background 0.6s var(--ease);
+}
+
+/* 噪点纹理层（SVG fractalNoise 的 data-URI） */
+.bg-noise {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: var(--bg-noise-opacity);
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+
+/* 顶部漂浮光斑（增强通透感 / 深度） */
+.orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(70px);
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.55;
+  transition: background 0.6s var(--ease);
+}
+[data-theme="light"] .orb { opacity: 0.45; }
+.orb-1 { width: 420px; height: 420px; top: -120px; left: -80px;
+  background: radial-gradient(circle, var(--el-violet), transparent 70%); }
+.orb-2 { width: 360px; height: 360px; top: 20%; right: -100px;
+  background: radial-gradient(circle, var(--el-mint), transparent 70%); }
+.orb-3 { width: 380px; height: 380px; bottom: -140px; left: 30%;
+  background: radial-gradient(circle, var(--el-pink), transparent 70%); }
+
+/* ============================================================
+   导航栏（玻璃效果 + 吸顶）
+   ============================================================ */
+.nav {
+  position: sticky;
+  top: 16px;
+  z-index: 50;
+  margin: 16px auto 0;
+  width: min(1120px, calc(100% - 32px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  border-radius: var(--radius-lg);
+  background: var(--nav-bg);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  backdrop-filter: blur(22px) saturate(180%);
+  border: 1px solid var(--nav-border);
+  box-shadow: 0 10px 30px -12px var(--shadow-color);
+  animation: nav-in 0.8s var(--ease) both;
+  transition: background 0.5s var(--ease), border-color 0.5s var(--ease);
+}
+
+@keyframes nav-in {
+  from { opacity: 0; transform: translateY(-14px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Logo —— 渐变圆徽标 "G." */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  user-select: none;
+}
+.logo-mark {
+  width: 34px; height: 34px;
+  border-radius: 11px; /* 8.5pt */
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), #8a5cf6);
+  box-shadow: 0 6px 16px -6px rgba(10, 124, 255, 0.55);
+}
+
+.nav-actions { display: flex; align-items: center; gap: 10px; }
+
+/* 主题切换按钮 —— 玻璃小圆钮 */
+.theme-toggle {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 1.1rem;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  transition: transform 0.3s var(--spring), background 0.3s var(--ease), box-shadow 0.3s var(--ease);
+  box-shadow: inset 0 1px 0 var(--highlight), 0 6px 14px -8px var(--shadow-color);
+}
+.theme-toggle:hover { transform: scale(1.08); }
+.theme-toggle:active { transform: scale(0.94); }
+
+/* GitHub 按钮 */
+.github-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  box-shadow: inset 0 1px 0 var(--highlight), 0 6px 14px -8px var(--shadow-color);
+  transition: transform 0.3s var(--spring), background 0.3s var(--ease);
+}
+.github-btn:hover { transform: translateY(-2px) scale(1.02); }
+.github-btn svg { width: 17px; height: 17px; }
+
+/* ============================================================
+   主体
+   ============================================================ */
+main {
+  width: min(1120px, calc(100% - 32px));
+  margin: 64px auto var(--space-6);
+}
+
+/* 页头 */
+.page-header { margin-bottom: var(--space-5); }
+
+.eyebrow {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  animation: fade-up 0.8s var(--ease) 0.1s both;
+}
+
+h1 {
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  background: linear-gradient(100deg, var(--text-primary), var(--text-secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: fade-up 0.8s var(--ease) 0.2s both;
+}
+
+.subtitle {
+  margin-top: 14px;
+  max-width: 46ch;
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+  animation: fade-up 0.8s var(--ease) 0.3s both;
+}
+
+/* ---------- 卡片网格 ---------- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--grid-gap);
+}
+
+/* 玻璃卡片 */
+.card {
+  position: relative;
+  padding: var(--space-4);
+  border-radius: var(--radius-xl);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(26px) saturate(170%);
+  backdrop-filter: blur(26px) saturate(170%);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    inset 0 1px 0 var(--highlight),
+    0 8px 28px -14px var(--shadow-color);
+  /* 依次入场：通过 --d 延迟 */
+  animation: fade-up 0.8s var(--ease) var(--d, 0.4s) both;
+  transition:
+    transform 0.5s var(--spring),
+    box-shadow 0.4s var(--ease),
+    background 0.4s var(--ease);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* hover：弹性缩放 + 投影加深 */
+.card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow:
+    inset 0 1px 0 var(--highlight),
+    0 28px 60px -24px var(--shadow-color);
+}
+
+/* 卡片顶部内高光渐变带（玻璃质感强化） */
+.card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    var(--highlight),
+    transparent);
+}
+
+/* 项目图标 —— 渐变色块 */
+.icon {
+  width: 60px; height: 60px;
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  margin-bottom: var(--space-3);
+  color: #fff;
+  font-size: 1.6rem;
+  box-shadow: 0 10px 22px -8px var(--shadow-color);
+  transition: transform 0.5s var(--spring);
+}
+.card:hover .icon { transform: translateY(-3px) rotate(-4deg); }
+
+/* 每个项目的专属渐变色 */
+.icon-a { background: linear-gradient(135deg, #ff7a59, #ff4d8d); box-shadow: 0 12px 24px -10px rgba(255, 80, 130, 0.5); }
+.icon-b { background: linear-gradient(135deg, #4facfe, #7a5cff);  box-shadow: 0 12px 24px -10px rgba(90, 140, 255, 0.5); }
+.icon-c { background: linear-gradient(135deg, #22e1a6, #1f9f8c); box-shadow: 0 12px 24px -10px rgba(30, 210, 160, 0.45); }
+
+.card h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.card p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin-bottom: var(--space-3);
+  /* 两行截断 */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: var(--space-3);
+}
+.tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: var(--text-secondary);
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+}
+
+/* 查看项目链接 */
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 650;
+  font-size: 0.92rem;
+  color: var(--accent);
+  text-decoration: none;
+  transition: gap 0.3s var(--ease);
+}
+.cta:hover { gap: 12px; }
+.cta .arrow {
+  transition: transform 0.3s var(--spring);
+}
+.cta:hover .arrow { transform: translateX(2px); }
+
+/* ============================================================
+   页脚
+   ============================================================ */
+footer {
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto var(--space-5);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--glass-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+}
+
+/* ============================================================
+   响应式
+   平板 2 列，手机 1 列
+   ============================================================ */
+@media (max-width: 900px) {
+  .grid { grid-template-columns: repeat(2, 1fr); }
+  h1 { font-size: 2.2rem; }
+}
+@media (max-width: 600px) {
+  .grid { grid-template-columns: 1fr; }
+  main { margin-top: 40px; }
+  .nav { top: 8px; }
+  .subtitle { font-size: 0.98rem; }
+  .github-btn span { display: none; } /* 手机上隐藏按钮文字只留图标 */
+  .github-btn { padding: 8px 12px; }
+}
+
+/* ---------- 减少动效偏好 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+</style>
+</head>
+<body data-theme="light">
+
+  <!-- 背景层：渐变 + 噪点 + 漂浮光斑 -->
+  <div class="bg-gradient"></div>
+  <div class="bg-noise"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <!-- 顶部导航栏（玻璃吸顶） -->
+  <nav class="nav">
+    <div class="logo">
+      <span class="logo-mark">G.</span>
+      <span>项目作品集</span>
+    </div>
+    <div class="nav-actions">
+      <button class="theme-toggle" id="themeToggle" aria-label="切换浅色 / 深色模式">
+        <!-- 默认浅色 → 点击进入深色，图标为月亮 -->
+        <span id="iconsSun" hidden>☀️</span>
+        <span id="iconsMoon">🌙</span>
+      </button>
+      <a class="github-btn" href="#" aria-label="GitHub">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/>
+        </svg>
+        <span>GitHub</span>
+      </a>
+    </div>
+  </nav>
+
+  <main>
+    <header class="page-header">
+      <div class="eyebrow">iOS 26 · Glass Design</div>
+      <h1>精选项目作品集</h1>
+      <p class="subtitle">三个经过打磨的产品，跨越数据智能、电商运营与客户服务三个领域——以毛玻璃的轻盈质感呈现每一次技术尝试。</p>
+    </header>
+
+    <section class="grid">
+      <!-- 卡片 1 -->
+      <article class="card" style="--d:.35s">
+        <div class="icon icon-a">📊</div>
+        <h2>问数与智库</h2>
+        <p>面向业务团队的智能问答与知识库平台，将分散的资料沉淀为可检索、可交互的数据资产，让「问数据」成为团队日常。</p>
+        <div class="tags">
+          <span class="tag">知识库</span>
+          <span class="tag">AI 问答</span>
+          <span class="tag">数据 BI</span>
+        </div>
+        <a class="cta" href="#">查看项目 <span class="arrow">→</span></a>
+      </article>
+
+      <!-- 卡片 2 -->
+      <article class="card" style="--d:.45s">
+        <div class="icon icon-b">🛒</div>
+        <h2>电商运营助手</h2>
+        <p>为电商运营与客服设计的一站式工作台，串联商品、订单与营销活动，用自动化减少重复劳动、提升团队吞吐效率。</p>
+        <div class="tags">
+          <span class="tag">运营 SaaS</span>
+          <span class="tag">自动化</span>
+          <span class="tag">工作台</span>
+        </div>
+        <a class="cta" href="#">查看项目 <span class="arrow">→</span></a>
+      </article>
+
+      <!-- 卡片 3 -->
+      <article class="card" style="--d:.55s">
+        <div class="icon icon-c">🤖</div>
+        <h2>智能客服系统</h2>
+        <p>基于大模型的多轮对话客服系统，7×24 小时在线，智能分流 + 人工无缝转交，显著降低响应时间并提升客户满意度。</p>
+        <div class="tags">
+          <span class="tag">对话 AI</span>
+          <span class="tag">大模型</span>
+          <span class="tag">RAG</span>
+        </div>
+        <a class="cta" href="#">查看项目 <span class="arrow">→</span></a>
+      </article>
+    </section>
+  </main>
+
+  <footer>
+    <span>© 2026 G. · 用设计重新诠释工程</span>
+    <span>玻璃拟态 Pro</span>
+  </footer>
+
+  <script>
+    /* ---------- 主题切换（浅色 / 深色） ---------- */
+    const root = document.documentElement;
+    const toggle = document.getElementById('themeToggle');
+    const sun = document.getElementById('iconsSun');
+    const moon = document.getElementById('iconsMoon');
+
+    function applyTheme(theme) {
+      root.setAttribute('data-theme', theme);
+      // 切换图标：当前深色 → 显示太阳（表示可切回浅色）
+      sun.hidden = theme !== 'dark';
+      moon.hidden = theme === 'dark';
+      try { localStorage.setItem('g-theme', theme); } catch (e) {}
+    }
+
+    toggle.addEventListener('click', () => {
+      const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+      applyTheme(next);
+    });
+
+    // 初始化：读取本地偏好，否则跟随系统
+    (function init() {
+      let saved = null;
+      try { saved = localStorage.getItem('g-theme'); } catch (e) {}
+      const pref = saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      applyTheme(pref);
+    })();
+  </script>
+</body>
+</html>

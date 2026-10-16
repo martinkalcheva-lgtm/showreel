@@ -1,0 +1,1744 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f8f7f4'/%3E%3Cg fill='%230d1218'%3E%3Crect x='12' y='12' width='8' height='8'/%3E%3Crect x='4' y='4' width='4' height='4'/%3E%3Crect x='24' y='4' width='4' height='4'/%3E%3Crect x='4' y='24' width='4' height='4'/%3E%3Crect x='24' y='24' width='4' height='4'/%3E%3C/g%3E%3C/svg%3E">
+<title>运营智能体 · Agent 中心 | 设计稿</title>
+<link rel="stylesheet" href="design-system.css">
+<style>
+  /* ========================================================================
+     线上 /agent（统一运营 Agent 中心）为鉴权页，此前从未被看到。
+     区块顺序、表单动作与字段以 web/src/app/agent/page.tsx 为准：
+       页头 → 结果横幅 → 4 项指标 → 锚点导航 → Agent 入口 + Harness 边界
+       → 任务模板 → 任务中心 → 审批收件箱 → 结构化记忆 → Agent 目录
+       → （本稿补充）空态与边界态 → 修复对照
+
+     线上原版的 8 处问题与本稿修法：
+       1. 无视觉层级，所有卡片同为 1px 灰框
+          → 反白面板承担 Harness 边界与协调 Agent；指标用 2px 顶边分层
+       2. 任务卡看不见耗时（AgentTask 有 created_at / finished_at 却没渲染）
+          → 每行显示耗时与口径，运行中显示「已运行」
+       3. 任务详情不含运行轨迹，只有两块 JSON
+          → 用 .trace / .trace-step 表达事件轨迹（字段取自 agent-run-panel.tsx）
+       4. 审批只有「编辑后批准并恢复 / 拒绝」，没有决策理由，也不显示过期时间
+          → 补 note（AgentApproval.note 字段已存在）+ expires_at + 决策人
+       5. 「有效记忆」标题没有按 status 过滤，撤销/过期项照样展示
+          → 按状态标注，非 active 项降级显示
+       6. catalog.coordinator 与 workflow.agents / required_context_any 字段未渲染
+          → 协调 Agent 单独成卡；模板卡显示专家链与必需上下文
+       7. 自动刷新（AgentTaskAutoRefresh，2s）没有任何可见提示，页面像静态的
+          → 任务中心给出自动刷新指示
+       8. 锚点被 sticky 顶栏遮住；section 参数声明后从未使用
+          → scroll-margin-top + 锚点当前区块高亮（aria-current）
+     本页所有数值、工作流 key、action_key 均为示意数据，字段口径取自 web/src/types.ts。
+     ======================================================================== */
+  .app { grid-template-rows: auto auto 1fr; }
+
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
+  textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  .app-top nav a { display: inline-flex; align-items: center; min-height: 44px; }
+
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  .ribbon {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--sp-3) var(--sp-4); flex-wrap: wrap;
+    padding: .5rem var(--pad-x);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-subtle);
+  }
+  .ribbon .mono-note { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted); }
+
+  .wrap { width: 100%; max-width: var(--max-w); margin-inline: auto; }
+  .sec { margin-bottom: var(--sp-7); scroll-margin-top: 76px; }
+  .sec:last-child { margin-bottom: 0; }
+  .sec-hd {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: var(--sp-3) var(--sp-4); flex-wrap: wrap;
+    margin-bottom: var(--sp-4); padding-bottom: var(--sp-3);
+    border-bottom: 1px solid var(--border);
+  }
+  .sec-hd h2 { font-size: var(--fs-h2); }
+  .sec-hd .mono-note { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  .sec-hd-end { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+
+  .mark-slot { display: inline-flex; align-items: center; }
+  .mark-slot .mark { width: 1em; height: 1em; }
+  .brand .mark-slot { font-size: 20px; }
+
+  .prose { font-size: var(--fs-body); line-height: 1.75; color: var(--fg-secondary); }
+  .hint { font-family: var(--font-mono); font-size: var(--fs-mini); line-height: 1.7; color: var(--faint); }
+  .hint code, .hint .k { color: var(--accent); }
+  /* 长路径是不可断词的拉丁串：flex 子项的 min-width:auto 会按最小内容宽度把页面顶宽，
+     所以凡是放路由 / token 的容器都要允许任意位置断行。 */
+  .tbl-note > span, .form-actions .hint, .hint { min-width: 0; overflow-wrap: anywhere; }
+  .note { display: flex; flex-direction: column; gap: .25rem; border-top: 1px solid var(--border); padding-top: var(--sp-3); }
+  .note p { font-size: var(--fs-body); line-height: 1.7; color: var(--muted); }
+
+  /* --- 表单 ---------------------------------------------------------- */
+  .input, select.input, textarea.input { width: 100%; min-height: 44px; }
+  textarea.input { min-height: 7rem; }
+  .input:disabled { background: var(--surface-sunken); color: var(--faint); cursor: not-allowed; }
+  .form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
+  .form-stack { display: flex; flex-direction: column; gap: var(--sp-4); }
+  .form-actions { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+  textarea.input.is-code { font-family: var(--font-mono); font-size: var(--fs-mini); line-height: 1.7; min-height: 11rem; }
+
+  /* --- 页头 ---------------------------------------------------------- */
+  .page-head {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--sp-4) var(--sp-5); align-items: start;
+    padding-bottom: var(--sp-4); border-bottom: 1px solid var(--border); margin-bottom: var(--sp-5);
+  }
+  .page-head .eyebrow { display: inline-flex; align-items: center; gap: .4em; color: var(--accent); }
+  .page-head h1 { font-size: var(--fs-h1); margin-top: .5rem; }
+  .page-head .t-lead { margin-top: var(--sp-2); }
+  .ph-ctl { display: flex; align-items: center; justify-content: flex-end; gap: .5rem; flex-wrap: wrap; }
+  .ws-switch { display: flex; align-items: center; gap: .5rem; }
+  .ws-switch .input { width: auto; max-width: 15rem; }
+  .whoami {
+    display: flex; flex-direction: column; justify-content: center;
+    min-height: 44px; padding: .3rem var(--sp-3);
+    border: 1px solid var(--border-strong); border-radius: var(--radius);
+  }
+  .whoami b { font-size: var(--fs-meta); line-height: 1.5; }
+  .whoami .mono { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted); }
+
+  /* --- 指标 ---------------------------------------------------------- */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-4); }
+  .kpi {
+    min-width: 0; padding: var(--sp-4);
+    border: 1px solid var(--border); border-top-width: 2px; border-radius: var(--radius);
+    background: var(--surface); display: flex; flex-direction: column; gap: .5rem;
+  }
+  .kpi.is-lead { border-top-color: var(--accent); }
+  .kpi-lbl {
+    display: flex; align-items: center; gap: .5rem;
+    font-family: var(--font-mono); font-size: var(--fs-mini); font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--faint);
+  }
+  .kpi-val { font-family: var(--font-display); font-size: var(--fs-h1); font-weight: 700; line-height: 1.12; }
+  .kpi-desc { font-size: var(--fs-body); color: var(--muted); line-height: 1.7; flex: 1; }
+  .kpi-foot {
+    display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap;
+    padding-top: var(--sp-3); border-top: 1px solid var(--border);
+  }
+
+  /* --- 锚点导航 ------------------------------------------------------ */
+  .anchors {
+    display: flex; flex-wrap: wrap; gap: .25rem;
+    border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
+    padding: .25rem; margin-bottom: var(--sp-5);
+  }
+  .anchors a {
+    display: inline-flex; align-items: center; gap: .375rem; min-height: 44px;
+    padding: .4rem .7rem; border-radius: var(--radius);
+    font-size: var(--fs-meta); font-weight: 600; color: var(--muted);
+    transition: color var(--t-2) var(--ease-state), background-color var(--t-2) var(--ease-state);
+  }
+  .anchors a:hover { background: var(--surface-subtle); color: var(--fg); }
+  .anchors a[aria-current="true"] { background: var(--surface-subtle); color: var(--fg); }
+  .anchors .n { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  .anchors a[aria-current="true"] .n { color: var(--accent); }
+
+  /* --- Agent 入口 + Harness ------------------------------------------ */
+  .entry-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: var(--sp-5); align-items: start; }
+  .panel-head-lead { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-4); }
+  .panel-head-lead h3, .panel-head-lead h2 { font-size: var(--fs-h3); }
+  .panel-head-lead p { font-size: var(--fs-body); color: var(--muted); line-height: 1.7; margin-top: .25rem; }
+  .harness .panel-body { display: flex; flex-direction: column; gap: var(--sp-4); }
+  .harness .eyebrow { color: color-mix(in oklch, var(--bg) 66%, var(--fg)); }
+  .harness h3 { font-size: var(--fs-h3); }
+  .harness .lede { font-size: var(--fs-body); line-height: 1.75; color: color-mix(in oklch, var(--bg) 78%, var(--fg)); }
+  .harness-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
+  .hg { border: 1px solid color-mix(in oklch, var(--bg) 22%, transparent); border-radius: var(--radius); padding: var(--sp-3); }
+  .hg b { display: block; font-size: var(--fs-meta); color: var(--bg); }
+  .hg span {
+    display: block; margin-top: .25rem;
+    font-family: var(--font-mono); font-size: var(--fs-mini); line-height: 1.6;
+    color: color-mix(in oklch, var(--bg) 62%, var(--fg));
+  }
+
+  /* --- 工作流模板 ---------------------------------------------------- */
+  .wf-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-4); }
+  .wf { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-4); }
+  .wf-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-3); }
+  .wf-icon {
+    width: 36px; height: 36px; flex: none; display: grid; place-items: center;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface-sunken); color: var(--fg-secondary); font-size: 18px;
+  }
+  .wf h3 { font-size: var(--fs-h3); }
+  .wf-key { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  .wf-desc { font-size: var(--fs-body); line-height: 1.7; color: var(--muted); flex: 1; }
+  .wf-block { display: flex; flex-direction: column; gap: .375rem; }
+  .wf-block > span { font-family: var(--font-mono); font-size: var(--fs-mini); letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
+
+  /* --- 任务中心 ------------------------------------------------------ */
+  .task-list { display: flex; flex-direction: column; gap: var(--sp-2); }
+  .task { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+  .task[open] { border-color: var(--border-strong); }
+  .task > summary { display: block; min-height: 44px; padding: var(--sp-3) var(--sp-4); cursor: pointer; list-style: none; }
+  .task > summary::-webkit-details-marker { display: none; }
+  .task-row { display: grid; grid-template-columns: minmax(0, 1fr) 10rem 12rem; gap: var(--sp-3); align-items: center; }
+  .task-title { display: flex; align-items: center; gap: .625rem; font-size: var(--fs-body); font-weight: 600; }
+  .task-id { font-family: var(--font-mono); font-weight: 400; color: var(--faint); }
+  .task-sub { display: block; margin-top: .25rem; padding-left: 1.4rem; font-family: var(--font-mono); font-size: var(--fs-mini); line-height: 1.6; color: var(--faint); }
+  .task-elapsed { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--fg-secondary); text-align: right; }
+  .task-elapsed em { display: block; font-style: normal; color: var(--faint); }
+  .task-badges { display: flex; justify-content: flex-end; gap: .375rem; flex-wrap: wrap; }
+  .task-body {
+    display: flex; flex-direction: column; gap: var(--sp-4);
+    padding: var(--sp-4); margin-top: var(--sp-2); border-top: 1px solid var(--border);
+  }
+  .json-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
+  .json-box { min-width: 0; padding: var(--sp-3); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-sunken); }
+  .json-box h4, .json-box h3 { font-family: var(--font-mono); font-size: var(--fs-mini); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
+  .json-box pre {
+    margin-top: .5rem; max-height: 14rem; overflow: auto; white-space: pre-wrap;
+    font-family: var(--font-mono); font-size: var(--fs-mini); line-height: 1.7; color: var(--fg-secondary);
+  }
+  .step-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-2); }
+  .step { display: flex; flex-direction: column; gap: .375rem; padding: var(--sp-3); border: 1px solid var(--border); border-radius: var(--radius); }
+  .step-top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+  .step-name { font-size: var(--fs-meta); font-weight: 600; }
+  .step-state { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  .meter-row { display: flex; flex-wrap: wrap; gap: .375rem var(--sp-4); font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted); }
+  .issue { display: flex; align-items: flex-start; gap: .5rem; padding: var(--sp-2) var(--sp-3); border-radius: var(--radius); background: var(--surface-subtle); font-size: var(--fs-meta); color: var(--fg-secondary); }
+  .trace-step b { font-weight: 600; font-size: var(--fs-meta); }
+  .trace-step .sub { display: block; font-family: var(--font-mono); font-size: var(--fs-mini); line-height: 1.6; color: var(--faint); }
+  .trace-dot.fail { background: var(--accent); }
+
+  /* --- 审批收件箱 ---------------------------------------------------- */
+  .approval-wrap { display: flex; flex-direction: column; gap: var(--sp-4); }
+  .approval {
+    display: flex; flex-direction: column; gap: var(--sp-4);
+    padding: var(--sp-4);
+    border: 1px solid var(--warn); border-left: 3px solid var(--warn);
+    border-radius: var(--radius); background: var(--warn-tint);
+  }
+  .approval-hd { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap; }
+  .approval-hd h3 { font-size: var(--fs-h3); }
+  .approval-sub { margin-top: .25rem; font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted); }
+  .approval-meta { display: flex; align-items: center; gap: .375rem; flex-wrap: wrap; justify-content: flex-end; }
+  .decide { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); padding-top: var(--sp-4); border-top: 1px solid var(--border); }
+  .decide-card { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-3); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+  .decide-card h4 { font-size: var(--fs-meta); }
+  .decide-card .lead { font-size: var(--fs-body); line-height: 1.7; color: var(--muted); }
+  .decide-stack { display: flex; flex-direction: column; gap: var(--sp-2); }
+  .impact { display: flex; flex-direction: column; gap: .375rem; padding: var(--sp-3); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+  .impact li { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: .625rem; align-items: start; font-size: var(--fs-body); line-height: 1.7; color: var(--fg-secondary); }
+  .impact .ic { color: var(--muted); margin-top: .35em; }
+
+  /* --- 结构化记忆 ---------------------------------------------------- */
+  .mem-grid { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: var(--sp-5); align-items: start; }
+  .mem-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
+  .mem { display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-3); border: 1px solid var(--border); border-radius: var(--radius); }
+  .mem.is-off { background: var(--surface-sunken); border-style: dashed; }
+  .mem-hd { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); flex-wrap: wrap; }
+  .mem-key { font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-meta); }
+  .mem-scope { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  .mem pre {
+    padding: var(--sp-3); border-radius: var(--radius); background: var(--surface-subtle);
+    white-space: pre-wrap; overflow: auto; max-height: 10rem;
+    font-family: var(--font-mono); font-size: var(--fs-mini); line-height: 1.7; color: var(--fg-secondary);
+  }
+
+  /* --- Agent 目录 ---------------------------------------------------- */
+  .cat-coord { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-4); align-items: center; margin-bottom: var(--sp-4); }
+  .cat-coord h3 { font-size: var(--fs-h2); }
+  .cat-coord .lede { font-size: var(--fs-body); line-height: 1.75; color: color-mix(in oklch, var(--bg) 78%, var(--fg)); margin-top: .375rem; }
+  .cat-coord .eyebrow { color: color-mix(in oklch, var(--bg) 66%, var(--fg)); }
+  .cat-coord .k { display: block; font-family: var(--font-mono); font-size: var(--fs-mini); color: color-mix(in oklch, var(--bg) 66%, var(--fg)); }
+  .cat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-3); }
+  .cat { display: flex; flex-direction: column; gap: .375rem; padding: var(--sp-4); border: 1px solid var(--border); border-radius: var(--radius); }
+  .cat .key { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  .cat b { font-size: var(--fs-meta); }
+  .cat .ver { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--accent); }
+  .cat p { font-size: var(--fs-body); line-height: 1.7; color: var(--muted); flex: 1; }
+  .cat .tools { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+
+  /* --- 空态 / 边界态 -------------------------------------------------- */
+  .empty-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-4); }
+  .empty .ic { color: var(--faint); }
+  .empty h4, .empty h3 { margin-top: var(--sp-3); color: var(--fg); }
+  /* design-system.css 的 .empty h4 是标签选择器，标题改级后在本页复述同一组取值 */
+  .empty h3 { font-size: var(--fs-h3); margin-bottom: .375rem; }
+  .empty p { color: var(--muted); }
+  .empty-actions { display: flex; justify-content: center; gap: var(--sp-3); flex-wrap: wrap; margin-top: var(--sp-4); }
+  .empty-next {
+    display: flex; align-items: center; justify-content: center; gap: .5rem; flex-wrap: wrap;
+    margin-top: var(--sp-4); padding-top: var(--sp-4); border-top: 1px solid var(--border);
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted); text-align: left;
+  }
+  .bound-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-4); margin-top: var(--sp-4); }
+  .bound { display: flex; flex-direction: column; gap: var(--sp-3); }
+  .bound .panel { flex: 1; }
+
+  /* --- 提示块 -------------------------------------------------------- */
+  .alert {
+    display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: var(--sp-3); align-items: start;
+    padding: var(--sp-3) var(--sp-4);
+    border: 1px solid var(--border); border-left-width: 3px; border-left-color: var(--border-strong);
+    border-radius: var(--radius); background: var(--surface-subtle);
+  }
+  .alert b { display: block; font-size: var(--fs-body); }
+  .alert p { font-size: var(--fs-body); line-height: 1.7; color: var(--fg-secondary); }
+  .alert.is-ok { border-color: var(--success); background: var(--success-tint); }
+  .alert.is-ok .ic, .alert.is-ok b { color: var(--success); }
+  .alert.is-bad { border-color: var(--accent); background: var(--accent-tint); }
+  .alert.is-bad .ic, .alert.is-bad b { color: var(--accent); }
+  .alert.is-lock { border-color: var(--border-strong); background: var(--surface-sunken); }
+
+  /* --- 响应式 -------------------------------------------------------- */
+  @media (max-width: 1199px) {
+    .cat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 1023px) {
+    .page-head { grid-template-columns: minmax(0, 1fr); }
+    .ph-ctl { justify-content: flex-start; }
+    .entry-grid, .mem-grid, .decide, .json-2, .harness-grid { grid-template-columns: minmax(0, 1fr); }
+    .wf-grid { grid-template-columns: minmax(0, 1fr); }
+    .empty-grid, .bound-grid, .mem-list { grid-template-columns: minmax(0, 1fr); }
+    .step-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .task-row { grid-template-columns: minmax(0, 1fr); }
+    .task-badges { justify-content: flex-start; }
+    .task-elapsed { text-align: left; }
+    .cat-coord { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 767px) {
+    .kpi-grid, .cat-grid, .step-grid { grid-template-columns: minmax(0, 1fr); }
+    .anchors { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+    .anchors::-webkit-scrollbar { display: none; }
+    .anchors a { flex: 0 0 auto; }
+    .task > summary { padding: var(--sp-3); }
+    .task-body { padding: var(--sp-3); }
+  }
+</style>
+</head>
+<body class="js">
+
+<div class="app">
+
+  <!-- ================= 顶栏 ================= -->
+  <header class="app-top">
+    <div class="brand">
+      <span class="mark-slot" data-mark aria-hidden="true"></span>
+      <span>运营智能体</span>
+      <span class="sub">AGENT CENTER</span>
+    </div>
+    <nav aria-label="主导航">
+      <a href="workspace.html">工作台</a>
+      <a href="model-config.html">模型配置</a>
+      <a href="#top" aria-current="page">Agent 中心</a>
+      <a href="login.html">登录</a>
+    </nav>
+    <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+      <span class="badge badge-online"><span class="status-led" aria-hidden="true"></span>:80 ONLINE</span>
+      <a class="btn btn-sm" href="index.html">
+        <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg>
+        <span>设计稿总览</span>
+      </a>
+      <button type="button" class="btn btn-ghost" id="themeBtn" aria-label="切换明暗主题">
+        <svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>主题
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= 设计稿声明带 ================= -->
+  <div class="ribbon">
+    <span class="eyebrow">DESIGN PROPOSAL · 静态设计稿 · 非线上系统</span>
+    <span class="mono-note">本稿修复 8 项：视觉层级 / 任务耗时 / 运行轨迹 / 审批理由与过期 / 记忆状态 / 未渲染字段 / 自动刷新提示 / 锚点</span>
+  </div>
+
+  <!-- ================= 主体 ================= -->
+  <main class="app-body">
+    <div class="pane">
+      <div class="wrap" id="top">
+
+        <!-- ============ 页头（对应源码 header：标题 + Workspace 切换 + 当前用户） ============ -->
+        <header class="page-head">
+          <div>
+            <span class="eyebrow">
+              <svg class="ic ic-sm" aria-hidden="true"><use href="#i-agent"></use></svg>
+              Ecommerce Operations Agent
+            </span>
+            <h1>统一运营 Agent 中心</h1>
+            <p class="t-lead">
+              由一个协调 Agent 选择受控工作流，八个专业 Agent 在 Harness 约束下协作；业务结果仍回到可编辑工作台。
+            </p>
+          </div>
+          <div class="ph-ctl">
+            <form class="ws-switch" action="/agent/workspaces/select" method="post">
+              <input type="hidden" name="workspace_id" value="1">
+              <label class="sr-only" for="ws">切换 Workspace</label>
+              <select class="input" id="ws" name="workspace_id" aria-label="切换 Workspace">
+                <option value="1" selected>麦克思汉堡 · 主工作区</option>
+                <option value="2">麦克思汉堡 · 抖音渠道</option>
+              </select>
+              <button type="button" class="btn">切换</button>
+            </form>
+            <a class="btn" href="workspace.html">
+              <svg class="ic" aria-hidden="true"><use href="#i-arrow-r"></use></svg>业务工作台
+            </a>
+            <span class="whoami">
+              <b>Owner</b>
+              <span class="mono">owner · 麦克思汉堡 · 主工作区</span>
+            </span>
+          </div>
+        </header>
+
+        <!-- ============ 结果横幅（源码 query.result，仅在一次 POST 跳转后出现） ============ -->
+        <div class="alert is-ok" style="margin-bottom:var(--sp-5)" role="status">
+          <svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg>
+          <div>
+            <b>操作已提交，任务状态会持续更新</b>
+            <p>守卫条件：只在 <span class="mono">?result=</span> 存在时渲染（failed 时为朱红变体「操作失败，请检查输入和权限」）。</p>
+          </div>
+        </div>
+
+        <!-- ============ 指标（源码 4 项 Metric） ============ -->
+        <section class="sec" id="metrics">
+          <div class="kpi-grid">
+            <article class="kpi">
+              <span class="kpi-lbl"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-repo"></use></svg>版本化工作流</span>
+              <span class="kpi-val">3</span>
+              <p class="kpi-desc">catalog.workflows.length。每个工作流都带版本号与默认风险等级，可评测、可回退。</p>
+              <div class="kpi-foot">
+                <span class="badge">CATALOG</span>
+                <span class="hint">v1.3.0 / v2.1.0 / v1.0.4</span>
+              </div>
+            </article>
+
+            <article class="kpi">
+              <span class="kpi-lbl"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-terminal"></use></svg>进行中任务</span>
+              <span class="kpi-val">2</span>
+              <p class="kpi-desc">status 为 queued 或 running 的任务数。大于 0 时任务中心每 2 秒自动刷新。</p>
+              <div class="kpi-foot">
+                <span class="badge badge-warn"><span class="status-led is-busy" aria-hidden="true"></span>LIVE</span>
+                <span class="hint">队列 1 · 执行中 1</span>
+              </div>
+            </article>
+
+            <article class="kpi">
+              <span class="kpi-lbl"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-check"></use></svg>已完成任务</span>
+              <span class="kpi-val">1</span>
+              <p class="kpi-desc">status 为 completed 的任务数。失败 / 取消不计入，各自在任务中心按状态标注。</p>
+              <div class="kpi-foot">
+                <span class="badge badge-online">已完成</span>
+                <span class="hint">失败 1 · 取消 1</span>
+              </div>
+            </article>
+
+            <article class="kpi is-lead">
+              <span class="kpi-lbl"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-warn"></use></svg>待处理审批</span>
+              <span class="kpi-val">2</span>
+              <p class="kpi-desc">approvals.length。R2 / R3 副作用必须由策略层与数据库审批共同放行，这是唯一需要人动手的指标。</p>
+              <div class="kpi-foot">
+                <span class="badge badge-accent">需要人工放行</span>
+                <a class="hint" href="#approval-inbox" style="min-height:44px;display:inline-flex;align-items:center">去审批收件箱</a>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ============ 锚点导航（源码 5 个锚点；本稿补 aria-current + 命中区） ============ -->
+        <nav class="anchors" aria-label="页面内区块">
+          <a href="#agent-entry" aria-current="true">Agent 入口</a>
+          <a href="#task-center">任务中心 <span class="n">6</span></a>
+          <a href="#approval-inbox">审批收件箱 <span class="n">2</span></a>
+          <a href="#memory">结构化记忆 <span class="n">3</span></a>
+          <a href="#catalog">Agent 目录 <span class="n">8</span></a>
+          <a href="#edge">空态与边界</a>
+        </nav>
+
+        <!-- ============ Agent 入口 + Harness 边界 ============ -->
+        <section class="sec" id="agent-entry">
+          <div class="entry-grid">
+
+            <div class="panel">
+              <div class="panel-head" style="align-items:flex-start">
+                <div class="panel-head-lead">
+                  <div>
+                    <span class="eyebrow">Coordinator Entry</span>
+                    <h2 style="margin-top:.25rem">告诉协调 Agent 你的目标</h2>
+                    <p>协调 Agent 只从已注册工作流中路由，不会自由拼装高风险动作。</p>
+                  </div>
+                  <svg class="ic ic-lg" aria-hidden="true" style="color:var(--accent)"><use href="#i-agent"></use></svg>
+                </div>
+              </div>
+              <div class="panel-body">
+                <form class="form-stack" action="/agent/tasks/create" method="post">
+                  <input type="hidden" name="workspace_id" value="1">
+                  <div class="field">
+                    <label for="intent">目标意图 · INTENT</label>
+                    <textarea class="input" id="intent" name="intent" required
+                              placeholder="例如：检查这款商品近期的库存和经营风险，并给出下一步建议">检查 16 oz 帆布托特包近两周转化下滑的原因，给出下一轮创意方向；本轮不要动价格。</textarea>
+                    <span class="hint">必填。意图由协调 Agent 映射到工作流，而不是直接执行动作。</span>
+                  </div>
+
+                  <div class="form-row">
+                    <div class="field">
+                      <label for="p-ctx">商品上下文 · PRODUCT_ID</label>
+                      <select class="input" id="p-ctx" name="product_id">
+                        <option value="">选择商品上下文</option>
+                        <option value="412" selected>16 oz 帆布托特包</option>
+                        <option value="401">三合一冲锋衣（男款）</option>
+                        <option value="407">重磅纯棉基础 T</option>
+                        <option value="415">城市骑行背包 22L</option>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label for="s-ctx">店铺上下文 · STORE_ID</label>
+                      <select class="input" id="s-ctx" name="store_id">
+                        <option value="">选择店铺上下文</option>
+                        <option value="7" selected>麦克思汉堡 · 天猫旗舰店</option>
+                        <option value="4">麦克思汉堡 · 抖音旗舰店</option>
+                        <option value="9">麦克思汉堡 · 拼多多官方店</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                      <svg class="ic" aria-hidden="true"><use href="#i-arrow-r"></use></svg>创建受控任务
+                    </button>
+                    <span class="hint">POST /agent/tasks/create → 302 回本页并带 ?result=</span>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <!-- Harness 边界：反白面板全页最高层级（线上是纯黑卡片，本稿纳入设计系统 Ink 面） -->
+            <section class="panel panel-inverted harness">
+              <div class="panel-body">
+                <span class="eyebrow">
+                  <svg class="ic ic-sm" aria-hidden="true"><use href="#i-server"></use></svg>Harness 边界
+                </span>
+                <h3>不是把多个 Prompt 串在一起</h3>
+                <p class="lede">边界写在基础设施里：身份、工具、幂等、状态恢复、人工协作与质量闭环各自有独立机制，不靠提示词约束。</p>
+                <div class="harness-grid">
+                  <div class="hg"><b>身份与租户</b><span>Workspace 强隔离</span></div>
+                  <div class="hg"><b>工具策略</b><span>Agent allowlist + 风险分级</span></div>
+                  <div class="hg"><b>可靠执行</b><span>Celery + Outbox + 幂等</span></div>
+                  <div class="hg"><b>状态恢复</b><span>PostgreSQL Checkpoint</span></div>
+                  <div class="hg"><b>人工协作</b><span>R2/R3 数据库审批</span></div>
+                  <div class="hg"><b>质量闭环</b><span>事件、评测和版本追踪</span></div>
+                </div>
+              </div>
+            </section>
+
+          </div>
+        </section>
+
+        <!-- ============ 任务模板 ============ -->
+        <section class="sec" id="templates">
+          <div class="sec-hd">
+            <div>
+              <span class="eyebrow">Workflow Templates</span>
+              <h2>任务模板</h2>
+            </div>
+            <span class="mono-note">每个模板对应一个可版本化、可评测、可回退的 LangGraph 工作流 · 3 个已启用</span>
+          </div>
+
+          <div class="wf-grid">
+
+            <article class="panel wf">
+              <div class="wf-top">
+                <span class="wf-icon" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-search"></use></svg></span>
+                <span class="badge badge-info">R0</span>
+              </div>
+              <div>
+                <h3>上架前体检</h3>
+                <p class="wf-key">launch_readiness · v1.0.4</p>
+              </div>
+              <p class="wf-desc">新商品上架前跑一遍结构、卖点与合规检查，只产出建议，不改动线上内容。</p>
+              <div class="wf-block">
+                <span>专家链 · AGENTS</span>
+                <div class="tag-row">
+                  <span class="tag">Product Context</span>
+                  <span class="tag">Quality Review</span>
+                </div>
+              </div>
+              <div class="wf-block">
+                <span>必需上下文 · REQUIRED_CONTEXT_ANY</span>
+                <div class="tag-row">
+                  <span class="tag">product_id</span>
+                  <span class="tag">store_id</span>
+                </div>
+              </div>
+              <form class="form-stack" action="/agent/tasks/create" method="post">
+                <input type="hidden" name="workspace_id" value="1">
+                <input type="hidden" name="workflow_key" value="launch_readiness">
+                <div class="form-row">
+                  <select class="input" name="product_id" aria-label="商品上下文">
+                    <option value="">选择商品上下文</option>
+                    <option value="415">城市骑行背包 22L</option>
+                  </select>
+                  <select class="input" name="store_id" aria-label="店铺上下文">
+                    <option value="">选择店铺上下文</option>
+                    <option value="4">麦克思汉堡 · 抖音旗舰店</option>
+                  </select>
+                </div>
+                <button type="submit" class="btn">
+                  启动工作流 <svg class="ic" aria-hidden="true"><use href="#i-arrow-r"></use></svg>
+                </button>
+              </form>
+            </article>
+
+            <article class="panel wf">
+              <div class="wf-top">
+                <span class="wf-icon" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-db"></use></svg></span>
+                <span class="badge badge-online">R1</span>
+              </div>
+              <div>
+                <h3>库存与经营风险体检</h3>
+                <p class="wf-key">inventory_risk_review · v1.3.0</p>
+              </div>
+              <p class="wf-desc">结合库存、价格带与近期表现定位经营风险，输出诊断与下一步建议。</p>
+              <div class="wf-block">
+                <span>专家链 · AGENTS</span>
+                <div class="tag-row">
+                  <span class="tag">Product Context</span>
+                  <span class="tag">Diagnosis</span>
+                  <span class="tag">Quality Review</span>
+                </div>
+              </div>
+              <div class="wf-block">
+                <span>必需上下文 · REQUIRED_CONTEXT_ANY</span>
+                <div class="tag-row">
+                  <span class="tag">product_id</span>
+                </div>
+              </div>
+              <form class="form-stack" action="/agent/tasks/create" method="post">
+                <input type="hidden" name="workspace_id" value="1">
+                <input type="hidden" name="workflow_key" value="inventory_risk_review">
+                <div class="form-row">
+                  <select class="input" name="product_id" aria-label="商品上下文">
+                    <option value="">选择商品上下文</option>
+                    <option value="401" selected>三合一冲锋衣（男款）</option>
+                  </select>
+                  <select class="input" name="store_id" aria-label="店铺上下文">
+                    <option value="">选择店铺上下文</option>
+                    <option value="7">麦克思汉堡 · 天猫旗舰店</option>
+                  </select>
+                </div>
+                <button type="submit" class="btn">
+                  启动工作流 <svg class="ic" aria-hidden="true"><use href="#i-arrow-r"></use></svg>
+                </button>
+              </form>
+            </article>
+
+            <article class="panel wf">
+              <div class="wf-top">
+                <span class="wf-icon" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-doc"></use></svg></span>
+                <span class="badge badge-warn">R2</span>
+              </div>
+              <div>
+                <h3>创意方案刷新</h3>
+                <p class="wf-key">creative_refresh · v2.1.0</p>
+              </div>
+              <p class="wf-desc">为表现下滑的商品生成下一轮创意方案；对外发布前必须在审批收件箱放行。</p>
+              <div class="wf-block">
+                <span>专家链 · AGENTS</span>
+                <div class="tag-row">
+                  <span class="tag">Product Context</span>
+                  <span class="tag">Diagnosis</span>
+                  <span class="tag">Creative Strategy</span>
+                  <span class="tag">Quality Review</span>
+                </div>
+              </div>
+              <div class="wf-block">
+                <span>必需上下文 · REQUIRED_CONTEXT_ANY</span>
+                <div class="tag-row">
+                  <span class="tag">product_id</span>
+                </div>
+              </div>
+              <form class="form-stack" action="/agent/tasks/create" method="post">
+                <input type="hidden" name="workspace_id" value="1">
+                <input type="hidden" name="workflow_key" value="creative_refresh">
+                <div class="form-row">
+                  <select class="input" name="product_id" aria-label="商品上下文">
+                    <option value="">选择商品上下文</option>
+                    <option value="412" selected>16 oz 帆布托特包</option>
+                  </select>
+                  <select class="input" name="store_id" aria-label="店铺上下文">
+                    <option value="">选择店铺上下文</option>
+                    <option value="7">麦克思汉堡 · 天猫旗舰店</option>
+                  </select>
+                </div>
+                <button type="submit" class="btn">
+                  启动工作流 <svg class="ic" aria-hidden="true"><use href="#i-arrow-r"></use></svg>
+                </button>
+              </form>
+            </article>
+
+          </div>
+
+          <p class="hint" style="margin-top:var(--sp-3)">
+            模板卡上的「专家链」与「必需上下文」来自 <span class="k">WorkflowDefinition.agents</span> 与
+            <span class="k">WorkflowDefinition.required_context_any</span> —— 线上模板卡未渲染这两个字段，用户只能盲选上下文。
+          </p>
+        </section>
+
+        <!-- ============ 任务中心 ============ -->
+        <section class="sec" id="task-center">
+          <div class="sec-hd">
+            <div>
+              <span class="eyebrow">Task Center</span>
+              <h2>任务中心</h2>
+            </div>
+            <div class="sec-hd-end">
+              <span class="badge badge-warn"><span class="status-led is-busy" aria-hidden="true"></span>自动刷新 · 2s</span>
+              <span class="mono-note">Task = 业务目标 · Run = 实际执行与重试</span>
+            </div>
+          </div>
+
+          <p class="hint" style="margin-bottom:var(--sp-3)">
+            耗时口径：<span class="k">finished_at − created_at</span>（AgentTask 无 started_at 字段，包含排队时间）；
+            未结束任务显示「已运行至今」。线上任务卡只渲染 id / 标题 / 工作流 / 创建时间，不渲染耗时。
+          </p>
+
+          <div class="task-list">
+
+            <!-- 执行中 · 展开态（含运行轨迹） -->
+            <details class="task" open>
+              <summary>
+                <div class="task-row">
+                  <div>
+                    <p class="task-title">
+                      <span class="trace-dot run" aria-hidden="true"></span>
+                      <span class="task-id">#1042</span>
+                      检查爆款冲锋衣的库存与经营风险
+                    </p>
+                    <span class="task-sub">inventory_risk_review · v1.3.0 · 创建于 10-14 09:12</span>
+                  </div>
+                  <div class="task-elapsed">
+                    已运行 00:42
+                    <em>未结束 · 至今</em>
+                  </div>
+                  <div class="task-badges">
+                    <span class="badge badge-online">R1</span>
+                    <span class="badge badge-info">执行中</span>
+                  </div>
+                </div>
+              </summary>
+              <div class="task-body">
+                <div>
+                  <span class="eyebrow">目标原文 · INTENT</span>
+                  <p class="prose" style="margin-top:.375rem">冲锋衣近两周退货率上升，帮我确认是否与库存结构有关，并给出可执行的补货或止损建议。</p>
+                </div>
+
+                <div class="json-2">
+                  <div class="json-box">
+                    <h3>上下文 · CONTEXT_SCOPE</h3>
+                    <pre>{
+  "product_id": 401,
+  "store_id": 7,
+  "conversation_id": null,
+  "required_context": ["product_id"]
+}</pre>
+                  </div>
+                  <div class="json-box">
+                    <h3>结果摘要 · RESULT_SUMMARY</h3>
+                    <pre>{
+  "current_agent": "diagnosis_agent",
+  "steps_done": 1,
+  "steps_total": 3,
+  "draft_ready": false
+}</pre>
+                  </div>
+                </div>
+
+                <div>
+                  <span class="eyebrow">专家协作进度 · SPECIALISTS</span>
+                  <div class="step-grid" style="margin-top:.5rem">
+                    <div class="step">
+                      <div class="step-top">
+                        <svg class="ic" aria-hidden="true"><use href="#i-db"></use></svg>
+                        <span class="trace-dot done" aria-hidden="true"></span>
+                      </div>
+                      <span class="step-name">商品上下文</span>
+                      <span class="step-state">已完成</span>
+                    </div>
+                    <div class="step">
+                      <div class="step-top">
+                        <svg class="ic" aria-hidden="true"><use href="#i-search"></use></svg>
+                        <span class="trace-dot run" aria-hidden="true"></span>
+                      </div>
+                      <span class="step-name">运营诊断</span>
+                      <span class="step-state">正在处理</span>
+                    </div>
+                    <div class="step">
+                      <div class="step-top">
+                        <svg class="ic" aria-hidden="true"><use href="#i-doc"></use></svg>
+                        <span class="trace-dot skip" aria-hidden="true"></span>
+                      </div>
+                      <span class="step-name">创意策略</span>
+                      <span class="step-state">等待执行</span>
+                    </div>
+                    <div class="step">
+                      <div class="step-top">
+                        <svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg>
+                        <span class="trace-dot skip" aria-hidden="true"></span>
+                      </div>
+                      <span class="step-name">质量审核</span>
+                      <span class="step-state">等待执行</span>
+                    </div>
+                  </div>
+                  <div class="meter-row" style="margin-top:var(--sp-3)">
+                    <span>返修 0 / 1</span>
+                    <span>模型调用 6 次</span>
+                    <span>Token 12 780</span>
+                    <span>Run #119 · 尝试 1</span>
+                  </div>
+                </div>
+
+                <div class="trace">
+                  <div class="trace-hd"><span>运行轨迹 · RUN #119</span><span>事件 4 · 按时间正序</span></div>
+                  <div class="trace-step">
+                    <span class="trace-dot done" aria-hidden="true"></span>
+                    <div><b>已进入队列</b><span class="sub">queue: agent.workflow · 耗时 40 ms</span></div>
+                    <span class="trace-time">09:12:04</span>
+                  </div>
+                  <div class="trace-step">
+                    <span class="trace-dot done" aria-hidden="true"></span>
+                    <div><b>工作流启动</b><span class="sub">inventory_risk_review v1.3.0 · 耗时 320 ms</span></div>
+                    <span class="trace-time">09:12:05</span>
+                  </div>
+                  <div class="trace-step">
+                    <span class="trace-dot done" aria-hidden="true"></span>
+                    <div><b>专家处理完成 · 商品上下文</b><span class="sub">product_context_agent v1.4.2 · 耗时 1 240 ms</span></div>
+                    <span class="trace-time">09:12:08</span>
+                  </div>
+                  <div class="trace-step">
+                    <span class="trace-dot run" aria-hidden="true"></span>
+                    <div><b>专家处理中 · 运营诊断</b><span class="sub">diagnosis_agent v2.0.1 · 运行中</span></div>
+                    <span class="trace-time">09:12:46</span>
+                  </div>
+                </div>
+              </div>
+            </details>
+
+            <!-- 待审批 · 展开态（轨迹 + 质量审核 + 取消） -->
+            <details class="task" open>
+              <summary>
+                <div class="task-row">
+                  <div>
+                    <p class="task-title">
+                      <span class="trace-dot run" aria-hidden="true"></span>
+                      <span class="task-id">#1041</span>
+                      为转化下滑的托特包生成下一轮创意方案
+                    </p>
+                    <span class="task-sub">creative_refresh · v2.1.0 · 创建于 10-14 08:55</span>
+                  </div>
+                  <div class="task-elapsed">
+                    03:18
+                    <em>已等待审批 01:38</em>
+                  </div>
+                  <div class="task-badges">
+                    <span class="badge badge-accent">R3</span>
+                    <span class="badge badge-warn">待审批</span>
+                  </div>
+                </div>
+              </summary>
+              <div class="task-body">
+                <div>
+                  <span class="eyebrow">目标原文 · INTENT</span>
+                  <p class="prose" style="margin-top:.375rem">托特包近两周转化下滑，帮我定位原因并给出下一轮创意方向；本轮不要动价格。</p>
+                </div>
+
+                <div class="json-2">
+                  <div class="json-box">
+                    <h3>上下文 · CONTEXT_SCOPE</h3>
+                    <pre>{
+  "product_id": 412,
+  "store_id": 7,
+  "conversation_id": null,
+  "required_context": ["product_id"]
+}</pre>
+                  </div>
+                  <div class="json-box">
+                    <h3>结果摘要 · RESULT_SUMMARY</h3>
+                    <pre>{
+  "status": "awaiting_approval",
+  "pending_actions": [
+    "creative_plan_publish",
+    "ad_budget_adjust"
+  ],
+  "draft_ready": true
+}</pre>
+                  </div>
+                </div>
+
+                <div>
+                  <span class="eyebrow">质量审核 · QUALITY_REPORT</span>
+                  <div class="meter-row" style="margin:.5rem 0 var(--sp-3)">
+                    <span>得分 82</span>
+                    <span>未通过 · 已在第 1 轮返修</span>
+                    <span>已检查规则 7 条</span>
+                  </div>
+                  <div class="issue">
+                    <svg class="ic ic-sm" aria-hidden="true" style="color:var(--warn);margin-top:.35em"><use href="#i-warn"></use></svg>
+                    <span>
+                      <span class="mono" style="color:var(--warn)">warning · CREATIVE_ANGLE_LOW_DIFF</span>
+                      <span style="display:block">creative_plans[0].angle：方案角度与近 30 天已投放素材重合度偏高</span>
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <span class="eyebrow">专家协作进度 · SPECIALISTS</span>
+                  <div class="step-grid" style="margin-top:.5rem">
+                    <div class="step">
+                      <div class="step-top">
+                        <svg class="ic" aria-hidden="true"><use href="#i-db"></use></svg>
+                        <span class="trace-dot done" aria-hidden="true"></span>
+                      </div>
+                      <span class="step-name">商品上下文</span>
+                      <span class="step-state">已完成</span>
+                    </div>
+                    <div class="step">
+                      <div class="step-top">
+                        <svg class="ic" aria-hidden="true"><use href="#i-search"></use></svg>
+                        <span class="trace-dot done" aria-hidden="true"></span>
+                      </div>
+                      <span class="step-name">运营诊断</span>
+                      <span class="step-state">已完成</span>
+                    </div>
+                    <div class="step">
+                      <div class="step-top">
+                        <svg class="ic" aria-hidden="true"><use href="#i-doc"></use></svg>
+                        <span class="trace-dot done" aria-hidden="true"></span>
+                      </div>
+                      <span class="step-name">创意策略</span>
+                      <span class="step-state">已完成</span>
+                    </div>
+                    <div class="step">
+                      <div class="step-top">
+                        <svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg>
+                        <span class="trace-dot done" aria-hidden="true"></span>
+                      </div>
+                      <span class="step-name">质量审核</span>
+                      <span class="step-state">已完成</span>
+                    </div>
+                  </div>
+                  <div class="meter-row" style="margin-top:var(--sp-3)">
+                    <span>返修 1 / 1</span>
+                    <span>模型调用 14 次</span>
+                    <span>Token 38 402</span>
+                    <span>Run #118 · 尝试 1</span>
+                  </div>
+                </div>
+
+                <div class="trace">
+                  <div class="trace-hd"><span>运行轨迹 · RUN #118</span><span>事件 8 · 按时间正序</span></div>
+                  <div class="trace-step">
+                    <span class="trace-dot done" aria-hidden="true"></span>
+                    <div><b>已进入队列</b><span class="sub">queue: agent.workflow · 耗时 40 ms</span></div>
+                    <span class="trace-time">08:55:02</span>
+                  </div>
+                  <div class="trace-step">
+                    <span class="trace-dot done" aria-hidden="true"></span>
+                    <div><b>工作流启动</b><span class="sub">creative_refresh v2.1.0 · 耗时 320 ms</span></div>
+                    <span class="trace-time">08:55:03</span>
+                  </div>
+                  <div class="trace-step">
+                    <span class="trace-dot done" aria-hidden="true"></span>
+                    <div><b>专家处理完成 · 商品上下文</b><span class="sub">product_context_agent v1.4.2 · 耗时 1 240 ms</span></div>
+                    <span class="trace-time">08:55:06</span>
+                  </div>
+                  <div class="trace-step">
+                    <span class="trace-dot done" aria-hidden="true"></span>
+                    <div><b>专家处理完成 · 运营诊断</b><span class="sub">diagnosis_agent v2.0.1 · 耗时 12 480 ms</span></div>
+                    <span class="trace-time">08:55:21</span>
+                  </div>
+                  <div class="trace-step">
+                    <span class="trace-dot done" aria-hidden="true"></span>
+                    <div><b>质量返修 1 / 1</b><span class="sub">revision_requested · 结构校验未通过，返修一次 · 耗时 6 912 ms</span></div>
+                    <span class="trace-time">08:56:04</span>
+                  </div>
+                  <div class="trace-step">
+                    <span class="trace-dot done" aria-hidden="true"></span>
+                    <div><b>专家处理完成 · 创意策略</b><span class="sub">creative_strategy_agent v1.9.0 · 耗时 18 730 ms</span></div>
+                    <span class="trace-time">08:56:38</span>
+                  </div>
+                  <div class="trace-step">
+                    <span class="trace-dot done" aria-hidden="true"></span>
+                    <div><b>专家处理完成 · 质量审核</b><span class="sub">quality_review_agent v1.2.3 · 耗时 2 105 ms</span></div>
+                    <span class="trace-time">08:56:41</span>
+                  </div>
+                  <div class="trace-step">
+                    <span class="trace-dot run" aria-hidden="true"></span>
+                    <div><b>等待人工审核</b><span class="sub">human_review_requested · 挂起 2 项待审批动作 · 已等待 01:38</span></div>
+                    <span class="trace-time">08:56:42</span>
+                  </div>
+                </div>
+
+                <div class="form-actions">
+                  <form action="/agent/tasks/1041/cancel" method="post">
+                    <input type="hidden" name="workspace_id" value="1">
+                    <button type="button" class="btn btn-ghost">
+                      <svg class="ic" aria-hidden="true"><use href="#i-warn"></use></svg>取消任务
+                    </button>
+                  </form>
+                  <a class="btn" href="#approval-inbox">
+                    <svg class="ic" aria-hidden="true"><use href="#i-arrow-r"></use></svg>去处理这 2 项审批
+                  </a>
+                  <span class="hint">取消仅在 queued / running / awaiting_approval 且角色可写时出现</span>
+                </div>
+              </div>
+            </details>
+
+            <!-- 排队中 -->
+            <details class="task">
+              <summary>
+                <div class="task-row">
+                  <div>
+                    <p class="task-title">
+                      <span class="trace-dot skip" aria-hidden="true"></span>
+                      <span class="task-id">#1040</span>
+                      上架前体检：城市骑行背包 22L
+                    </p>
+                    <span class="task-sub">launch_readiness · v1.0.4 · 创建于 10-14 08:41</span>
+                  </div>
+                  <div class="task-elapsed">
+                    00:07
+                    <em>排队中 · 至今</em>
+                  </div>
+                  <div class="task-badges">
+                    <span class="badge badge-info">R0</span>
+                    <span class="badge">排队中</span>
+                  </div>
+                </div>
+              </summary>
+              <div class="task-body">
+                <p class="prose">展开后显示上下文与结果摘要（结构同上方两张卡），排队中任务没有运行轨迹。</p>
+              </div>
+            </details>
+
+            <!-- 已完成 -->
+            <details class="task">
+              <summary>
+                <div class="task-row">
+                  <div>
+                    <p class="task-title">
+                      <span class="trace-dot done" aria-hidden="true"></span>
+                      <span class="task-id">#1038</span>
+                      复盘上周投放实验并给出预算建议
+                    </p>
+                    <span class="task-sub">ad_experiment_review · v1.2.0 · 创建于 10-13 17:20</span>
+                  </div>
+                  <div class="task-elapsed">
+                    02:41
+                    <em>完成于 10-13 17:22</em>
+                  </div>
+                  <div class="task-badges">
+                    <span class="badge badge-online">R1</span>
+                    <span class="badge badge-online">已完成</span>
+                  </div>
+                </div>
+              </summary>
+              <div class="task-body">
+                <p class="prose">已完成任务保留完整上下文与结果摘要，供后续复盘引用；结果已回到业务工作台可编辑。</p>
+              </div>
+            </details>
+
+            <!-- 失败 -->
+            <details class="task">
+              <summary>
+                <div class="task-row">
+                  <div>
+                    <p class="task-title">
+                      <span class="trace-dot fail" aria-hidden="true"></span>
+                      <span class="task-id">#1037</span>
+                      批量改写 12 个 SKU 的标题与卖点
+                    </p>
+                    <span class="task-sub">listing_rewrite · v0.9.2 · 创建于 10-13 16:04</span>
+                  </div>
+                  <div class="task-elapsed">
+                    00:19
+                    <em>失败于 10-13 16:04</em>
+                  </div>
+                  <div class="task-badges">
+                    <span class="badge badge-warn">R2</span>
+                    <span class="badge badge-accent">失败</span>
+                  </div>
+                </div>
+              </summary>
+              <div class="task-body">
+                <div class="alert is-bad" role="alert">
+                  <svg class="ic" aria-hidden="true"><use href="#i-warn"></use></svg>
+                  <div>
+                    <b>任务失败 · task.error</b>
+                    <p class="mono">quality_review_agent: 结构校验未通过 —— creative_plans[0].headline 缺失；重试 1 次后仍未通过，任务标记 failed。</p>
+                  </div>
+                </div>
+                <div class="form-actions">
+                  <button type="button" class="btn">以同一上下文重跑</button>
+                  <span class="hint">线上只显示 error 文本，没有重跑入口；重跑需后端提供幂等键</span>
+                </div>
+              </div>
+            </details>
+
+            <!-- 已取消 -->
+            <details class="task">
+              <summary>
+                <div class="task-row">
+                  <div>
+                    <p class="task-title">
+                      <span class="trace-dot skip" aria-hidden="true"></span>
+                      <span class="task-id">#1035</span>
+                      导出竞品价格快照用于比价
+                    </p>
+                    <span class="task-sub">competitor_price_snapshot · v1.1.0 · 创建于 10-13 14:48</span>
+                  </div>
+                  <div class="task-elapsed">
+                    00:33
+                    <em>取消于 10-13 14:49</em>
+                  </div>
+                  <div class="task-badges">
+                    <span class="badge badge-info">R0</span>
+                    <span class="badge">已取消</span>
+                  </div>
+                </div>
+              </summary>
+              <div class="task-body">
+                <p class="prose">已取消任务保留取消时间（cancelled_at）与触发原因，不与失败混为一谈。</p>
+              </div>
+            </details>
+
+          </div>
+
+          <p class="hint" style="margin-top:var(--sp-3)">
+            状态口径（AgentTaskStatus）：排队中 queued · 执行中 running · 待审批 awaiting_approval · 已完成 completed ·
+            失败 failed · 已取消 cancelled。风险等级 R0–R3 取自 <span class="k">AgentRiskLevel</span>，具体放行规则由后端策略层给出。
+          </p>
+        </section>
+
+        <!-- ============ 审批收件箱 ============ -->
+        <section class="sec" id="approval-inbox">
+          <div class="sec-hd">
+            <div>
+              <span class="eyebrow">Approval Inbox</span>
+              <h2>审批收件箱</h2>
+            </div>
+            <span class="mono-note">R2/R3 副作用必须由策略层和数据库审批共同放行 · 一条审批 = 一次动作放行</span>
+          </div>
+
+          <div class="approval-wrap">
+
+            <!-- 审批 1 · 有可编辑草稿 -->
+            <article class="approval">
+              <div class="approval-hd">
+                <div>
+                  <h3>任务 #1041 · creative_plan_publish</h3>
+                  <p class="approval-sub">Run #118 · 创建于 10-14 08:56 · 审批 #77 · 请求人 Owner</p>
+                </div>
+                <div class="approval-meta">
+                  <span class="badge badge-accent">R3</span>
+                  <span class="badge badge-warn">待审批</span>
+                  <span class="badge">01:38 前已挂起</span>
+                </div>
+              </div>
+
+              <ul class="impact">
+                <li>
+                  <svg class="ic ic-sm" aria-hidden="true"><use href="#i-ext"></use></svg>
+                  <span>放行后：创意方案写入商品创意库，并进入可投放状态（对外可见，属于有副作用动作）。</span>
+                </li>
+                <li>
+                  <svg class="ic ic-sm" aria-hidden="true"><use href="#i-server"></use></svg>
+                  <span>放行前：工作流停在中断点，状态与检查点保存在 PostgreSQL，恢复不重跑已完成节点。</span>
+                </li>
+                <li>
+                  <svg class="ic ic-sm" aria-hidden="true"><use href="#i-warn"></use></svg>
+                  <span>过期与拒绝：两者都会终止本次动作，任务回到可重新决策的状态，不会静默通过。</span>
+                </li>
+              </ul>
+
+              <div class="json-box">
+                <h4>审批上下文 · REQUEST_PAYLOAD</h4>
+                <pre>{
+  "action_key": "creative_plan_publish",
+  "risk_level": "R3",
+  "draft_output": {
+    "diagnosis": {
+      "source": "llm",
+      "positioning": "16 oz 帆布托特包 · 通勤与上课双场景",
+      "price_band": "¥79 - ¥99",
+      "pain_points": ["同类材质描述同质化", "缺少容量对比图"],
+      "risks": ["促销后价格回调可能引发比价投诉"],
+      "provenance": { "agent": "diagnosis_agent", "workflow_version": "2.1.0" }
+    },
+    "creative_plans": [
+      {
+        "title": "16 寸笔电装得下 · 通勤托特",
+        "angle": "以「装得下笔电」作为第一认知点",
+        "layout": "左产品主图 + 右容量对比分解",
+        "headline": "一只包装下通勤全部",
+        "proof_points": ["16 oz 加厚帆布", "可装 16 寸笔电", "内衬防刮"],
+        "image_prompt": "studio product shot, neutral background, capacity scale props"
+      }
+    ]
+  }
+}</pre>
+              </div>
+
+              <div class="decide">
+
+                <div class="decide-card">
+                  <h4>批准 · decision=approve</h4>
+                  <p class="lead">可直接提交草稿，也可先修改结构化输出再放行；修改内容与草稿一同留档。</p>
+                  <div class="field">
+                    <label for="appr-out">可编辑结构化输出 · EDITED_OUTPUT</label>
+                    <textarea class="input is-code" id="appr-out" spellcheck="false">{
+  "diagnosis": {
+    "positioning": "16 oz 帆布托特包 · 通勤与上课双场景"
+  },
+  "creative_plans": [
+    {
+      "title": "16 寸笔电装得下 · 通勤托特",
+      "headline": "一只包装下通勤全部"
+    }
+  ]
+}</textarea>
+                    <span class="hint">预填 request_payload.draft_output；approve 决策必须携带 edited_output</span>
+                  </div>
+                  <div class="field">
+                    <label for="appr-note">决策理由 · NOTE（可选，落库）</label>
+                    <input class="input" id="appr-note" type="text" placeholder="例如：卖点已核对，价格未改动，同意放行">
+                  </div>
+                  <div class="form-actions">
+                    <button type="button" class="btn btn-primary">
+                      <svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg>编辑后批准并恢复
+                    </button>
+                    <span class="hint">POST /agent/approvals/77/decision</span>
+                  </div>
+                </div>
+
+                <div class="decide-card">
+                  <h4>驳回 · decision=reject</h4>
+                  <p class="lead">驳回不产生副作用，工作流不恢复；理由会写入 AgentApproval.note 供后续追溯。</p>
+                  <div class="field">
+                    <label for="rej-note">驳回理由 · NOTE（必填，本稿新增）</label>
+                    <textarea class="input" id="rej-note" required
+                              placeholder="例如：角度与 8 月已投放素材重复，请换切入场景后重新生成"></textarea>
+                    <span class="hint">线上 ApprovalForm 的 reject 分支没有理由输入，审批意见只能留在聊天记录里；note 字段本身已存在</span>
+                  </div>
+                  <div class="form-actions">
+                    <button type="button" class="btn btn-ghost">
+                      <svg class="ic" aria-hidden="true"><use href="#i-warn"></use></svg>驳回并终止本次动作
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            </article>
+
+            <!-- 审批 2 · 无可编辑草稿 -->
+            <article class="approval">
+              <div class="approval-hd">
+                <div>
+                  <h3>任务 #1041 · ad_budget_adjust</h3>
+                  <p class="approval-sub">Run #118 · 创建于 10-14 08:56 · 审批 #78 · 请求人 Owner</p>
+                </div>
+                <div class="approval-meta">
+                  <span class="badge badge-warn">R2</span>
+                  <span class="badge badge-warn">待审批</span>
+                  <span class="badge">将在 10-14 09:56 过期</span>
+                </div>
+              </div>
+
+              <div class="json-box">
+                <h4>审批上下文 · REQUEST_PAYLOAD</h4>
+                <pre>{
+  "action_key": "ad_budget_adjust",
+  "risk_level": "R2",
+  "reversible": true,
+  "current_daily_budget": 800,
+  "requested_daily_budget": 1200,
+  "experiment_id": 27,
+  "reason": "实验组 ROI 连续 3 天高于对照组"
+}</pre>
+              </div>
+
+              <div class="decide">
+                <div class="decide-card">
+                  <h4>批准 · decision=approve</h4>
+                  <p class="lead">该 action_key 的 payload 不含 <span class="mono">draft_output</span>，没有可编辑草稿 —— 编辑区收起，只保留批准与理由。</p>
+                  <div class="alert is-lock">
+                    <svg class="ic" aria-hidden="true"><use href="#i-doc"></use></svg>
+                    <div>
+                      <b>无可编辑草稿</b>
+                      <p>线上会把 <span class="mono">JSON.stringify(draft_output ?? {})</span> 渲染成只有一个空对象的编辑框，看起来像缺数据；本稿改为明确说明并隐藏编辑区。</p>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label for="appr2-note">决策理由 · NOTE（可选，落库）</label>
+                    <input class="input" id="appr2-note" type="text" placeholder="例如：活动期可接受，活动结束后回调">
+                  </div>
+                  <div class="form-actions">
+                    <button type="button" class="btn btn-primary">
+                      <svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg>批准并恢复
+                    </button>
+                    <span class="hint">过期时间 expires_at 已进入提醒，避免审批静默失效</span>
+                  </div>
+                </div>
+
+                <div class="decide-card">
+                  <h4>驳回 · decision=reject</h4>
+                  <p class="lead">驳回理由同样必填，落库到 AgentApproval.note。</p>
+                  <div class="field">
+                    <label for="rej2-note">驳回理由 · NOTE（必填，本稿新增）</label>
+                    <textarea class="input" id="rej2-note" required
+                              placeholder="例如：当前现金流不允许提高日预算，请改为维持现状"></textarea>
+                  </div>
+                  <div class="form-actions">
+                    <button type="button" class="btn btn-ghost">
+                      <svg class="ic" aria-hidden="true"><use href="#i-warn"></use></svg>驳回并终止本次动作
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+          </div>
+
+          <p class="hint" style="margin-top:var(--sp-3)">
+            审批身份口径：<span class="k">AgentApproval</span> 提供 status（pending / approved / rejected / expired / cancelled）、
+            expires_at、decision_payload、decided_by_user_id、note；线上卡片只渲染 action_key、run_id、创建时间与 request_payload。
+            角色为 viewer 时两个决策表单整体不渲染。
+          </p>
+        </section>
+
+        <!-- ============ 结构化记忆 ============ -->
+        <section class="sec" id="memory">
+          <div class="sec-hd">
+            <div>
+              <span class="eyebrow">Structured Memory</span>
+              <h2>结构化记忆</h2>
+            </div>
+            <span class="mono-note">只保存用户明确确认的结构化事实，不自动吸收全部聊天</span>
+          </div>
+
+          <div class="mem-grid">
+
+            <div class="panel">
+              <div class="panel-head">
+                <div>
+                  <span class="eyebrow">Create Memory</span>
+                  <h3 style="margin-top:.25rem">确认一条长期记忆</h3>
+                </div>
+                <svg class="ic ic-lg" aria-hidden="true" style="color:var(--info)"><use href="#i-db"></use></svg>
+              </div>
+              <div class="panel-body">
+                <form class="form-stack" action="/agent/memories/create" method="post">
+                  <input type="hidden" name="workspace_id" value="1">
+                  <div class="field">
+                    <label for="scope-type">范围类型 · SCOPE_TYPE</label>
+                    <select class="input" id="scope-type" name="scope_type">
+                      <option value="workspace" selected>工作区</option>
+                      <option value="store">店铺</option>
+                      <option value="product">商品</option>
+                      <option value="user">用户偏好</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="scope-id">范围 ID · SCOPE_ID</label>
+                    <input class="input" id="scope-id" name="scope_id" type="text" placeholder="范围 ID（工作区可留空）">
+                    <span class="hint">scope_type 为 workspace 时留空，落库为 null</span>
+                  </div>
+                  <div class="field">
+                    <label for="mem-key">键 · MEMORY_KEY</label>
+                    <input class="input" id="mem-key" name="memory_key" type="text" required placeholder="键，例如 brand_tone">
+                  </div>
+                  <div class="field">
+                    <label for="mem-val">值 · MEMORY_VALUE</label>
+                    <textarea class="input" id="mem-val" name="memory_value" required
+                              placeholder="已确认的事实或偏好">文案语气保持克制、给理由；禁用「最」「第一」等绝对化表述。</textarea>
+                  </div>
+                  <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                      <svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg>保存记忆
+                    </button>
+                    <span class="hint">角色为 viewer 时按钮禁用</span>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <div>
+              <div class="sec-hd" style="margin-bottom:var(--sp-3)">
+                <div>
+                  <span class="eyebrow">Effective Memory</span>
+                  <h2 style="font-size:var(--fs-h3)">有效记忆</h2>
+                </div>
+                <span class="mono-note">按 status 标注：active / revoked / expired</span>
+              </div>
+
+              <div class="mem-list">
+                <article class="mem">
+                  <div class="mem-hd">
+                    <span class="mem-key">brand_tone</span>
+                    <span class="badge badge-online">生效中</span>
+                  </div>
+                  <span class="mem-scope">workspace:1 · 来源 user_confirmed · schema v1</span>
+                  <pre>{
+  "tone": "克制、给理由",
+  "banned_words": ["最", "第一", "国家级"],
+  "citations_required": true
+}</pre>
+                </article>
+
+                <article class="mem">
+                  <div class="mem-hd">
+                    <span class="mem-key">price_floor</span>
+                    <span class="badge badge-online">生效中</span>
+                  </div>
+                  <span class="mem-scope">product:412 · 来源 user_confirmed · schema v1</span>
+                  <pre>{
+  "floor_price": 79,
+  "currency": "CNY",
+  "note": "低于此价需 owner 审批"
+}</pre>
+                </article>
+
+                <article class="mem is-off">
+                  <div class="mem-hd">
+                    <span class="mem-key">store_holiday_calendar</span>
+                    <span class="badge">已撤销</span>
+                  </div>
+                  <span class="mem-scope">store:7 · 来源 workbench_import · 撤销于 10-12 11:02</span>
+                  <pre>{
+  "spring_festival_shipping_cutoff": "2026-02-09"
+}</pre>
+                </article>
+
+                <article class="mem is-off">
+                  <div class="mem-hd">
+                    <span class="mem-key">competitor_watchlist</span>
+                    <span class="badge badge-warn">已过期</span>
+                  </div>
+                  <span class="mem-scope">workspace:1 · 来源 agent_proposal · 过期于 10-10 00:00</span>
+                  <pre>{
+  "brands": ["竞品 A", "竞品 B"],
+  "expires_at": "2026-10-10T00:00:00Z"
+}</pre>
+                </article>
+              </div>
+
+              <p class="hint" style="margin-top:var(--sp-3)">
+                线上标题写「有效记忆」但没有按 <span class="k">AgentMemory.status</span> 过滤，撤销与过期项会和生效项长得一模一样；
+                本稿对非 active 项降级显示（虚线边框 + 灰底 + 状态徽标），并补上来源与有效期。
+              </p>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ============ Agent 目录 ============ -->
+        <section class="sec" id="catalog">
+          <div class="sec-hd">
+            <div>
+              <span class="eyebrow">Agent Catalog</span>
+              <h2>内部专业 Agent 目录</h2>
+            </div>
+            <span class="mono-note">用户只与顶层 Agent 交互；专业 Agent 的版本和工具白名单可审计</span>
+          </div>
+
+          <section class="panel panel-inverted" style="margin-bottom:var(--sp-4)">
+            <div class="panel-body">
+              <div class="cat-coord">
+                <div>
+                  <span class="eyebrow">Catalog Coordinator · 主智能体</span>
+                  <h3>Coordinator</h3>
+                  <p class="lede">只从已注册工作流中路由，不自由拼装高风险动作；路由结果决定哪些专业 Agent 参与本次任务。</p>
+                  <span class="k">version 1.5.0 · 5 个允许工具 · 8 个已注册专业 Agent</span>
+                </div>
+                <span class="badge" style="color:var(--bg);border-color:color-mix(in oklch, var(--bg) 30%, transparent)">TOP-LEVEL</span>
+              </div>
+            </div>
+          </section>
+
+          <div class="cat-grid">
+            <article class="cat">
+              <span class="key">product_context_agent</span>
+              <span class="ver">v1.4.2 · 4 个允许工具</span>
+              <b>Product Context Agent</b>
+              <p>读取商品、SKU、库存与店铺快照，生成后续专家共用的上下文快照。</p>
+            </article>
+            <article class="cat">
+              <span class="key">diagnosis_agent</span>
+              <span class="ver">v2.0.1 · 6 个允许工具</span>
+              <b>Diagnosis Agent</b>
+              <p>输出定位、价格带、痛点与风险，并附 provenance 供版本追踪与评测。</p>
+            </article>
+            <article class="cat">
+              <span class="key">creative_strategy_agent</span>
+              <span class="ver">v1.9.0 · 3 个允许工具</span>
+              <b>Creative Strategy Agent</b>
+              <p>生成字段结构固定的创意方案草稿，供质量审核与人工审批使用。</p>
+            </article>
+            <article class="cat">
+              <span class="key">quality_review_agent</span>
+              <span class="ver">v1.2.3 · 2 个允许工具</span>
+              <b>Quality Review Agent</b>
+              <p>校验结构、差异性与合规规则，不通过则要求返修（受 max_revisions 上限约束）。</p>
+            </article>
+          </div>
+
+          <p class="hint" style="margin-top:var(--sp-3)">
+            线上页头声明「八个专业 Agent」，但目录只渲染 catalog.agents，且从未渲染
+            <span class="k">catalog.coordinator</span> —— 本稿把协调 Agent 单独提为主卡（反白），其余 4 个按同结构渲染。
+            版本号、工具数量与描述为示意数据。
+          </p>
+        </section>
+
+        <!-- ============ 空态与边界态 ============ -->
+        <section class="sec" id="edge">
+          <div class="sec-hd">
+            <div>
+              <span class="eyebrow">Empty &amp; Edge States</span>
+              <h2>空态与边界态</h2>
+            </div>
+            <span class="mono-note">四个空态都要指向下一步；两个边界态不能伪装成空数据</span>
+          </div>
+
+          <div class="empty-grid">
+            <div class="empty">
+              <svg class="ic ic-lg" aria-hidden="true"><use href="#i-agent"></use></svg>
+              <h3>还没有 Agent Task</h3>
+              <p>任务中心只在真正创建过任务后有内容。先在上方入口描述一次目标，或直接启动一个任务模板 —— 只读浏览不会产生任务。</p>
+              <div class="empty-actions">
+                <a class="btn btn-primary" href="#agent-entry">去描述目标</a>
+                <a class="btn" href="#templates">看任务模板</a>
+              </div>
+              <p class="empty-next">
+                <svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>
+                创建后这里显示：状态 · 风险等级 · 耗时 · 上下文与结果摘要
+              </p>
+            </div>
+
+            <div class="empty">
+              <svg class="ic ic-lg" aria-hidden="true"><use href="#i-check"></use></svg>
+              <h3>当前没有待审批动作</h3>
+              <p>审批只在工作流触发 R2 / R3 副作用（对外发布、预算调整等）时产生。没有审批说明没有任何需要放行的动作，不代表任务失败。</p>
+              <div class="empty-actions">
+                <a class="btn" href="#task-center">查看进行中任务</a>
+              </div>
+              <p class="empty-next">
+                <svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>
+                有审批时这里显示：action_key · request_payload · 批准 / 驳回与理由
+              </p>
+            </div>
+
+            <div class="empty">
+              <svg class="ic ic-lg" aria-hidden="true"><use href="#i-db"></use></svg>
+              <h3>暂无已确认记忆</h3>
+              <p>记忆只保存用户明确确认的结构化事实，不自动吸收全部对话。第一条记忆请用左侧表单保存，键名建议可复用（如 brand_tone）。</p>
+              <div class="empty-actions">
+                <a class="btn" href="#memory">去确认一条记忆</a>
+              </div>
+              <p class="empty-next">
+                <svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>
+                保存后这里显示：scope · 状态 · 来源 · 结构化内容
+              </p>
+            </div>
+          </div>
+
+          <div class="bound-grid">
+            <div class="bound">
+              <div class="panel">
+                <div class="panel-body">
+                  <span class="eyebrow">Boundary · No Workspace</span>
+                  <h3 style="margin-top:.375rem;font-size:var(--fs-h3)">暂无可用 Workspace</h3>
+                  <p class="prose" style="margin-top:.375rem">当前账号没有任何 WorkspaceMembership。请先运行数据库迁移并为当前用户创建成员关系，之后才能进入 Agent 中心。</p>
+                  <p class="hint" style="margin-top:var(--sp-3)">uv run alembic upgrade head · scripts/bootstrap_user.py</p>
+                </div>
+              </div>
+              <div class="note">
+                <span class="eyebrow">Source · EmptyWorkspace</span>
+                <p>线上该分支占满整屏、不显示导航；本稿降级为区块内提示，避免用户在没有工作区时失去整个界面。</p>
+              </div>
+            </div>
+
+            <div class="bound">
+              <div class="panel">
+                <div class="panel-body">
+                  <span class="eyebrow">Boundary · API Down</span>
+                  <h3 style="margin-top:.375rem;font-size:var(--fs-h3)">Agent 服务暂不可用</h3>
+                  <p class="prose" style="margin-top:.375rem">请求未被伪装为空数据，请检查 API、权限或基础设施状态后重试。指标与列表保持上一次成功读取的状态。</p>
+                  <div class="form-actions" style="margin-top:var(--sp-3)">
+                    <button type="button" class="btn">重试读取</button>
+                    <span class="hint">AgentApiError · status 401 时跳 /login?expired=1</span>
+                  </div>
+                </div>
+              </div>
+              <div class="note">
+                <span class="eyebrow">Source · AgentServiceError</span>
+                <p>线上用整屏错误卡明确区分「服务不可用」与「没有数据」，这个判断是对的；本稿保留该语义并补上重试入口。</p>
+              </div>
+            </div>
+
+            <div class="bound">
+              <div class="panel">
+                <div class="panel-body">
+                  <span class="eyebrow">Boundary · Read Only</span>
+                  <h3 style="margin-top:.375rem;font-size:var(--fs-h3)">只读角色 · viewer</h3>
+                  <p class="prose" style="margin-top:.375rem">canEdit = membership.role !== "viewer"。只读角色可以查看任务、审批与记忆，但所有写操作整体禁用。</p>
+                  <div class="alert is-lock" style="margin-top:var(--sp-3)">
+                    <svg class="ic" aria-hidden="true"><use href="#i-warn"></use></svg>
+                    <div>
+                      <b>写操作已禁用</b>
+                      <p>创建任务、取消任务、审批决策、保存记忆四类按钮为禁用态；审批卡不渲染两个决策表单。</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="note">
+                <span class="eyebrow">Source · canEdit</span>
+                <p>线上只靠 disabled 属性表达权限，没有任何文字说明 —— 只读用户看不出「为什么点不动」。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ 修复对照 ============ -->
+        <section class="sec" id="fixes">
+          <div class="sec-hd">
+            <div>
+              <span class="eyebrow">Fix Log</span>
+              <h2>本稿超出线上原版的部分</h2>
+            </div>
+            <span class="mono-note">左列均为 app/agent/page.tsx 与 agent-run-panel.tsx 的实际行为</span>
+          </div>
+
+          <div class="panel">
+            <div class="tbl-wrap">
+              <table class="tbl">
+                <caption class="sr-only">Agent 中心线上原版与本设计稿的差异对照</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">线上原版</th>
+                    <th scope="col">本稿处理</th>
+                    <th scope="col">依据</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>任务卡只显示 id / 标题 / workflow_key / 版本 / 创建时间，不显示耗时与结束时间</td>
+                    <td>每行显示耗时（finished_at − created_at），未结束显示「已运行至今」，并写明口径</td>
+                    <td>AgentTask 已带 created_at / finished_at / cancelled_at，字段存在但页面未渲染</td>
+                  </tr>
+                  <tr>
+                    <td>任务详情只有「上下文 / 结果摘要」两块 JSON，看不到执行过程</td>
+                    <td>增加专家协作进度、质量报告、运行轨迹（.trace / .trace-step，含单步耗时）</td>
+                    <td>AgentRun.events、quality_report、usage、revision_count 等字段在 run panel 中已被使用</td>
+                  </tr>
+                  <tr>
+                    <td>任务目标原文（intent）在任务中心完全不可见，只能看标题</td>
+                    <td>展开态显示 intent 原文，与标题区分</td>
+                    <td>AgentTask.intent 字段已存在</td>
+                  </tr>
+                  <tr>
+                    <td>审批只有「编辑后批准并恢复 / 拒绝」，reject 表单没有理由输入；也不显示过期时间与决策人</td>
+                    <td>批准与驳回都带 note 输入（驳回必填），显示 expires_at 与请求人</td>
+                    <td>AgentApproval.note / expires_at / decision_payload / decided_by_user_id 已存在</td>
+                  </tr>
+                  <tr>
+                    <td>无 draft_output 的 action_key 会渲染成一个只有 {} 的编辑框，看起来像缺数据</td>
+                    <td>检测到无草稿时收起编辑区，改为明确说明并只保留批准 + 理由</td>
+                    <td>AgentApprovalForm 用 JSON.stringify(draftOutput ?? {}, null, 2) 预填</td>
+                  </tr>
+                  <tr>
+                    <td>「有效记忆」标题下未按 status 过滤，撤销 / 过期记忆与生效记忆同款展示</td>
+                    <td>非 active 项降级显示并标注状态，补来源（source_type）与有效期</td>
+                    <td>AgentMemory.status / source_type / effective_at / expires_at 已存在</td>
+                  </tr>
+                  <tr>
+                    <td>catalog.coordinator、workflow.agents、workflow.required_context_any 三个字段从未渲染</td>
+                    <td>协调 Agent 提为主卡（反白）；模板卡显示专家链与必需上下文</td>
+                    <td>AgentCatalog.coordinator、WorkflowDefinition.agents / required_context_any</td>
+                  </tr>
+                  <tr>
+                    <td>自动刷新（每 2s router.refresh）没有任何可见提示，页面看起来是静态的</td>
+                    <td>存在进行中任务时显示「自动刷新 · 2s」指示</td>
+                    <td>AgentTaskAutoRefresh 组件返回 null，只改数据不改界面</td>
+                  </tr>
+                  <tr>
+                    <td>锚点导航无当前区块状态；<span class="mono">?section=</span> 参数声明后从未使用；sticky 顶栏会遮住锚点落点</td>
+                    <td>锚点带 aria-current 高亮与数量角标，区块补 scroll-margin-top</td>
+                    <td>searchParams 类型含 section，页面体内没有引用</td>
+                  </tr>
+                  <tr>
+                    <td>viewer 只读时仅靠 disabled 表达，没有说明；空态只有一句「还没有 Agent Task。」</td>
+                    <td>只读角色给出文字说明；三个空态都补下一步引导与「之后会显示什么」</td>
+                    <td>canEdit / EmptyText 的线上实现</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="tbl-note">
+              <svg class="ic ic-sm" aria-hidden="true"><use href="#i-warn"></use></svg>
+              <span>未新增任何后端能力：所有动作都复用已有路由 <span class="mono">/agent/tasks/create</span>、
+                <span class="mono">/agent/tasks/[id]/cancel</span>、<span class="mono">/agent/approvals/[id]/decision</span>、
+                <span class="mono">/agent/memories/create</span>、<span class="mono">/agent/workspaces/select</span>。</span>
+            </div>
+          </div>
+        </section>
+
+        <p class="t-mini mono" style="margin-top:var(--sp-6);color:var(--faint)">
+          设计稿说明：数据、工作流 key、action_key 与数量均为示意；字段口径取自 web/src/app/agent/page.tsx、
+          web/src/components/agent-run-panel.tsx 与 web/src/types.ts；颜色 / 圆角 / 阴影 / 字体全部来自 design-system.css。
+        </p>
+
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<script src="icons.js" defer></script>
+<script>
+  /* 品牌标志统一由 window.OD.MARK 注入。
+     icons.js 带 defer，执行时机晚于本内联脚本，因此这里必须等 DOMContentLoaded。 */
+  (function () {
+    function injectMark() {
+      if (!window.OD || !window.OD.MARK) { return; }
+      var slots = document.querySelectorAll('[data-mark]');
+      for (var i = 0; i < slots.length; i++) { slots[i].innerHTML = window.OD.MARK; }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', injectMark);
+    } else { injectMark(); }
+  })();
+
+  /* 锚点导航当前区块高亮（替代线上从未使用的 ?section= 参数） */
+  (function () {
+    var links = Array.prototype.slice.call(document.querySelectorAll('.anchors a[href^="#"]'));
+    if (!links.length || !('IntersectionObserver' in window)) { return; }
+    var map = {};
+    var targets = [];
+    links.forEach(function (a) {
+      var el = document.querySelector(a.getAttribute('href'));
+      if (!el) { return; }
+      map[el.id] = a;
+      targets.push(el);
+    });
+    function setCurrent(id) {
+      links.forEach(function (a) { a.removeAttribute('aria-current'); });
+      if (map[id]) { map[id].setAttribute('aria-current', 'true'); }
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { if (en.isIntersecting) { setCurrent(en.target.id); } });
+    }, { rootMargin: '-25% 0px -65% 0px', threshold: 0 });
+    targets.forEach(function (t) { io.observe(t); });
+  })();
+</script>
+</body>
+</html>

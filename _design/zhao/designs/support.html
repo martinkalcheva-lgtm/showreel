@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f8f7f4'/%3E%3Cg fill='%230d1218'%3E%3Crect x='12' y='12' width='8' height='8'/%3E%3Crect x='4' y='4' width='4' height='4'/%3E%3Crect x='24' y='4' width='4' height='4'/%3E%3Crect x='4' y='24' width='4' height='4'/%3E%3Crect x='24' y='24' width='4' height='4'/%3E%3C/g%3C/svg%3E">
+<title>智能应答台 · 三轨路由 + DAG 流程编排 | 设计稿</title>
+<link rel="stylesheet" href="design-system.css">
+<style>
+  /* ========================================================================
+     本页只做两件事：
+       1. 消费 design-system.css 的 token 与组件类，不新增任何颜色/圆角/阴影/字体
+       2. 补上线上原版缺失的 4 层信息：三轨路由 / DAG 推进 / 转人工 / 业务对象
+     视觉层级一律用「发丝线粗细 + 反白块 + 语义 tint」表达 —— 设计系统零阴影。
+     ======================================================================== */
+
+  /* ---- 结构修复：文档大纲 ----
+     顶栏品牌名由 span 改为 h1（页面主标题）；转人工横幅的标题由 h4 升为 h2
+     （页面首个内容标题，避免 h1 → h4 跳级）。规则只还原原排版，渲染像素不变。 */
+  .app-top .brand h1 { font: inherit; letter-spacing: inherit; text-wrap: wrap; }
+
+  /* 顶栏下方增加一条声明带，所以 .app 从 2 行变 3 行（纯布局改动） */
+  .app { grid-template-rows: auto auto 1fr; }
+
+  /* --- 设计稿声明带 --------------------------------------------------- */
+  .ribbon {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--sp-3) var(--sp-4); flex-wrap: wrap;
+    padding: .5rem var(--pad-x);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-subtle);
+  }
+  .ribbon .mono-note { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted); }
+  /* 眉标在 390 下会折成「…非线上系 / 统」的单字孤行，按标题同一手法配平换行 */
+  .ribbon .eyebrow { text-wrap: balance; }
+  .ribbon.is-inner {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    margin-bottom: var(--sp-4); padding: .625rem var(--sp-3);
+  }
+
+  /* --- 对话线程 ------------------------------------------------------- */
+  .thread { max-width: 58rem; margin-inline: auto; display: flex; flex-direction: column; }
+
+  .turn { padding: var(--sp-5) 0; border-bottom: 1px solid var(--border); }
+  .turn:first-child { padding-top: 0; }
+  .turn:last-child { border-bottom: 0; }
+
+  /* 轮次头 = 轨道徽标的落点。线上原版完全没有这一层 */
+  .turn-hd {
+    display: flex; align-items: center; gap: var(--sp-2);
+    flex-wrap: wrap; margin-bottom: var(--sp-3);
+  }
+  .turn-idx {
+    font-family: var(--font-mono); font-size: var(--fs-mini); font-weight: 700;
+    letter-spacing: .1em; color: var(--border-strong);
+  }
+  .turn-who { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted); }
+  .turn-hd .msg-time { margin-left: auto; }
+
+  .turn .msg + .msg { margin-top: var(--sp-4); }
+
+  /* --- 三轨路由判定条（新增能力：让路由决策成为一等公民） ------------ */
+  .route {
+    display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .5rem;
+    margin-top: var(--sp-3);
+    padding: .5rem .75rem;
+    border: 1px solid var(--border); border-left: 2px solid var(--accent);
+    border-radius: var(--radius); background: var(--surface-sunken);
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted);
+  }
+  .route .k { color: var(--faint); }
+  .route .v { color: var(--fg); font-weight: 700; }
+  .route .arrow { color: var(--border-strong); }
+  .route .score { color: var(--accent); font-weight: 700; }
+
+  /* --- DAG 流程步骤条（新增能力：6 个 YAML 流程之一，refund_flow.yaml） */
+  .flow {
+    margin-top: var(--sp-3);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); overflow: hidden;
+  }
+  .flow-hd {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--sp-2) var(--sp-3); flex-wrap: wrap;
+    padding: .625rem .875rem; border-bottom: 1px solid var(--border);
+    background: var(--surface-subtle);
+    font-family: var(--font-mono); font-size: var(--fs-mini);
+    font-weight: 700; letter-spacing: .06em; color: var(--muted);
+  }
+  .flow-hd .right { color: var(--faint); font-weight: 400; }
+  .flow-steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .flow-step {
+    min-width: 0; padding: .75rem .875rem;
+    border-right: 1px solid var(--border);
+    border-top: 2px solid var(--border);
+    display: flex; flex-direction: column; gap: .125rem;
+  }
+  .flow-step:last-child { border-right: 0; }
+  .flow-step.is-done { border-top-color: var(--success); background: var(--surface-subtle); }
+  .flow-step.is-now  { border-top-color: var(--warn);   background: var(--warn-tint); }
+  .flow-idx { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  .flow-name { font-size: var(--fs-mini); font-weight: 700; color: var(--fg); line-height: 1.5; }
+  .flow-state { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  .flow-step.is-done .flow-state { color: var(--success); }
+  .flow-step.is-now  .flow-state { color: var(--warn); font-weight: 700; }
+  /* 分支条件：DAG 不是纯线性，>500 元强制人工复核 */
+  .flow-branch {
+    display: flex; align-items: flex-start; gap: .5rem;
+    padding: .5rem .875rem; border-top: 1px solid var(--border);
+    background: var(--surface-sunken);
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted);
+  }
+  .flow-branch .cond { color: var(--accent); font-weight: 700; }
+
+  /* --- 转人工表达（新增能力：横幅 + 头像切换 + 输入区禁用） ---------- */
+  .handover {
+    display: flex; align-items: flex-start; gap: var(--sp-3);
+    border: 1px solid var(--warn); border-left: 2px solid var(--warn);
+    border-radius: var(--radius); background: var(--warn-tint);
+    padding: var(--sp-3) var(--sp-4); margin-bottom: var(--sp-4);
+  }
+  .handover .ic { color: var(--warn); margin-top: .2em; }
+  .handover h4, .handover h2 { font-size: var(--fs-h3); margin-bottom: .125rem; }
+  .handover p { font-size: var(--fs-meta); color: var(--fg-secondary); }
+  .handover .meta { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted); margin-top: .375rem; }
+
+  /* 头像由「机器人」切成「人」：图标集无类人字形，用单字徽记承担同一语义 */
+  .msg-avatar.human {
+    background: var(--surface); color: var(--fg);
+    border: 1px solid var(--border-strong);
+    font-family: var(--font-body); font-size: 13px;
+  }
+
+  /* --- 输入区 -------------------------------------------------------- */
+  /* 设计稿是静态长页：输入区放在线程末尾而非 sticky，
+     否则在 1440×N 截图中会盖住最后一轮对话（转人工那一轮） */
+  .composer-bar {
+    margin-top: var(--sp-4);
+    padding: var(--sp-4) 0 0;
+    border-top: 1px solid var(--border-strong);
+  }
+  .composer-hint {
+    display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+    font-family: var(--font-mono); font-size: var(--fs-mini);
+    color: var(--faint); margin-bottom: .5rem;
+  }
+  /* 禁用态：不用 opacity（会把文字压到不合格对比度），改用表面色 + 提示 */
+  .composer.is-off { border-color: var(--border); background: var(--surface-subtle); }
+  .composer.is-off textarea { color: var(--faint); cursor: not-allowed; }
+  .composer.is-off textarea::placeholder { color: var(--faint); }
+
+  /* --- 补充状态：消息发送失败（网络中断，消息不丢） -------------------- */
+  .demo-sep { display: flex; align-items: center; gap: var(--sp-3); margin-top: var(--sp-6); }
+  .demo-sep::after { content: ""; flex: 1; border-top: 1px dashed var(--border-strong); }
+  .state-demo { margin-top: var(--sp-5); }
+  .msg-user .msg-body.is-failed { border-left: 2px solid var(--accent); }
+  .send-fail {
+    display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .625rem;
+    margin-top: .75rem; padding-top: .625rem;
+    border-top: 1px solid var(--border);
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted);
+  }
+  .send-fail .btn { margin-left: auto; }
+
+  .chip-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-3); }
+
+  /* --- aside：业务对象面板 ------------------------------------------- */
+  .aside-stack { display: flex; flex-direction: column; gap: var(--sp-4); }
+
+  .tabs { display: flex; gap: .25rem; border-bottom: 1px solid var(--border); margin-bottom: var(--sp-4); }
+  .tab {
+    display: inline-flex; align-items: center; justify-content: center; gap: .4em;
+    min-height: 44px; padding: .5rem .875rem;
+    border: 1px solid transparent; border-bottom: 0;
+    border-radius: var(--radius) var(--radius) 0 0;
+    background: transparent; color: var(--muted);
+    font-family: var(--font-mono); font-size: var(--fs-mini);
+    font-weight: 600; letter-spacing: .06em;
+    transition: color var(--t-2) var(--ease-state), background-color var(--t-2) var(--ease-state);
+  }
+  .tab:hover { color: var(--fg); background: var(--surface-subtle); }
+  .tab[aria-selected="true"] {
+    background: var(--surface); border-color: var(--border);
+    color: var(--fg); margin-bottom: -1px;
+  }
+  .tab .n { color: var(--faint); }
+
+  /* 业务对象卡：沿用线上原版的形态，封面用占位块 */
+  .obj {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); overflow: hidden;
+  }
+  .obj + .obj { margin-top: var(--sp-3); }
+  .obj-cover {
+    aspect-ratio: 8 / 3;
+    display: grid; place-items: center; gap: .25rem; align-content: center;
+    background: var(--surface-sunken); border-bottom: 1px solid var(--border);
+    color: var(--faint);
+    font-family: var(--font-mono); font-size: var(--fs-mini); letter-spacing: .1em;
+  }
+  .obj-cover .ic { width: 1.5em; height: 1.5em; }
+  .obj-body { padding: var(--sp-3); display: flex; flex-direction: column; gap: .375rem; }
+  .obj-title { font-weight: 700; font-size: var(--fs-meta); line-height: 1.5; }
+  .obj-price {
+    font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-h3);
+    color: var(--accent); overflow-wrap: anywhere;
+  }
+  .obj-meta { display: flex; flex-wrap: wrap; gap: .25rem .5rem; font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  .obj-meta .no { overflow-wrap: anywhere; }
+  .obj-foot {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--sp-2); flex-wrap: wrap;
+    padding: var(--sp-3); border-top: 1px solid var(--border);
+    background: var(--surface-subtle);
+  }
+
+  .kv { display: flex; flex-direction: column; gap: .5rem; }
+  .kv-row { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-3); font-size: var(--fs-meta); }
+  .kv-row .k { color: var(--muted); flex: none; }
+  .kv-row .v { color: var(--fg); font-family: var(--font-mono); text-align: right; overflow-wrap: anywhere; }
+
+  /* --- 响应式 -------------------------------------------------------- */
+  @media (max-width: 1023px) {
+    .flow-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .flow-step:nth-child(3) { border-right: 0; }
+  }
+  @media (max-width: 767px) {
+    .thread { max-width: none; }
+    .turn-hd .msg-time { margin-left: 0; width: 100%; }
+    /* 输入框 rows=1：390 下占位文案折成 2 行，第 2 行会被裁掉半个字高 */
+    .composer textarea { min-height: 4.5rem; }
+    /* 节点输出表头两栏在 390 下互相挤压，「节点 04 / 05」尾字会单独掉一行 */
+    .trace-hd > span:first-child { text-wrap: balance; }
+    .trace-hd > span:last-child { white-space: nowrap; }
+    .flow-steps { grid-template-columns: minmax(0, 1fr); }
+    .flow-step { border-right: 0; border-bottom: 1px solid var(--border); flex-direction: row; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
+    .flow-step:last-child { border-bottom: 0; }
+    .flow-step.is-now { order: -1; }
+  }
+</style>
+</head>
+<body class="js">
+
+<div class="app">
+
+  <!-- ================= 顶栏 ================= -->
+  <header class="app-top">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <rect x="12" y="12" width="8" height="8" rx="2"/>
+        <rect x="4" y="4" width="4" height="4" rx="1"/>
+        <rect x="24" y="4" width="4" height="4" rx="1"/>
+        <rect x="4" y="24" width="4" height="4" rx="1"/>
+        <rect x="24" y="24" width="4" height="4" rx="1"/>
+      </svg>
+      <h1>智能应答台</h1>
+      <span class="sub">E-COMMERCE SUPPORT CONSOLE</span>
+    </div>
+    <nav aria-label="主导航">
+      <a href="#thread" aria-current="page">对话台</a>
+      <a href="#flow">流程编排</a>
+      <a href="#objects">业务对象</a>
+    </nav>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:.5rem">
+      <span class="badge badge-online"><span class="status-led" aria-hidden="true"></span>:18082 ONLINE</span>
+      <a class="btn btn-sm" href="index.html">
+        <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg>
+        <span>设计稿总览</span>
+      </a>
+      <button type="button" class="btn btn-ghost" id="themeBtn" aria-label="切换明暗主题">
+        <svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>主题
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= 设计稿声明带 ================= -->
+  <div class="ribbon">
+    <span class="eyebrow">DESIGN PROPOSAL · 静态设计稿 · 非线上系统</span>
+    <span class="mono-note">本稿修复 4 项 + 补齐 1 状态：轨道徽标 / DAG 步骤条 / 转人工提示 / 业务对象卡 / 消息发送失败态</span>
+  </div>
+
+  <!-- ================= 主体 ================= -->
+  <div class="app-body has-aside">
+
+    <!-- ---------- 对话主区 ---------- -->
+    <main class="pane">
+      <div class="thread">
+
+        <div class="ribbon is-inner" style="flex-wrap:wrap">
+          <span class="mono-note">会话 <strong>CS-7741-A9</strong> · 买家 <strong>抖音 / 夜行者***62</strong> · 开场 10:23:51</span>
+          <span class="mono-note">轮次 04 · 平均首字 &lt; 1s · 转人工 1 次</span>
+        </div>
+
+        <!-- ===== 轮次 01 · 闲聊轨 ===== -->
+        <article class="turn" id="thread">
+          <div class="turn-hd">
+            <span class="turn-idx">TURN 01</span>
+            <span class="turn-who">买家 → 应答台</span>
+            <span class="badge"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-agent"></use></svg>闲聊轨</span>
+            <span class="msg-time">10:23:51</span>
+          </div>
+
+          <div class="msg msg-user">
+            <div class="msg-avatar me" aria-hidden="true">62</div>
+            <div class="msg-body">
+              <p>在吗？想问问你们最近有什么活动</p>
+            </div>
+          </div>
+
+          <div class="msg">
+            <div class="msg-avatar bot" aria-hidden="true"><svg class="ic ic-lg"><use href="#i-agent"></use></svg></div>
+            <div class="msg-body">
+              <p>在的。当前店铺正在进行「春上新」活动，满 399 减 40、满 799 减 120，可与优惠券叠加。</p>
+              <p>你想了解哪一类？点一个我直接给你答案：</p>
+
+              <div class="route">
+                <span class="k">意图识别</span>
+                <span class="arrow">→</span>
+                <span class="v">闲聊 / OPEN-QUERY</span>
+                <span class="arrow">→</span>
+                <span class="k">置信度</span>
+                <span class="score">0.41</span>
+                <span class="arrow">→</span>
+                <span class="k">未命中业务意图</span>
+                <span class="arrow">→</span>
+                <span class="v">闲聊轨 · 快捷应答</span>
+              </div>
+
+              <div class="chip-row">
+                <button type="button" class="btn btn-ghost">退款怎么申请</button>
+                <button type="button" class="btn btn-ghost">退换货政策</button>
+                <button type="button" class="btn btn-ghost">运费与发货时效</button>
+                <button type="button" class="btn btn-ghost">开发票</button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- ===== 轮次 02 · 知识咨询轨 ===== -->
+        <article class="turn">
+          <div class="turn-hd">
+            <span class="turn-idx">TURN 02</span>
+            <span class="turn-who">买家 → 应答台</span>
+            <span class="badge badge-info"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-search"></use></svg>知识咨询轨</span>
+            <span class="msg-time">10:24:12</span>
+          </div>
+
+          <div class="msg msg-user">
+            <div class="msg-avatar me" aria-hidden="true">62</div>
+            <div class="msg-body">
+              <p>运费怎么算？新疆、西藏也包邮吗</p>
+            </div>
+          </div>
+
+          <div class="msg">
+            <div class="msg-avatar bot" aria-hidden="true"><svg class="ic ic-lg"><use href="#i-agent"></use></svg></div>
+            <div class="msg-body">
+              <p>默认满 99 元包邮，不满收 12 元运费。新疆、西藏、青海不含在包邮范围内，一律按 25 元 / 单计，不叠加优惠。</p>
+              <p>港澳台与海外暂不支持直邮，需要走跨境专线。</p>
+
+              <div class="route">
+                <span class="k">意图识别</span>
+                <span class="arrow">→</span>
+                <span class="v">知识咨询 / SHIPPING-FAQ</span>
+                <span class="arrow">→</span>
+                <span class="k">置信度</span>
+                <span class="score">0.88</span>
+                <span class="arrow">→</span>
+                <span class="k">检索</span>
+                <span class="v">3 路召回 · RRF 精排 · Top1</span>
+                <span class="arrow">→</span>
+                <span class="v">知识咨询轨</span>
+              </div>
+
+              <div class="cite">
+                <div class="cite-hd">
+                  <svg class="ic ic-sm" aria-hidden="true"><use href="#i-doc"></use></svg>
+                  <span class="doc">店铺规则手册 v4.2 · 第 3 章 配送与运费</span>
+                  <span class="pg">p.18</span>
+                  <span class="cite-score">0.93</span>
+                </div>
+                <p class="cite-body">「自 2024-03-01 起，单笔实付满 ¥99 免运费（不含新疆、西藏、青海）；上述三地固定 ¥25/单。生鲜与定制类商品不参与任何运费优惠。」</p>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- ===== 轮次 03 · 业务办理轨（退款 DAG 推进中） ===== -->
+        <article class="turn" id="flow">
+          <div class="turn-hd">
+            <span class="turn-idx">TURN 03</span>
+            <span class="turn-who">买家 → 应答台</span>
+            <span class="badge badge-accent"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-db"></use></svg>业务办理轨</span>
+            <span class="msg-time">10:24:33</span>
+          </div>
+
+          <div class="msg msg-user">
+            <div class="msg-avatar me" aria-hidden="true">62</div>
+            <div class="msg-body">
+              <p>订单 SO-20240518-77341 里那件冲锋衣我要退款，尺码不合适</p>
+            </div>
+          </div>
+
+          <div class="msg">
+            <div class="msg-avatar bot" aria-hidden="true"><svg class="ic ic-lg"><use href="#i-agent"></use></svg></div>
+            <div class="msg-body">
+              <p>已从会话中识别到订单 <strong>SO-20240518-77341</strong>，其中「三合一冲锋衣（男款）」在申请售后有效期内，退款流程已启动。</p>
+
+              <div class="route">
+                <span class="k">意图识别</span>
+                <span class="arrow">→</span>
+                <span class="v">业务办理 / REFUND-INTENT</span>
+                <span class="arrow">→</span>
+                <span class="k">置信度</span>
+                <span class="score">0.94</span>
+                <span class="arrow">→</span>
+                <span class="v">三轨路由 → 业务办理</span>
+                <span class="arrow">→</span>
+                <span class="v">加载 refund_flow.yaml</span>
+              </div>
+
+              <!-- DAG 步骤条：5 节点 / 4 边，前 3 步完成、第 4 步进行中 -->
+              <section class="flow" aria-label="退款流程推进状态">
+                <div class="flow-hd">
+                  <span>退款流程 · DAG 推进</span>
+                  <span class="right">refund_flow.yaml · 5 节点 / 4 边 · 已耗时 00:41</span>
+                </div>
+                <ol class="flow-steps">
+                  <li class="flow-step is-done">
+                    <span class="flow-idx">01</span>
+                    <span class="flow-name">提交申请</span>
+                    <span class="flow-state">已完成 10:24:33</span>
+                  </li>
+                  <li class="flow-step is-done">
+                    <span class="flow-idx">02</span>
+                    <span class="flow-name">资格校验</span>
+                    <span class="flow-state">已完成 10:24:35</span>
+                  </li>
+                  <li class="flow-step is-done">
+                    <span class="flow-idx">03</span>
+                    <span class="flow-name">金额核算</span>
+                    <span class="flow-state">已完成 10:24:36</span>
+                  </li>
+                  <li class="flow-step is-now">
+                    <span class="flow-idx">04</span>
+                    <span class="flow-name">审批</span>
+                    <span class="flow-state">进行中 · 已等待 38s</span>
+                  </li>
+                  <li class="flow-step">
+                    <span class="flow-idx">05</span>
+                    <span class="flow-name">退款执行</span>
+                    <span class="flow-state">待审批通过</span>
+                  </li>
+                </ol>
+                <div class="flow-branch">
+                  <svg class="ic ic-sm" aria-hidden="true"><use href="#i-repo"></use></svg>
+                  <span>分支判定：<span class="cond">退款金额 ¥1,299.00 &gt; ¥500</span> → 强制人工审批，自动放行规则不适用</span>
+                </div>
+              </section>
+
+              <div class="trace" style="margin-top:var(--sp-3)">
+                <div class="trace-hd"><span>当前节点输出 · APPROVAL_PENDING</span><span>节点 04 / 05</span></div>
+                <div class="trace-step"><span class="trace-dot done"></span><span>可退金额核算完成：实付 ¥1,299.00，平台券抵扣 ¥130.00 不退</span><span class="trace-time">10:24:36</span></div>
+                <div class="trace-step"><span class="trace-dot done"></span><span>退货方式：仅退款（尺码不符，未寄回）· 需买家上传吊牌照片 1 张</span><span class="trace-time">10:24:36</span></div>
+                <div class="trace-step"><span class="trace-dot run"></span><span>已推送审批工单 <span class="mono">APR-5C81F2</span> 至售后组，等待人工复核</span><span class="trace-time">进行中</span></div>
+                <div class="trace-step"><span class="trace-dot skip"></span><span>退款执行：等待审批通过后触发，原路退回至微信支付</span><span class="trace-time">未开始</span></div>
+              </div>
+
+              <div class="chip-row">
+                <button type="button" class="btn btn-primary">确认金额，去催审批</button>
+                <button type="button" class="btn btn-ghost">修改退款信息</button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- ===== 轮次 04 · 高风险转人工 ===== -->
+        <article class="turn">
+          <div class="turn-hd">
+            <span class="turn-idx">TURN 04</span>
+            <span class="turn-who">买家 → 应答台</span>
+            <span class="badge badge-warn"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-warn"></use></svg>转人工 · 接管中</span>
+            <span class="msg-time">10:26:02</span>
+          </div>
+
+          <!-- 转人工横幅：原版只在日志里记一笔，界面毫无提示 -->
+          <div class="handover" role="status">
+            <svg class="ic ic-lg" aria-hidden="true"><use href="#i-warn"></use></svg>
+            <div>
+              <h2>已转接人工客服</h2>
+              <p>命中高风险规则：买家对退款金额提出异议 + 审批等待超时，自动升级为人工工单，机器人应答在本次会话内停止。</p>
+              <p class="meta">工单 APR-5C81F2 · 规则 4.2「金额争议」· 升级于 10:26:02 · 分配给「售后二组 · 值班客服」</p>
+            </div>
+          </div>
+
+          <div class="msg msg-user">
+            <div class="msg-avatar me" aria-hidden="true">62</div>
+            <div class="msg-body">
+              <p>等了三天还没到账，这个金额我不认，直接转人工</p>
+            </div>
+          </div>
+
+          <div class="msg">
+            <div class="msg-avatar human" aria-label="人工客服">人</div>
+            <div class="msg-body">
+              <div class="turn-hd" style="margin-bottom:.5rem">
+                <span class="turn-who">人工客服 · 客服 07</span>
+                <span class="badge badge-warn">接管中</span>
+                <span class="msg-time">10:26:09</span>
+              </div>
+              <p>您好，我是人工客服 07，已经看到您的工单。先跟您核对：订单实付 ¥1,299.00，其中 ¥130.00 是平台券抵扣，按规则不参与退款，所以原路退回应为 ¥1,169.00。</p>
+              <p>如果您认为金额有误，请把支付流水发给我，我这边直接发起人工复核，复核通过后 2 小时内到账，全程不需要您再次申请。</p>
+
+              <div class="route">
+                <span class="k">接管方</span>
+                <span class="arrow">→</span>
+                <span class="v">人工客服 07（售后二组）</span>
+                <span class="arrow">→</span>
+                <span class="k">机器人</span>
+                <span class="v">本会话已停止应答</span>
+                <span class="arrow">→</span>
+                <span class="k">上下文已交接</span>
+                <span class="score">12 条消息 / 3 张订单</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- ---------- 输入区：转人工后进入禁用态 ---------- -->
+        <div class="composer-bar">
+          <div class="composer-hint">
+            <svg class="ic ic-sm" aria-hidden="true"><use href="#i-warn"></use></svg>
+            <span>人工客服正在接入，输入区已锁定 · 工单 APR-5C81F2 排队 1 位</span>
+            <button type="button" class="btn btn-ghost" style="margin-left:auto">取消转接</button>
+          </div>
+          <div class="composer is-off" aria-disabled="true">
+            <label class="sr-only" for="say" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">消息输入</label>
+            <textarea id="say" rows="1" disabled placeholder="人工客服正在接入，机器人暂不接收输入……"></textarea>
+            <button type="button" class="btn" disabled aria-label="发送">
+              <svg class="ic" aria-hidden="true"><use href="#i-arrow-r"></use></svg>发送
+            </button>
+          </div>
+        </div>
+
+        <!-- ---------- 补充状态演示：消息发送失败（网络中断，消息不丢） ---------- -->
+        <div class="demo-sep" role="presentation">
+          <span class="eyebrow">补充状态演示 · 不属于上方会话时间线</span>
+        </div>
+
+        <section class="state-demo" aria-label="状态演示：消息发送失败">
+          <div class="msg msg-user">
+            <div class="msg-avatar me" aria-hidden="true">62</div>
+            <div class="msg-body is-failed">
+              <p>会员积分这次能叠加使用吗？</p>
+              <div class="send-fail">
+                <span class="badge badge-accent">未发送</span>
+                <span>网络中断 · 内容已保留，重试不丢</span>
+                <button type="button" class="btn btn-sm">重试发送</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="note">
+            <span class="eyebrow">设计说明</span>
+            <p>发送失败属于发送侧问题，必须在气泡内当场表达：标出「未发送」、说明内容已保留、给出一键重试，重试回填的就是原消息本身，不需要用户重打。失败语义沿用朱红，与流程进行中的琥珀区分开，也不弹全局提示打断会话。</p>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+    <!-- ---------- aside：业务对象面板 ---------- -->
+    <aside class="aside" id="objects">
+      <div class="aside-stack">
+
+        <div class="panel">
+          <div class="panel-head">
+            <h3>业务对象</h3>
+            <span class="badge">3 订单 / 3 商品</span>
+          </div>
+          <div class="panel-body">
+            <div class="tabs" role="tablist" aria-label="业务对象分类">
+              <button type="button" class="tab" role="tab" aria-selected="true" aria-controls="tab-order" id="t-order">订单 <span class="n">3</span></button>
+              <button type="button" class="tab" role="tab" aria-selected="false" aria-controls="tab-goods" id="t-goods">商品 <span class="n">3</span></button>
+            </div>
+
+            <!-- 订单 Tab -->
+            <div id="tab-order" role="tabpanel" aria-labelledby="t-order">
+              <article class="obj">
+                <div class="obj-cover">
+                  <svg class="ic" aria-hidden="true"><use href="#i-doc"></use></svg>
+                  <span>订单封面占位</span>
+                </div>
+                <div class="obj-body">
+                  <div class="obj-title">三合一冲锋衣（男款）· 藏青 L</div>
+                  <div class="obj-price">¥1,299.00</div>
+                  <div class="obj-meta">
+                    <span class="no">SO-20240518-77341</span>
+                    <span class="badge badge-warn">退款审批中</span>
+                  </div>
+                </div>
+                <div class="obj-foot">
+                  <span class="t-mini mono">抖音 · 已发货</span>
+                  <button type="button" class="btn">发送订单</button>
+                </div>
+              </article>
+
+              <article class="obj">
+                <div class="obj-cover">
+                  <svg class="ic" aria-hidden="true"><use href="#i-doc"></use></svg>
+                  <span>订单封面占位</span>
+                </div>
+                <div class="obj-body">
+                  <div class="obj-title">重磅纯棉基础 T · 白 M ×2</div>
+                  <div class="obj-price">¥259.00</div>
+                  <div class="obj-meta">
+                    <span class="no">SO-20240512-41082</span>
+                    <span class="badge badge-online">待收货</span>
+                  </div>
+                </div>
+                <div class="obj-foot">
+                  <span class="t-mini mono">淘宝 · 运输中</span>
+                  <button type="button" class="btn">发送订单</button>
+                </div>
+              </article>
+
+              <article class="obj">
+                <div class="obj-cover">
+                  <svg class="ic" aria-hidden="true"><use href="#i-doc"></use></svg>
+                  <span>订单封面占位</span>
+                </div>
+                <div class="obj-body">
+                  <div class="obj-title">16 oz 帆布托特包 · 原色</div>
+                  <div class="obj-price">¥89.00</div>
+                  <div class="obj-meta">
+                    <span class="no">SO-20240506-22875</span>
+                    <span class="badge">已完成</span>
+                  </div>
+                </div>
+                <div class="obj-foot">
+                  <span class="t-mini mono">天猫 · 已签收</span>
+                  <button type="button" class="btn">发送订单</button>
+                </div>
+              </article>
+            </div>
+
+            <!-- 商品 Tab -->
+            <div id="tab-goods" role="tabpanel" aria-labelledby="t-goods" hidden>
+              <article class="obj">
+                <div class="obj-cover">
+                  <svg class="ic" aria-hidden="true"><use href="#i-search"></use></svg>
+                  <span>商品主图占位</span>
+                </div>
+                <div class="obj-body">
+                  <div class="obj-title">三合一冲锋衣（男款）</div>
+                  <div class="obj-price">¥1,299.00</div>
+                  <div class="obj-meta"><span>SKU A2 藏青-L</span><span class="badge badge-accent">本会话相关</span></div>
+                </div>
+                <div class="obj-foot">
+                  <span class="t-mini mono">抖音 · 在售</span>
+                  <button type="button" class="btn">发送商品</button>
+                </div>
+              </article>
+
+              <article class="obj">
+                <div class="obj-cover">
+                  <svg class="ic" aria-hidden="true"><use href="#i-search"></use></svg>
+                  <span>商品主图占位</span>
+                </div>
+                <div class="obj-body">
+                  <div class="obj-title">重磅纯棉基础 T</div>
+                  <div class="obj-price">¥129.00</div>
+                  <div class="obj-meta"><span>SKU 共 12 个</span><span class="badge badge-online">在售</span></div>
+                </div>
+                <div class="obj-foot">
+                  <span class="t-mini mono">淘宝 · 在售</span>
+                  <button type="button" class="btn">发送商品</button>
+                </div>
+              </article>
+
+              <article class="obj">
+                <div class="obj-cover">
+                  <svg class="ic" aria-hidden="true"><use href="#i-search"></use></svg>
+                  <span>商品主图占位</span>
+                </div>
+                <div class="obj-body">
+                  <div class="obj-title">16 oz 帆布托特包</div>
+                  <div class="obj-price">¥89.00</div>
+                  <div class="obj-meta"><span>SKU 共 3 个</span><span class="badge badge-warn">库存 12</span></div>
+                </div>
+                <div class="obj-foot">
+                  <span class="t-mini mono">天猫 · 库存偏低</span>
+                  <button type="button" class="btn">发送商品</button>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h3>会话上下文</h3>
+            <svg class="ic ic-sm" aria-hidden="true"><use href="#i-db"></use></svg>
+          </div>
+          <div class="panel-body">
+            <div class="kv">
+              <div class="kv-row"><span class="k">当前轨道</span><span class="v">转人工 · 已接管</span></div>
+              <div class="kv-row"><span class="k">已加载流程</span><span class="v">refund_flow.yaml</span></div>
+              <div class="kv-row"><span class="k">DAG 位置</span><span class="v">04 / 05 · APPROVAL_PENDING</span></div>
+              <div class="kv-row"><span class="k">工单</span><span class="v">APR-5C81F2</span></div>
+              <div class="kv-row"><span class="k">知识命中</span><span class="v">2 条 · Top1 0.93</span></div>
+              <div class="kv-row"><span class="k">本会话轮次</span><span class="v">04</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3>路由分布</h3><span class="t-mini mono">本会话 4 轮</span></div>
+          <div class="panel-body">
+            <div class="kv">
+              <div class="kv-row"><span class="k">业务办理</span><span class="v">1 · 25%</span></div>
+              <div class="kv-row"><span class="k">知识咨询</span><span class="v">1 · 25%</span></div>
+              <div class="kv-row"><span class="k">闲聊</span><span class="v">1 · 25%</span></div>
+              <div class="kv-row"><span class="k">转人工</span><span class="v">1 · 25%</span></div>
+            </div>
+            <p class="t-mini" style="margin-top:var(--sp-3)">三轨路由结果逐轮可见，买家与客服都能看到判定依据，而不是只有后台日志里有。</p>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+  </div>
+</div>
+
+<script src="icons.js" defer></script>
+<script>
+  /* 业务对象双 Tab（纯静态切换，不发任何请求） */
+  (function () {
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+    var panels = { 'tab-order': document.getElementById('tab-order'), 'tab-goods': document.getElementById('tab-goods') };
+    function pick(id) {
+      tabs.forEach(function (t) {
+        var on = t.id === id;
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+        panels[t.getAttribute('aria-controls')].hidden = !on;
+      });
+    }
+    tabs.forEach(function (t) {
+      t.addEventListener('click', function () { pick(t.id); });
+      t.addEventListener('keydown', function (e) {
+        var i = tabs.indexOf(t), n = null;
+        if (e.key === 'ArrowRight') n = tabs[(i + 1) % tabs.length];
+        if (e.key === 'ArrowLeft') n = tabs[(i - 1 + tabs.length) % tabs.length];
+        if (n) { e.preventDefault(); n.focus(); pick(n.id); }
+      });
+    });
+  })();
+</script>
+</body>
+</html>

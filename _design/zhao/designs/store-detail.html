@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" class="js">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>店铺详情 · 多智能体运营平台 UI 设计稿</title>
+<meta name="description" content="静态设计稿：店铺详情页。平台与账号、经营口径 KPI、运营流程、库存异常、库存建议、商品与库存明细、空态引导。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f8f7f4'/%3E%3Cg fill='%230d1218'%3E%3Crect x='12' y='12' width='8' height='8'/%3E%3Crect x='4' y='4' width='4' height='4'/%3E%3Crect x='24' y='4' width='4' height='4'/%3E%3Crect x='4' y='24' width='4' height='4'/%3E%3Crect x='24' y='24' width='4' height='4'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="stylesheet" href="design-system.css">
+<style>
+  /* ======================================================================
+     页面级布局（store-detail）
+     硬约束：只消费 design-system.css 的 token 与组件类，不新增视觉值。
+     对应线上源码：web/src/app/stores/[id]/page.tsx
+     ====================================================================== */
+  a, button { min-width: 0; }
+  /* 命中区下限：导航与品牌入口同样按 44px 计 */
+  .app-top .brand, .app-top nav a { min-height: 44px; display: inline-flex; align-items: center; white-space: nowrap; }
+
+  .wrap { width: 100%; max-width: var(--max-w); margin-inline: auto; }
+  .stack   { display: flex; flex-direction: column; gap: var(--sp-6); }
+  .stack-5 { display: flex; flex-direction: column; gap: var(--sp-5); }
+  .stack-4 { display: flex; flex-direction: column; gap: var(--sp-4); }
+  .stack-3 { display: flex; flex-direction: column; gap: var(--sp-3); }
+  .stack-2 { display: flex; flex-direction: column; gap: var(--sp-2); }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
+  .row-between { justify-content: space-between; }
+
+  /* ---- 声明带 ---- */
+  .ribbon {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--sp-3) var(--sp-4); flex-wrap: wrap;
+    padding: .5rem var(--pad-x);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-subtle);
+  }
+  .mono-note { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted); }
+  .mono-faint { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  /* 正文一律 ≥16px：小字只留给等宽标签 */
+  .cap { font-size: var(--fs-body); color: var(--muted); line-height: 1.75; }
+  .cap-2 { font-size: var(--fs-body); color: var(--fg-secondary); line-height: 1.75; }
+
+  /* ---- 区块头 ---- */
+  .sec-hd {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: var(--sp-3) var(--sp-4); flex-wrap: wrap;
+    margin-bottom: var(--sp-4); padding-bottom: var(--sp-3);
+    border-bottom: 1px solid var(--border);
+  }
+  .sec-hd h2 { font-size: var(--fs-h2); }
+  .sec-hd .right { display: flex; flex-direction: column; align-items: flex-end; gap: .375rem; }
+  .sec-hd .right .cap { max-width: 42em; text-align: right; }
+
+  /* ---- 页头：店铺身份 ---- */
+  .store-hd { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-4) var(--sp-5); align-items: start; }
+  .store-id { display: flex; gap: var(--sp-4); min-width: 0; }
+  .store-mark {
+    width: 52px; height: 52px; flex: none; border-radius: var(--radius);
+    display: grid; place-items: center; font-size: 1.25rem;
+    background: var(--fg); color: var(--bg);
+  }
+  .store-actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+  .id-line { display: flex; flex-wrap: wrap; gap: .25rem .75rem; align-items: center; }
+
+  /* ---- KPI（与工作台首页同一表达） ---- */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-4); }
+  .kpi-grid.second { margin-top: var(--sp-4); }
+  .kpi {
+    min-width: 0; padding: var(--sp-4);
+    border: 1px solid var(--border); border-top-width: 2px; border-radius: var(--radius);
+    background: var(--surface);
+    display: flex; flex-direction: column; gap: .5rem;
+  }
+  .kpi.is-lead { border-top-color: var(--accent); }
+  .kpi.is-idle { border-top-color: var(--muted); }
+  .kpi-lbl {
+    display: flex; align-items: center; gap: .5rem;
+    font-family: var(--font-mono); font-size: var(--fs-mini); font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--faint);
+  }
+  .kpi-val { font-family: var(--font-display); font-size: var(--fs-h1); font-weight: 700; line-height: 1.12; }
+  .kpi-val.is-idle { color: var(--muted); }
+  .kpi-val .unit { font-family: var(--font-mono); font-size: var(--fs-h3); font-weight: 600; color: var(--muted); }
+  .kpi-desc { font-size: var(--fs-body); color: var(--muted); line-height: 1.7; flex: 1; }
+  .kpi-desc b { color: var(--fg-secondary); font-weight: 600; }
+  .kpi-foot {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: .5rem; flex-wrap: wrap;
+    padding-top: var(--sp-3); border-top: 1px solid var(--border);
+  }
+
+  /* ---- Tab / 状态票 ---- */
+  .tabs { display: flex; gap: .25rem; flex-wrap: wrap; border-bottom: 1px solid var(--border); margin-bottom: var(--sp-4); }
+  .tab {
+    display: inline-flex; align-items: center; justify-content: center; gap: .4em;
+    min-height: 44px; padding: .5rem .875rem;
+    border: 1px solid transparent; border-bottom: 0;
+    border-radius: var(--radius) var(--radius) 0 0;
+    background: transparent; color: var(--muted);
+    font-family: var(--font-mono); font-size: var(--fs-mini);
+    font-weight: 600; letter-spacing: .06em; white-space: nowrap;
+    transition: color var(--t-2) var(--ease-state), background-color var(--t-2) var(--ease-state);
+  }
+  .tab:hover { color: var(--fg); background: var(--surface-subtle); }
+  .tab[aria-selected="true"] { background: var(--surface); border-color: var(--border); color: var(--fg); margin-bottom: -1px; }
+  .tab .n { color: var(--faint); }
+  .tab[aria-selected="true"] .n { color: var(--accent); }
+
+  .tick {
+    display: inline-flex; align-items: center; gap: .4em;
+    padding: .2em .55em; border: 1px solid var(--border); border-radius: var(--radius);
+    font-family: var(--font-mono); font-size: var(--fs-mini);
+    font-weight: 600; letter-spacing: .04em; white-space: nowrap;
+  }
+  .tick.is-live { border-color: var(--success); color: var(--success); }
+  .tick.is-next { border-color: var(--accent); color: var(--accent); }
+
+  /* ---- 流程步骤 ---- */
+  .steps { display: grid; gap: var(--sp-2); }
+  .steps-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .steps-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .step {
+    min-width: 0; padding: var(--sp-3) var(--sp-3) var(--sp-3) calc(var(--sp-3) - 2px);
+    border: 1px solid var(--border); border-left-width: 3px; border-radius: var(--radius);
+    background: var(--surface);
+    display: flex; flex-direction: column; gap: .5rem;
+    min-height: 44px;
+    transition: background-color var(--t-2) var(--ease-state);
+  }
+  .step:hover { background: var(--surface-subtle); }
+  .step.is-done { border-left-color: var(--success); }
+  .step.is-open { border-left-color: var(--warn); }
+  .step.is-idle { border-left-color: var(--border); }
+  .step-hd { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+  .step-hd h4, .step-hd h3 { font-size: var(--fs-body); }
+  .step p { font-size: var(--fs-body); color: var(--muted); line-height: 1.7; }
+
+  /* ---- 告警面板 ---- */
+  .alert {
+    border: 1px solid var(--border); border-left: 3px solid var(--warn);
+    border-radius: var(--radius); background: var(--warn-tint);
+    padding: var(--sp-4);
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-3) var(--sp-4);
+    align-items: start;
+  }
+  .alert-hd { display: flex; gap: var(--sp-3); min-width: 0; }
+  .alert-ic { font-size: 1.25rem; color: var(--warn); flex: none; line-height: 1.2; }
+  .alert h3 { font-size: var(--fs-h3); }
+  .alert p { font-size: var(--fs-body); color: var(--fg-secondary); line-height: 1.75; margin-top: .25rem; }
+  .sku-chips { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); }
+  .sku-chip {
+    display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+    min-height: 44px; padding: .5rem .75rem;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); font-size: var(--fs-body);
+    transition: background-color var(--t-2) var(--ease-state);
+  }
+  .sku-chip:hover { background: var(--surface-subtle); }
+  .sku-chip .nm { font-weight: 600; }
+  .sku-chip .qty { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--accent); }
+
+  /* ---- 建议面板 ---- */
+  .adv-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); }
+  .adv-list { display: flex; flex-direction: column; gap: .5rem; }
+  .adv-list li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: .625rem; font-size: var(--fs-body); align-items: start; }
+  .adv-list .no { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); padding-top: .25rem; }
+  .confirm-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3) var(--sp-4); flex-wrap: wrap;
+    padding-top: var(--sp-3); border-top: 1px solid var(--border);
+  }
+
+  /* ---- 业务事实表（口径） ---- */
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr)); gap: var(--sp-3) var(--sp-4); }
+  .fact { min-width: 0; border-left: 1px solid var(--border); padding-left: var(--sp-3); }
+  .fact dt {
+    font-family: var(--font-mono); font-size: var(--fs-mini); font-weight: 600;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--faint);
+  }
+  .fact dd { font-size: var(--fs-body); color: var(--fg-secondary); line-height: 1.7; margin-top: .125rem; overflow-wrap: anywhere; }
+  .fact dd.mono { font-family: var(--font-mono); }
+
+  /* ---- 表格 ---- */
+  .tbl { font-size: var(--fs-body); }
+  .tbl td { vertical-align: middle; }
+  .tbl-cover {
+    width: 44px; height: 44px; flex: none;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface-sunken);
+    display: grid; place-items: center; color: var(--faint);
+    font-family: var(--font-mono); font-size: 10px;
+  }
+  .cell-goods { display: flex; align-items: center; gap: var(--sp-3); min-width: 0; }
+  .cell-goods > span > b {
+    display: block; min-width: 0;
+    font-family: var(--font-body); font-size: var(--fs-body);
+    font-weight: 600; color: var(--fg); line-height: 1.45;
+  }
+  .cell-goods > span > span,
+  .cell-goods > span > .cg-sub {
+    display: block; min-width: 0;
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint);
+    overflow-wrap: anywhere;
+  }
+  .cell-price { font-family: var(--font-mono); font-weight: 700; white-space: nowrap; }
+  .cell-actions { display: flex; gap: .375rem; flex-wrap: wrap; }
+  .cell-link { display: inline-flex; align-items: center; min-height: 44px; color: var(--fg-secondary); }
+  .cell-link:hover { color: var(--accent); }
+  .ta-r { text-align: right; }
+  .txt-ok { color: var(--success); }
+  .txt-warn { color: var(--warn); }
+  .txt-accent { color: var(--accent); }
+  .txt-faint { color: var(--faint); }
+  .b700 { font-weight: 700; }
+  .delta-pos { font-family: var(--font-mono); font-weight: 700; color: var(--success); }
+  .delta-neg { font-family: var(--font-mono); font-weight: 700; color: var(--accent); }
+  .delta-zero { font-family: var(--font-mono); font-weight: 700; color: var(--muted); }
+  .tbl-note {
+    display: flex; align-items: flex-start; gap: .5rem; flex-wrap: wrap;
+    padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--border);
+    background: var(--surface-subtle);
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted);
+    line-height: 1.7;
+  }
+  .tbl-scroll { min-width: 780px; }
+  .tbl-scroll-sm { min-width: 640px; }
+
+  /* ---- 空态（引导性） ---- */
+  .empty-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-4); }
+  .empty { text-align: left; }
+  .empty h4 { margin-top: var(--sp-3); }
+  .empty p { margin: 0; max-width: none; font-size: var(--fs-body); }
+  .empty-actions { display: flex; gap: var(--sp-3); flex-wrap: wrap; margin-top: var(--sp-4); }
+  .empty-next {
+    margin-top: var(--sp-4); padding-top: var(--sp-4); border-top: 1px solid var(--border);
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted);
+    display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+  }
+
+  /* ---- 源码映射说明（设计稿专用） ---- */
+  .src-map {
+    margin-top: var(--sp-3); padding: var(--sp-3);
+    border: 1px solid var(--border); border-left: 2px solid var(--border-strong);
+    border-radius: var(--radius); background: var(--surface-sunken);
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted);
+    line-height: 1.75; overflow-wrap: anywhere;
+  }
+
+  /* ---- 响应式 ---- */
+  @media (max-width: 1199px) {
+    .steps-5 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .empty-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 1023px) {
+    .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .store-hd { grid-template-columns: minmax(0, 1fr); }
+    .store-actions { justify-content: flex-start; }
+    .steps-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .adv-grid { grid-template-columns: minmax(0, 1fr); }
+    .sec-hd .right { align-items: flex-start; }
+    .sec-hd .right .cap { text-align: left; }
+  }
+  @media (max-width: 767px) {
+    .kpi-grid { grid-template-columns: minmax(0, 1fr); }
+    .steps-5, .steps-4 { grid-template-columns: minmax(0, 1fr); }
+    .sku-chips { grid-template-columns: minmax(0, 1fr); }
+    .empty-grid { grid-template-columns: minmax(0, 1fr); }
+    .alert { grid-template-columns: minmax(0, 1fr); }
+    .tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab { flex: 0 0 auto; }
+    .store-id { flex-direction: column; }
+    .cell-actions .btn { width: 100%; }
+    /* 窄屏：头部一行放不下时允许换行，徽标不再 nowrap，避免被 overflow-x 裁掉 */
+    .panel-head, .row-between, .confirm-bar { flex-wrap: wrap; }
+    .panel-head .badge, .sec-hd .badge, .kpi-foot .badge { white-space: normal; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============================ 应用顶栏 ============================ -->
+  <header class="app-top">
+    <a class="brand" href="workspace.html">
+      <svg class="mark ic-lg" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <rect x="12" y="12" width="8" height="8" rx="2"/>
+        <rect x="4" y="4" width="4" height="4" rx="1"/>
+        <rect x="24" y="4" width="4" height="4" rx="1"/>
+        <rect x="4" y="24" width="4" height="4" rx="1"/>
+        <rect x="24" y="24" width="4" height="4" rx="1"/>
+      </svg>
+      <span>运营智能体</span>
+      <span class="sub">STORES / :id</span>
+    </a>
+    <nav aria-label="页面导航">
+      <a href="workspace.html">工作台</a>
+      <a href="imports.html">导入中心</a>
+      <a href="#top" aria-current="page">店铺详情</a>
+      <a href="generation-job.html">生成任务</a>
+    </nav>
+    <div class="row">
+      <span class="badge badge-online"><span class="status-led" aria-hidden="true"></span>:80 ONLINE</span>
+      <button type="button" class="btn" id="themeBtn" aria-label="切换明暗主题">
+        <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-chev"></use></svg>
+        <span id="themeBtnText" class="mono">DARK</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ======================== 设计稿声明带 ======================== -->
+  <div class="ribbon">
+    <span class="eyebrow">DESIGN PROPOSAL · 静态设计稿 · 非线上系统</span>
+    <span class="mono-note">本稿修复 6 项：区块层级 / 口径与时间范围 / 平台账号 / 建议闭环 / 表格可读性 / 空态引导</span>
+  </div>
+
+  <main class="app-body">
+    <div class="pane">
+      <div class="wrap stack" id="top">
+
+        <!-- ==================== 页头：店铺身份 + 平台账号 ==================== -->
+        <section class="panel" aria-labelledby="h-store">
+          <div class="panel-body store-hd">
+            <div class="store-id">
+              <span class="store-mark" aria-hidden="true"><svg class="ic ic-lg" aria-hidden="true" focusable="false"><use href="#i-server"></use></svg></span>
+              <div class="stack-2">
+                <div class="id-line">
+                  <span class="badge">抖音</span>
+                  <span class="badge badge-online"><span class="status-led" aria-hidden="true"></span>启用</span>
+                  <span class="badge mono">STORE 1287</span>
+                  <span class="badge mono">DY-8842013</span>
+                </div>
+                <h1 class="t-h1" id="h-store">轻氧生活旗舰店</h1>
+                <p class="cap">
+                  负责人 林澈 · 建档 2026-03-11 · 最近同步 2026-10-14 09:20（抖音电商日报）
+                </p>
+              </div>
+            </div>
+            <div class="store-actions">
+              <a class="btn btn-primary" href="#accounts">
+                <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-repo"></use></svg>
+                平台账号与授权
+              </a>
+              <a class="btn" href="workspace.html">
+                <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg>
+                回工作台筛选本店
+              </a>
+            </div>
+          </div>
+          <div class="src-map">
+            源码字段映射：store.name / store.platform（platformLabels 8 值）· store.status（active→启用，paused→暂停，closed→关闭）· store.owner_name（空值文案「未设置负责人」）· store.external_store_id · created_at / updated_at。原版页头只有平台 + 店铺名 + 负责人 + 状态徽标，未使用 store.note、store.external_store_id、store.platform_accounts。
+          </div>
+        </section>
+
+        <!-- ==================== 平台账号（源码未渲染，数据模型已存在） ==================== -->
+        <section aria-labelledby="h-accounts" id="accounts">
+          <div class="sec-hd">
+            <div class="stack-2">
+              <span class="eyebrow">PLATFORM ACCOUNTS</span>
+              <h2 class="t-h2" id="h-accounts">平台账号与授权</h2>
+            </div>
+            <div class="right">
+              <span class="mono-note">4 个账号 · 1 个已过期 · 1 个已停用</span>
+              <p class="cap">授权状态直接决定这个店铺能拉到哪些数据：过期账号不会报错，只会静默停止同步。</p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="tbl-wrap">
+              <table class="tbl tbl-scroll">
+                <caption style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">本店平台账号与授权状态，共 4 条</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">账号</th>
+                    <th scope="col">平台</th>
+                    <th scope="col">外部账号 ID</th>
+                    <th scope="col">状态</th>
+                    <th scope="col">权限范围</th>
+                    <th scope="col">最近校验</th>
+                    <th scope="col">动作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <div class="cell-goods">
+                        <span>
+                          <b>轻氧生活 · 官方小店</b>
+                          <span>主账号 · 商品与订单读写</span>
+                        </span>
+                      </div>
+                    </td>
+                    <td>抖音</td>
+                    <td class="mono">dy-official-01</td>
+                    <td><span class="badge badge-online">已授权启用</span></td>
+                    <td>商品 · 订单 · 库存 · 退款（只读）</td>
+                    <td class="mono">10-14 06:00</td>
+                    <td><div class="cell-actions"><a class="btn" href="#accounts">查看权限</a></div></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="cell-goods">
+                        <span style="display:block">
+                          <b>轻氧生活 · 直播间</b>
+                          <span>子账号 · 仅直播数据</span>
+                        </span>
+                      </div>
+                    </td>
+                    <td>抖音</td>
+                    <td class="mono">dy-live-02</td>
+                    <td><span class="badge badge-online">已授权启用</span></td>
+                    <td>直播场次 · 在线人数</td>
+                    <td class="mono">10-14 06:00</td>
+                    <td><div class="cell-actions"><a class="btn" href="#accounts">查看权限</a></div></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="cell-goods">
+                        <span style="display:block">
+                          <b>轻氧生活旗舰店</b>
+                          <span>主账号 · 授权 2026-09-30 到期</span>
+                        </span>
+                      </div>
+                    </td>
+                    <td>天猫</td>
+                    <td class="mono">tm-7782103</td>
+                    <td><span class="badge badge-warn">已过期</span></td>
+                    <td>商品 · 订单（已冻结）</td>
+                    <td class="mono">09-30 23:59</td>
+                    <td><div class="cell-actions"><a class="btn btn-primary" href="#accounts">重新授权</a></div></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="cell-goods">
+                        <span style="display:block">
+                          <b>轻氧生活拼购店</b>
+                          <span>主账号 · 2026-06-11 人工停用</span>
+                        </span>
+                      </div>
+                    </td>
+                    <td>拼多多</td>
+                    <td class="mono">pdd-3391</td>
+                    <td><span class="badge">已停用</span></td>
+                    <td>无（停用后不拉取）</td>
+                    <td class="mono">06-11 15:22</td>
+                    <td><div class="cell-actions"><a class="btn" href="#accounts">启用账号</a></div></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="panel-body stack-3">
+              <dl class="facts">
+                <div class="fact">
+                  <dt>平台维度全集</dt>
+                  <dd>抖音 / 淘宝 / 天猫 / 拼多多 / 京东 / TikTok / Amazon / 其他（8 值枚举）</dd>
+                </div>
+                <div class="fact">
+                  <dt>本店已接入</dt>
+                  <dd>抖音（启用）· 天猫（过期）· 拼多多（停用）· 其余 5 个平台未接入</dd>
+                </div>
+                <div class="fact">
+                  <dt>账号状态枚举</dt>
+                  <dd>active → 已授权启用；expired → 已过期；disabled → 已停用</dd>
+                </div>
+                <div class="fact">
+                  <dt>店铺备注</dt>
+                  <dd>store.note：天猫店暂由运营组手工登记，授权恢复后再打开自动同步。</dd>
+                </div>
+              </dl>
+            </div>
+            <div class="tbl-note">
+              <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-warn"></use></svg>
+              <span>线上原版详情页没有这个区块：store.platform_accounts 已在数据模型里，但页面只渲染了店铺自身状态。授权过期是「数据静默断流」的根因，必须升级为一等公民。</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== KPI：经营概览（带口径） ==================== -->
+        <section aria-labelledby="h-kpi">
+          <div class="sec-hd">
+            <div class="stack-2">
+              <span class="eyebrow">KEY FIGURES · 口径优先</span>
+              <h2 class="t-h2" id="h-kpi">经营概览</h2>
+            </div>
+            <div class="right">
+              <span class="mono-note">读表时间 2026-10-14 09:20:14 · 实时读取，无缓存</span>
+              <p class="cap">每个数字都带时间范围、来源与样本量。没有口径的数字不显示，覆盖不到的地方写「未覆盖」而不是 0。</p>
+            </div>
+          </div>
+
+          <div class="tabs" role="tablist" aria-label="统计时间范围">
+            <button type="button" class="tab" role="tab" aria-selected="false">近 7 天</button>
+            <button type="button" class="tab" role="tab" aria-selected="true">近 30 天</button>
+            <button type="button" class="tab" role="tab" aria-selected="false">本季度</button>
+            <button type="button" class="tab" role="tab" aria-selected="false">自定义范围</button>
+          </div>
+
+          <!-- 结构指标：与工作台首页同一 KPI 表达 -->
+          <div class="kpi-grid">
+            <article class="kpi">
+              <span class="kpi-lbl"><svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-doc"></use></svg>店铺商品</span>
+              <span class="kpi-val">128</span>
+              <p class="kpi-desc">口径：<b>store_id = 1287 的全部商品</b>，含未上架 12 个、待补映射 7 个；不含已删除历史商品。</p>
+              <div class="kpi-foot"><span class="badge">实时</span><span class="t-mini mono">09:20:14</span></div>
+            </article>
+
+            <article class="kpi">
+              <span class="kpi-lbl"><svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-check"></use></svg>在营商品</span>
+              <span class="kpi-val">116</span>
+              <p class="kpi-desc">口径：<b>platform_status ≠ offline</b> 的商品数。当前为空的是下架状态，未同步商品计入在营。</p>
+              <div class="kpi-foot"><span class="badge">实时</span><span class="t-mini mono">09:20:14</span></div>
+            </article>
+
+            <article class="kpi is-lead">
+              <span class="kpi-lbl"><svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-repo"></use></svg>待补平台映射</span>
+              <span class="kpi-val">7</span>
+              <p class="kpi-desc">口径：<b>external_product_id 为空</b> 的商品数。这批商品拉不到平台侧数据，是经营口径缺口的来源。</p>
+              <div class="kpi-foot"><span class="badge badge-accent">需处理</span><span class="t-mini mono">下一步 · 导入中心</span></div>
+            </article>
+
+            <article class="kpi">
+              <span class="kpi-lbl"><svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-db"></use></svg>可用库存</span>
+              <span class="kpi-val">3,842</span>
+              <p class="kpi-desc">口径：<b>Σ 可用量 = 现货 − 锁定</b>，覆盖 142 个 SKU；本店 3 个 SKU 低于预警线。</p>
+              <div class="kpi-foot"><span class="badge badge-warn">3 个低库存</span><span class="t-mini mono">09:20:14</span></div>
+            </article>
+          </div>
+
+          <!-- 经营指标：数值 + 时间范围 + 来源 + 样本 -->
+          <div class="kpi-grid second">
+            <article class="kpi is-lead">
+              <span class="kpi-lbl"><svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-db"></use></svg>成交额 GMV</span>
+              <span class="kpi-val">¥486,200</span>
+              <p class="kpi-desc">
+                时间范围 <b>2026-09-15 ~ 2026-10-14</b>（近 30 天，含端点）· 来源：抖音电商日报导入批次 IMP-20261014-0600 ·
+                样本 <b>96 / 128 商品</b>。
+              </p>
+              <div class="kpi-foot">
+                <span class="badge badge-warn">覆盖 75%</span>
+                <span class="t-mini mono">未覆盖商品不计入 → 该值偏低</span>
+              </div>
+            </article>
+
+            <article class="kpi">
+              <span class="kpi-lbl"><svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-terminal"></use></svg>广告消耗</span>
+              <span class="kpi-val">¥142,580</span>
+              <p class="kpi-desc">
+                时间范围 <b>2026-09-15 ~ 2026-10-14</b> · 来源：投放平台对账单（30 条 PerformanceRecord 聚合）·
+                与 GMV 同范围同来源口径，可直接相除。
+              </p>
+              <div class="kpi-foot"><span class="badge badge-online">口径对齐</span><span class="t-mini mono">09-15 ~ 10-14</span></div>
+            </article>
+
+            <article class="kpi">
+              <span class="kpi-lbl"><svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-search"></use></svg>投产比 ROI</span>
+              <span class="kpi-val">3.41</span>
+              <p class="kpi-desc">
+                口径：<b>同范围 GMV ÷ 广告消耗</b>（486,200 ÷ 142,580）· 环比基期 <b>2026-08-16 ~ 2026-09-14</b>（前一周期）为 3.62。
+              </p>
+              <div class="kpi-foot">
+                <span class="badge badge-warn">环比 −0.21</span>
+                <span class="t-mini mono">基期：前一 30 天</span>
+              </div>
+            </article>
+
+            <article class="kpi is-idle">
+              <span class="kpi-lbl"><svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-warn"></use></svg>退款率</span>
+              <span class="kpi-val is-idle">未覆盖</span>
+              <p class="kpi-desc">
+                口径：<b>本店近 30 天退款记录 ÷ 订单数</b>。退款记录能力当前未开通（能力矩阵：部分支持），
+                因此不显示 0 —— 0 与「没有数据」是两件事。
+              </p>
+              <div class="kpi-foot">
+                <span class="badge">能力未开通</span>
+                <span class="t-mini mono">去导入中心开通</span>
+              </div>
+            </article>
+          </div>
+
+          <div class="src-map">
+            源码字段映射：原版四个 MetricCard = 店铺商品（products.filter(store_id).length）· 在营商品（platform_status ≠ offline）· 待补平台映射（!external_product_id）· 可用库存（inventorySummary.total_available_quantity）。经营类指标来自 PerformanceRecord（period_start / period_end / spend / revenue / roi / impressions / clicks）按本店商品聚合，原版详情页完全未展示。
+          </div>
+        </section>
+
+        <!-- ==================== 店铺运营流程 ==================== -->
+        <section aria-labelledby="h-flow">
+          <div class="sec-hd">
+            <div class="stack-2">
+              <span class="eyebrow">STORE WORKFLOW · 5 STEPS</span>
+              <h2 class="t-h2" id="h-flow">店铺运营流程</h2>
+            </div>
+            <div class="right">
+              <span class="mono-note">已完成 3 / 5 · 下一步：数据映射</span>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-body stack-4">
+              <div class="row-between">
+                <p class="cap-2">
+                  流程按「能不能产生有效数据」排序，不按菜单顺序。<b>数据映射</b> 卡住时，后面所有经营口径都会偏低 —— 所以它必须出现在这里，而不是藏在导入页里。
+                </p>
+                <a class="btn btn-primary" href="imports.html">
+                  继续处理：补平台映射
+                  <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg>
+                </a>
+              </div>
+
+              <ol class="steps steps-5">
+                <li class="step is-done">
+                  <div class="step-hd">
+                    <h3>1 建店</h3>
+                    <span class="tick is-live">已完成</span>
+                  </div>
+                  <p>店铺档案已创建，平台与主体信息齐全。</p>
+                </li>
+                <li class="step is-done">
+                  <div class="step-hd">
+                    <h3>2 商品</h3>
+                    <span class="tick is-live">已完成</span>
+                  </div>
+                  <p>128 个商品已归属本店，可直接进入单品运营闭环。</p>
+                </li>
+                <li class="step is-done">
+                  <div class="step-hd">
+                    <h3>3 SKU / 库存</h3>
+                    <span class="tick is-live">已完成</span>
+                  </div>
+                  <p>142 个 SKU 有库存记录，现货与锁定量可查。</p>
+                </li>
+                <li class="step is-open">
+                  <div class="step-hd">
+                    <h3>4 数据映射</h3>
+                    <span class="tick is-next">下一步</span>
+                  </div>
+                  <p>7 个商品待补平台映射，补完才能拉平台侧经营数据。</p>
+                </li>
+                <li class="step is-open">
+                  <div class="step-hd">
+                    <h3>5 异常处理</h3>
+                    <span class="tick is-next">待处理</span>
+                  </div>
+                  <p>3 个 SKU 低库存，需人工确认补货或调整投放。</p>
+                </li>
+              </ol>
+            </div>
+            <div class="src-map">
+              源码字段映射：buildStoreWorkflowSteps()（store / products / inventory / mapping / risk 五步，done 由真实数据推导）· nextStep = 第一个未完成步骤 · 原版提示文案「下一步：xxx」与「继续处理」按钮。本稿把 done 态从纯文字升级为 3px 左色条 + tick 票，并补上每步的量化 hint。
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== 库存异常提示 ==================== -->
+        <section aria-labelledby="h-alert">
+          <div class="sec-hd">
+            <div class="stack-2">
+              <span class="eyebrow">STOCK ALERT · 唯一需要立即决策的区块</span>
+              <h2 class="t-h2" id="h-alert">库存异常提示</h2>
+            </div>
+            <div class="right">
+              <span class="mono-note">判据：available_quantity ≤ warning_threshold · 读取 09:20:14</span>
+            </div>
+          </div>
+
+          <div class="alert" role="status">
+            <div class="alert-hd">
+              <span class="alert-ic" aria-hidden="true"><svg class="ic ic-lg" aria-hidden="true" focusable="false"><use href="#i-warn"></use></svg></span>
+              <div>
+                <h3>3 个 SKU 可用库存已低于或等于预警线</h3>
+                <p>
+                  建议优先补货或下调投放节奏。判定口径：可用量 = 现货 − 锁定；预警线按 SKU 单独配置，本店取值 8 / 12 / 20。
+                </p>
+              </div>
+            </div>
+            <a class="btn btn-primary" href="#inventory">
+              只看低库存
+              <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg>
+            </a>
+            <div class="sku-chips">
+              <a class="sku-chip" href="generation-job.html">
+                <span class="nm">三合一冲锋衣（男款）</span>
+                <span class="mono">A2 藏青-L</span>
+                <span class="qty">可用 6 · 预警 8</span>
+              </a>
+              <a class="sku-chip" href="generation-job.html">
+                <span class="nm">重磅纯棉基础 T</span>
+                <span class="mono">T-270-WHT-M</span>
+                <span class="qty">可用 11 · 预警 12</span>
+              </a>
+              <a class="sku-chip" href="generation-job.html">
+                <span class="nm">16 oz 帆布托特包</span>
+                <span class="mono">BAG-CANVAS-16</span>
+                <span class="qty">可用 18 · 预警 20</span>
+              </a>
+              <a class="sku-chip" href="#inventory">
+                <span class="nm">只看这 3 个 SKU</span>
+                <span class="mono">筛选视图 inventory=low</span>
+                <span class="qty">下方已全量列出</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="src-map">
+            源码字段映射：lowStockRows = inventorySummary.rows.filter(is_low_stock)；原版仅取 slice(0,4) 平铺为链接，且不显示预警线数值。本稿补齐「可用 vs 预警线」两个数，让读者自己判断缺口大小；超过 4 个时给「还有 N 个」入口而不是静默截断。
+          </div>
+        </section>
+
+        <!-- ==================== 库存处理流程 ==================== -->
+        <section aria-labelledby="h-istock">
+          <div class="sec-hd">
+            <div class="stack-2">
+              <span class="eyebrow">INVENTORY WORKFLOW · 4 STEPS</span>
+              <h2 class="t-h2" id="h-istock">库存处理流程</h2>
+            </div>
+            <div class="right">
+              <span class="mono-note">已完成 1 / 4 · 卡在「分析销量」</span>
+              <p class="cap">这一步需要经营数据；数据没导进来之前，补货优先级只能靠猜。</p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-body steps steps-4">
+              <a class="step is-done" href="#inventory">
+                <div class="step-hd">
+                  <h3>1 发现低库存</h3>
+                  <span class="tick is-live">已完成</span>
+                </div>
+                <p>3 个 SKU 低于预警线，已进入待处理清单。</p>
+              </a>
+              <a class="step is-open" href="imports.html">
+                <div class="step-hd">
+                  <h3>2 分析销量</h3>
+                  <span class="tick is-next">待办</span>
+                </div>
+                <p>导入经营数据后判断补货优先级；当前覆盖 96/128 商品。</p>
+              </a>
+              <a class="step is-open" href="#advice">
+                <div class="step-hd">
+                  <h3>3 生成建议</h3>
+                  <span class="tick is-next">待办</span>
+                </div>
+                <p>使用库存异常 AI / 规则建议，产出补货与投放两套动作。</p>
+              </a>
+              <a class="step is-idle" href="#advice">
+                <div class="step-hd">
+                  <h3>4 人工确认</h3>
+                  <span class="tick">未发起</span>
+                </div>
+                <p>补货、调拨和投放节奏由人工确认，系统不自动下单。</p>
+              </a>
+            </div>
+            <div class="src-map">
+              源码字段映射：InventoryWorkflowPanel（4 步，done 由 hasInventory / hasLowStock 推导）· 原版「分析销量」「生成建议」两步的 done 恒为 false 且仅以灰点表示，本稿改用 3px 左色条区分「已完成 / 待办 / 未发起」三种状态。
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== 库存建议（AI / 规则） ==================== -->
+        <section aria-labelledby="h-advice" id="advice">
+          <div class="sec-hd">
+            <div class="stack-2">
+              <span class="eyebrow">INVENTORY ADVICE · 人工确认制</span>
+              <h2 class="t-h2" id="h-advice">库存建议</h2>
+            </div>
+            <div class="right">
+              <span class="mono-note">来源 rule-engine v2 · 生成于 2026-10-14 09:24 · 依据：近 30 天销量 + 当前可用量</span>
+              <p class="cap">建议只给动作，不给结论。执行与否由有编辑权限的账号确认。</p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>低库存 SKU 处置建议 · 3 个 SKU</h3>
+              <div class="row">
+                <span class="badge">来源 rule-engine v2</span>
+                <span class="badge badge-info">未确认</span>
+              </div>
+            </div>
+            <div class="panel-body stack-5">
+              <p class="cap-2">
+                摘要：3 个 SKU 中，<b>三合一冲锋衣（A2 藏青-L）</b> 的可用量已低于预警线且近 30 天日均销量 4.2 件，
+                按现有库存只够支撑约 1.4 天，属于断货风险最高的一项；其余两项可用量接近预警线，可先降投放再补货。
+              </p>
+
+              <div class="adv-grid">
+                <div class="stack-3">
+                  <span class="eyebrow">RISKS · 风险</span>
+                  <ul class="adv-list">
+                    <li><span class="no">01</span><span>A2 藏青-L 断货，预计 1.4 天内售罄（口径：可用 6 ÷ 近 30 天日均 4.2）。</span></li>
+                    <li><span class="no">02</span><span>T-270-WHT-M 剩 11 件，按日均 3.1 件约 3.5 天，仍在促销档期内。</span></li>
+                    <li><span class="no">03</span><span>7 个商品待补平台映射，这部分销量未进入日均口径，风险可能被低估。</span></li>
+                  </ul>
+                </div>
+                <div class="stack-3">
+                  <span class="eyebrow">REPLENISHMENT · 补货动作</span>
+                  <ul class="adv-list">
+                    <li><span class="no">01</span><span>A2 藏青-L 优先补 200 件，交期按历史 7 天估算。</span></li>
+                    <li><span class="no">02</span><span>T-270-WHT-M 补 120 件，与下一批白色面料合并下单。</span></li>
+                    <li><span class="no">03</span><span>BAG-CANVAS-16 观察 3 天再决定，避免旺季前压库存。</span></li>
+                  </ul>
+                </div>
+                <div class="stack-3">
+                  <span class="eyebrow">OPERATION · 运营动作</span>
+                  <ul class="adv-list">
+                    <li><span class="no">01</span><span>把 A2 藏青-L 从主推位换下，主图素材改用其他色号。</span></li>
+                    <li><span class="no">02</span><span>详情页标注「藏青-L 补货中」，减少下单后退款。</span></li>
+                  </ul>
+                </div>
+                <div class="stack-3">
+                  <span class="eyebrow">AD CONTROLS · 投放控制</span>
+                  <ul class="adv-list">
+                    <li><span class="no">01</span><span>A2 藏青-L 出价下调 20%，日预算从 ¥800 降到 ¥400。</span></li>
+                    <li><span class="no">02</span><span>暂停 T-270-WHT-M 的短视频引流计划，避免低库存承接大流量。</span></li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="confirm-bar">
+                <p class="cap" style="margin:0">
+                  确认后本批建议写入操作记录；系统不自动改价、不自动下单、不自动调预算。
+                </p>
+                <div class="row">
+                  <button type="button" class="btn btn-primary">
+                    <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-check"></use></svg>
+                    确认采纳
+                  </button>
+                  <button type="button" class="btn">修改后采纳</button>
+                  <button type="button" class="btn btn-ghost">忽略本批建议</button>
+                </div>
+              </div>
+              <p class="mono-faint">
+                当前账号权限 can_edit = true，可确认；只读账号看不到确认按钮而不是看到禁用按钮。
+              </p>
+            </div>
+            <div class="src-map">
+              源码字段映射：StoreInventoryAdvice = source / summary / risks[] / replenishment_actions[] / operation_actions[] / ad_controls[] / raw_output · InventoryAdvicePanel(storeId, canEdit)。原版把这四组动作塞在组件内部且无口径行；本稿显式列出「依据 + 时间范围 + 生成时间」。
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== 店铺商品 ==================== -->
+        <section aria-labelledby="h-products">
+          <div class="sec-hd">
+            <div class="stack-2">
+              <span class="eyebrow">STORE PRODUCTS</span>
+              <h2 class="t-h2" id="h-products">店铺商品</h2>
+            </div>
+            <div class="right">
+              <span class="mono-note">128 个商品 · 显示前 6 个</span>
+              <p class="cap">从店铺维度进入单品运营闭环：每个商品都能继续做主图生成、诊断和投放实验。</p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="tbl-wrap">
+              <table class="tbl tbl-scroll">
+                <caption style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">本店商品列表，显示前 6 条，共 128 条</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">商品</th>
+                    <th scope="col">平台状态</th>
+                    <th scope="col" class="ta-r">售价</th>
+                    <th scope="col" class="ta-r">可售库存</th>
+                    <th scope="col">卖点</th>
+                    <th scope="col">动作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <div class="cell-goods">
+                        <span class="tbl-cover" aria-hidden="true">IMG</span>
+                        <span><b>三合一冲锋衣（男款）</b><span>类目 男装外套 · 映射 3291847261</span></span>
+                      </div>
+                    </td>
+                    <td>在售</td>
+                    <td class="cell-price ta-r">¥1,299</td>
+                    <td class="mono ta-r txt-warn">6</td>
+                    <td><span class="tag-row"><span class="tag">防风防水</span><span class="tag">可拆内胆</span><span class="tag">三合一</span></span></td>
+                    <td><div class="cell-actions">
+                      <a class="btn" href="generation-job.html">进入</a>
+                      <a class="btn" href="generation-job.html">生成素材</a>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="cell-goods">
+                        <span class="tbl-cover" aria-hidden="true">IMG</span>
+                        <span><b>重磅纯棉基础 T</b><span>类目 男装基础 · 映射 3291847262</span></span>
+                      </div>
+                    </td>
+                    <td>在售</td>
+                    <td class="cell-price ta-r">¥129</td>
+                    <td class="mono ta-r txt-warn">11</td>
+                    <td><span class="tag-row"><span class="tag">270g 重磅</span><span class="tag">不塌领</span></span></td>
+                    <td><div class="cell-actions">
+                      <a class="btn" href="generation-job.html">进入</a>
+                      <a class="btn" href="generation-job.html">生成素材</a>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="cell-goods">
+                        <span class="tbl-cover" aria-hidden="true">IMG</span>
+                        <span><b>16 oz 帆布托特包</b><span>类目 箱包 · 映射 3291847288</span></span>
+                      </div>
+                    </td>
+                    <td>在售</td>
+                    <td class="cell-price ta-r">¥89</td>
+                    <td class="mono ta-r txt-warn">18</td>
+                    <td><span class="tag-row"><span class="tag">加厚耐撕</span><span class="tag">16 寸笔电</span></span></td>
+                    <td><div class="cell-actions">
+                      <a class="btn" href="generation-job.html">进入</a>
+                      <a class="btn" href="generation-job.html">生成素材</a>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="cell-goods">
+                        <span class="tbl-cover" aria-hidden="true">IMG</span>
+                        <span><b>城市骑行背包 22L</b><span>类目 户外背包 · 映射 3291847301</span></span>
+                      </div>
+                    </td>
+                    <td>在售</td>
+                    <td class="cell-price ta-r">¥349</td>
+                    <td class="mono ta-r">264</td>
+                    <td><span class="tag-row"><span class="tag">防泼水</span><span class="tag">夜间反光条</span></span></td>
+                    <td><div class="cell-actions">
+                      <a class="btn" href="generation-job.html">进入</a>
+                      <a class="btn" href="generation-job.html">生成素材</a>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="cell-goods">
+                        <span class="tbl-cover" aria-hidden="true">IMG</span>
+                        <span><b>保暖内衣套装</b><span>类目 男装内衣 · 映射 3291847315</span></span>
+                      </div>
+                    </td>
+                    <td>在售</td>
+                    <td class="cell-price ta-r">¥199</td>
+                    <td class="mono ta-r">412</td>
+                    <td><span class="tag-row"><span class="tag">恒温暖</span><span class="tag">不起球</span></span></td>
+                    <td><div class="cell-actions">
+                      <a class="btn" href="generation-job.html">进入</a>
+                      <a class="btn" href="generation-job.html">生成素材</a>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="cell-goods">
+                        <span class="tbl-cover" aria-hidden="true">IMG</span>
+                        <span><b>折叠露营椅</b><span>类目 户外家具 · 待补平台映射</span></span>
+                      </div>
+                    </td>
+                    <td><span class="badge badge-warn">未同步</span></td>
+                    <td class="cell-price ta-r">¥259</td>
+                    <td class="mono ta-r txt-faint">—</td>
+                    <td><span class="tag-row"><span class="tag">铝合金</span><span class="tag">承重 150kg</span></span></td>
+                    <td><div class="cell-actions">
+                      <a class="btn" href="generation-job.html">进入</a>
+                      <a class="btn" href="imports.html">补映射</a>
+                    </div></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="tbl-note">
+              <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-warn"></use></svg>
+              <span>可售库存列 = StoreInventoryRow.available_quantity（现货 − 锁定），取该商品所有 SKU 之和；显示为 — 表示该商品还没有 SKU 记录，而不是 0。平台状态列取 product.platform_status，空值显示「未同步」。</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== 库存概览 ==================== -->
+        <section aria-labelledby="h-inv" id="inventory">
+          <div class="sec-hd">
+            <div class="stack-2">
+              <span class="eyebrow">INVENTORY OVERVIEW · SKU 维度</span>
+              <h2 class="t-h2" id="h-inv">库存概览</h2>
+            </div>
+            <div class="right">
+              <span class="mono-note">142 个 SKU · 现货 3,978 · 锁定 136 · 可用 3,842 · 读取 09:20:14</span>
+              <p class="cap">按 SKU 汇总库存、锁定量、可用量和低库存风险。锁定量的口径是「已下单未出库」。</p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>本店 SKU</h3>
+              <div class="row">
+                <span class="badge badge-warn">低库存 3</span>
+                <span class="badge">全部 142</span>
+              </div>
+            </div>
+            <div class="panel-body stack-3">
+              <div class="tabs" role="tablist" aria-label="库存筛选">
+                <button type="button" class="tab" role="tab" aria-selected="true">全部库存 <span class="n">142</span></button>
+                <button type="button" class="tab" role="tab" aria-selected="false">低库存 <span class="n">3</span></button>
+                <button type="button" class="tab" role="tab" aria-selected="false">零可用 <span class="n">1</span></button>
+              </div>
+            </div>
+            <div class="tbl-wrap">
+              <table class="tbl tbl-scroll-sm">
+                <caption style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">本店 SKU 库存汇总，显示前 6 条，共 142 条</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">SKU</th>
+                    <th scope="col">商品</th>
+                    <th scope="col" class="ta-r">现货</th>
+                    <th scope="col" class="ta-r">锁定</th>
+                    <th scope="col" class="ta-r">可用</th>
+                    <th scope="col">状态</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><div class="cell-goods"><span><b>A2 藏青-L</b><span>SKU 10231 · 杭州仓</span></span></div></td>
+                    <td><a class="cell-link" href="generation-job.html">三合一冲锋衣（男款）</a></td>
+                    <td class="mono ta-r">8</td>
+                    <td class="mono ta-r">2</td>
+                    <td class="mono ta-r b700">6</td>
+                    <td><span class="badge badge-warn">低库存 ≤ 8</span></td>
+                  </tr>
+                  <tr>
+                    <td><div class="cell-goods"><span><b>T-270-WHT-M</b><span>SKU 10244 · 杭州仓</span></span></div></td>
+                    <td><a class="cell-link" href="generation-job.html">重磅纯棉基础 T</a></td>
+                    <td class="mono ta-r">14</td>
+                    <td class="mono ta-r">3</td>
+                    <td class="mono ta-r b700">11</td>
+                    <td><span class="badge badge-warn">低库存 ≤ 12</span></td>
+                  </tr>
+                  <tr>
+                    <td><div class="cell-goods"><span><b>BAG-CANVAS-16</b><span>SKU 10289 · 广州仓</span></span></div></td>
+                    <td><a class="cell-link" href="generation-job.html">16 oz 帆布托特包</a></td>
+                    <td class="mono ta-r">22</td>
+                    <td class="mono ta-r">4</td>
+                    <td class="mono ta-r b700">18</td>
+                    <td><span class="badge badge-warn">低库存 ≤ 20</span></td>
+                  </tr>
+                  <tr>
+                    <td><div class="cell-goods"><span><b>BP-CITY-22-BLK</b><span>SKU 10301 · 广州仓</span></span></div></td>
+                    <td><a class="cell-link" href="generation-job.html">城市骑行背包 22L</a></td>
+                    <td class="mono ta-r">268</td>
+                    <td class="mono ta-r">4</td>
+                    <td class="mono ta-r b700">264</td>
+                    <td><span class="badge badge-online">正常</span></td>
+                  </tr>
+                  <tr>
+                    <td><div class="cell-goods"><span><b>THRM-SET-3PCS-L</b><span>SKU 10318 · 杭州仓</span></span></div></td>
+                    <td><a class="cell-link" href="generation-job.html">保暖内衣套装</a></td>
+                    <td class="mono ta-r">420</td>
+                    <td class="mono ta-r">8</td>
+                    <td class="mono ta-r b700">412</td>
+                    <td><span class="badge badge-online">正常</span></td>
+                  </tr>
+                  <tr>
+                    <td><div class="cell-goods"><span><b>CHAIR-CAMP-ALU</b><span>SKU 10355 · 未分配库位</span></span></div></td>
+                    <td><a class="cell-link" href="generation-job.html">折叠露营椅</a></td>
+                    <td class="mono ta-r">96</td>
+                    <td class="mono ta-r">96</td>
+                    <td class="mono ta-r b700 txt-accent">0</td>
+                    <td><span class="badge">全部锁定</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="tbl-note">
+              <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-warn"></use></svg>
+              <span>状态列同时给出判据与阈值（低库存 ≤ N），读者不用回头翻配置。零可用但现货不为 0 的行显示「全部锁定」，与「缺货」区分 —— 前者是履约队列，后者是采购问题。</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== 库存流水 ==================== -->
+        <section aria-labelledby="h-move">
+          <div class="sec-hd">
+            <div class="stack-2">
+              <span class="eyebrow">INVENTORY MOVEMENTS</span>
+              <h2 class="t-h2" id="h-move">库存流水</h2>
+            </div>
+            <div class="right">
+              <span class="mono-note">最近 6 条 / 共 214 条 · 时间范围 2026-10-09 ~ 2026-10-14</span>
+              <p class="cap">集中查看店铺最近的库存变化。每行都给变化前后值，便于直接核对账实一致。</p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="tbl-wrap">
+              <table class="tbl tbl-scroll">
+                <caption style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">本店库存流水，显示最近 6 条，共 214 条</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">类型</th>
+                    <th scope="col">商品</th>
+                    <th scope="col">SKU</th>
+                    <th scope="col" class="ta-r">现货变化</th>
+                    <th scope="col" class="ta-r">锁定变化</th>
+                    <th scope="col">原因</th>
+                    <th scope="col">时间</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="badge badge-online">入库</span></td>
+                    <td><a class="cell-link" href="generation-job.html">城市骑行背包 22L</a></td>
+                    <td class="mono">BP-CITY-22-BLK</td>
+                    <td class="ta-r"><span class="delta-pos">+120</span> <span class="mono txt-faint">148 → 268</span></td>
+                    <td class="ta-r"><span class="delta-zero">0</span></td>
+                    <td>采购入库 · 批次 PO-20261012-03</td>
+                    <td class="mono">10-14 08:12</td>
+                  </tr>
+                  <tr>
+                    <td><span class="badge badge-info">锁定</span></td>
+                    <td><a class="cell-link" href="generation-job.html">折叠露营椅</a></td>
+                    <td class="mono">CHAIR-CAMP-ALU</td>
+                    <td class="ta-r"><span class="delta-zero">0</span></td>
+                    <td class="ta-r"><span class="delta-neg">+96</span> <span class="mono txt-faint">0 → 96</span></td>
+                    <td>活动预售占用 · 单号 20261014-0042</td>
+                    <td class="mono">10-14 07:55</td>
+                  </tr>
+                  <tr>
+                    <td><span class="badge badge-online">入库</span></td>
+                    <td><a class="cell-link" href="generation-job.html">三合一冲锋衣（男款）</a></td>
+                    <td class="mono">A2 藏青-L</td>
+                    <td class="ta-r"><span class="delta-pos">+40</span> <span class="mono txt-faint">0 → 40</span></td>
+                    <td class="ta-r"><span class="delta-zero">0</span></td>
+                    <td>调拨入库 · 上海仓 → 杭州仓</td>
+                    <td class="mono">10-13 19:40</td>
+                  </tr>
+                  <tr>
+                    <td><span class="badge badge-accent">出库</span></td>
+                    <td><a class="cell-link" href="generation-job.html">重磅纯棉基础 T</a></td>
+                    <td class="mono">T-270-WHT-M</td>
+                    <td class="ta-r"><span class="delta-neg">−26</span> <span class="mono txt-faint">40 → 14</span></td>
+                    <td class="ta-r"><span class="delta-zero">0</span></td>
+                    <td>订单履约出库 · 抖音电商</td>
+                    <td class="mono">10-13 16:08</td>
+                  </tr>
+                  <tr>
+                    <td><span class="badge">盘点</span></td>
+                    <td><a class="cell-link" href="generation-job.html">保暖内衣套装</a></td>
+                    <td class="mono">THRM-SET-3PCS-L</td>
+                    <td class="ta-r"><span class="delta-neg">−4</span> <span class="mono txt-faint">424 → 420</span></td>
+                    <td class="ta-r"><span class="delta-zero">0</span></td>
+                    <td>季度盘点差异 · 责任人 王岑</td>
+                    <td class="mono">10-11 11:20</td>
+                  </tr>
+                  <tr>
+                    <td><span class="badge badge-info">释放</span></td>
+                    <td><a class="cell-link" href="generation-job.html">16 oz 帆布托特包</a></td>
+                    <td class="mono">BAG-CANVAS-16</td>
+                    <td class="ta-r"><span class="delta-zero">0</span></td>
+                    <td class="ta-r"><span class="delta-neg">−12</span> <span class="mono txt-faint">16 → 4</span></td>
+                    <td>订单取消释放占用</td>
+                    <td class="mono">10-09 14:32</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="tbl-note">
+              <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-warn"></use></svg>
+              <span>类型映射：inbound 入库 · outbound 出库 · adjustment 盘点 · lock 锁定 · release 释放。变化列保留 before → after，避免只看到 delta 时无法对账；reason 为空时回退显示创建时间（与源码 movementTypeLabel / formatSigned 一致）。</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== 空态规格 ==================== -->
+        <section aria-labelledby="h-empty">
+          <div class="sec-hd">
+            <div class="stack-2">
+              <span class="eyebrow">EMPTY STATES · 设计稿规格</span>
+              <h2 class="t-h2" id="h-empty">空态与引导</h2>
+            </div>
+            <div class="right">
+              <p class="cap">空态不是「暂无数据」，而是「为什么空 + 下一步做什么 + 做完之后这里会出现什么」。</p>
+            </div>
+          </div>
+
+          <div class="empty-grid">
+            <div class="panel">
+              <div class="panel-head"><h3 class="t-h3">店铺商品为空</h3><span class="badge">0 / 0</span></div>
+              <div class="panel-body">
+                <div class="empty">
+                  <svg class="ic ic-lg" aria-hidden="true" style="color:var(--faint)" focusable="false"><use href="#i-doc"></use></svg>
+                  <h4>这个店铺还没有绑定商品</h4>
+                  <p>商品必须归属于某个 store_id 才能进入运营闭环。没有商品，库存、素材生成和经营口径都不会产生任何数据。</p>
+                  <div class="empty-actions">
+                    <a class="btn btn-primary" href="imports.html">
+                      去导入中心导入商品
+                      <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg>
+                    </a>
+                    <a class="btn" href="workspace.html">回首页手动创建</a>
+                  </div>
+                  <p class="empty-next">
+                    <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-chev"></use></svg>
+                    创建后这里会出现：平台状态 · 售价 · 可售库存 · 卖点 · 进入单品
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-head"><h3 class="t-h3">低库存筛选为空</h3><span class="badge badge-online">健康</span></div>
+              <div class="panel-body">
+                <div class="empty">
+                  <svg class="ic ic-lg" aria-hidden="true" style="color:var(--success)" focusable="false"><use href="#i-check"></use></svg>
+                  <h4>当前没有低库存 SKU</h4>
+                  <p>判据：可用量 ≤ 预警线。全部 142 个 SKU 都在预警线以上，本区块不会再出现告警条。</p>
+                  <div class="empty-actions">
+                    <a class="btn" href="#inventory">查看全部库存</a>
+                    <a class="btn btn-ghost" href="#inventory">调整预警线</a>
+                  </div>
+                  <p class="empty-next">
+                    <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-chev"></use></svg>
+                    建议顺手做一次：把常销 SKU 的预警线按 7 天日均销量重设
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-head"><h3 class="t-h3">库存流水为空</h3><span class="badge">0 条</span></div>
+              <div class="panel-body">
+                <div class="empty">
+                  <svg class="ic ic-lg" aria-hidden="true" style="color:var(--faint)" focusable="false"><use href="#i-db"></use></svg>
+                  <h4>这个店铺还没有库存流水</h4>
+                  <p>流水在「入库 / 出库 / 盘点 / 锁定 / 释放」时生成。只有 SKU 库存数据、没有流水，通常说明库存是直接建档而不是走单据登记。</p>
+                  <div class="empty-actions">
+                    <a class="btn btn-primary" href="imports.html">导入入库单</a>
+                    <a class="btn" href="generation-job.html">去商品详情登记 SKU</a>
+                  </div>
+                  <p class="empty-next">
+                    <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-chev"></use></svg>
+                    登记后这里会显示：类型 · 商品 · SKU · 现货变化 · 锁定变化 · 原因
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="src-map">
+            源码空态对照：原版「这个店铺还没有绑定商品，可以回到首页创建商品并选择该店铺。」/「当前没有低库存 SKU。」/「暂无库存流水。」/「这个店铺还没有 SKU 库存数据，后续可从商品详情创建 SKU 并登记库存。」—— 文案方向正确，但只有一句话、没有动作按钮、也没说清完成后会出现什么。本稿保留原意并补三件套：判据 + 主次动作 + 空态之后的样子。
+          </div>
+        </section>
+
+        <!-- ==================== 口径脚注 ==================== -->
+        <section class="panel" aria-labelledby="h-legend">
+          <div class="panel-head"><h3 id="h-legend">本页口径约定</h3><span class="badge mono">READING NOTES</span></div>
+          <div class="panel-body stack-3">
+            <dl class="facts">
+              <div class="fact">
+                <dt>时间范围</dt>
+                <dd>所有经营类数字必须写明起止日期，并注明是否含端点；未写明范围的对比一律不展示。</dd>
+              </div>
+              <div class="fact">
+                <dt>样本与覆盖</dt>
+                <dd>给出「覆盖商品数 / 总数」；覆盖不足时数值保留原样，但必须标注偏低或偏高方向。</dd>
+              </div>
+              <div class="fact">
+                <dt>未覆盖 ≠ 0</dt>
+                <dd>能力未开通或数据缺失显示「未覆盖」，不用 0 冒充。</dd>
+              </div>
+              <div class="fact">
+                <dt>环比基期</dt>
+                <dd>任何环比都注明基期区间，不写「提升了 N%」这种无基期表述。</dd>
+              </div>
+            </dl>
+            <p class="mono-faint">
+              本页为静态设计稿：店铺、账号、商品、库存与经营数字均为示意数据，不连接任何后端接口；所有颜色 / 圆角 / 字体 / 间距均取自 design-system.css 的 token。
+            </p>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="icons.js"></script>
+<script>
+  (function () {
+    'use strict';
+
+    /* 主题按钮文案 */
+    var lbl = document.getElementById('themeBtnText');
+    var root = document.documentElement;
+    function syncThemeLabel() {
+      if (lbl) lbl.textContent = root.getAttribute('data-theme') === 'dark' ? 'LIGHT' : 'DARK';
+    }
+    syncThemeLabel();
+    var btn = document.getElementById('themeBtn');
+    if (btn) btn.addEventListener('click', syncThemeLabel);
+
+    /* Tab 组：纯静态切换，演示选中态视觉 */
+    Array.prototype.forEach.call(document.querySelectorAll('[role="tablist"]'), function (list) {
+      var tabs = list.querySelectorAll('[role="tab"]');
+      Array.prototype.forEach.call(tabs, function (t, i) {
+        function pick() {
+          Array.prototype.forEach.call(tabs, function (x) { x.setAttribute('aria-selected', 'false'); });
+          t.setAttribute('aria-selected', 'true');
+        }
+        t.addEventListener('click', pick);
+        t.addEventListener('keydown', function (e) {
+          var next = null;
+          if (e.key === 'ArrowRight') next = tabs[(i + 1) % tabs.length];
+          if (e.key === 'ArrowLeft') next = tabs[(i - 1 + tabs.length) % tabs.length];
+          if (next) { e.preventDefault(); next.focus(); }
+        });
+      });
+    });
+  })();
+</script>
+</body>
+</html>

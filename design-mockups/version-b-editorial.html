@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>作品集 · 编辑杂志风 | G.</title>
+<style>
+/* ============================================================
+   方案 B：杂志编辑风格（Editorial Magazine）
+   设计语言 / 核心原则：
+   - 不对称网格：卡片大小不一、轻重错落（杂志排版逻辑）
+   - 衬线标题 + 无衬线正文（Chinese: 宋/黑体质感的层次）
+   - 大量留白，强调「呼吸感」与阅读节奏
+   - 暖色调背景（米白 / 浅灰）+ 单一强调色（朱红）
+   - 卡片无边框，用阴影与间距区分层次
+   - 完整浅色 / 深色双模式
+   所有设计 Token 集中在 :root 与 [data-theme=\"dark\"]
+   ============================================================ */
+
+/* ---------- 设计令牌 ---------- */
+:root {
+  /* 字体：衬线标题 + 无衬线正文 */
+  --font-display: "Songti SC", "STSong", "Noto Serif SC", "Source Han Serif SC",
+    Georgia, "Times New Roman", serif;
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "PingFang SC", "Helvetica Neue", "Segoe UI", Roboto, sans-serif;
+  --font-serif-en: Georgia, "Times New Roman", serif;
+
+  /* 强调色 —— 朱红（单一强调） */
+  --accent: #c0341f;
+  --accent-ink: #9e2917;
+
+  /* 间距：宽松的编辑留白 */
+  --gutter: clamp(20px, 6vw, 72px); /* 左右页边距 */
+  --space-2: 20px;
+  --space-3: 32px;
+  --space-4: 48px;
+  --space-5: 72px;
+}
+
+/* ---------- 浅色模式（米白纸感） ---------- */
+[data-theme=\"light\"] {
+  --bg: #f6f1e9;          /* 米白纸色 */
+  --bg-card: #fbf7f1;     /* 卡片略亮 */
+  --bg-elevate: #fffdf8;  /* 更亮的强调块 */
+  --ink: #1c1917;         /* 主文字（暖黑） */
+  --ink-soft: #57534e;    /* 次级文字 */
+  --ink-faint: #8a857e;   /* 三级文字 */
+  --hairline: rgba(28, 25, 23, 0.10); /* 分隔线 */
+
+  --shadow-soft: 0 1px 2px rgba(28, 25, 23, 0.04),
+                 0 18px 44px -20px rgba(28, 25, 23, 0.10);
+  --shadow-hover: 0 2px 4px rgba(28, 25, 23, 0.05),
+                  0 40px 90px -30px rgba(28, 25, 23, 0.16);
+
+  --nav-rule: rgba(28, 25, 23, 0.12);
+}
+
+/* ---------- 深色模式（暖夜） ---------- */
+[data-theme=\"dark\"] {
+  --bg: #17150f;          /* 暖深褐 */
+  --bg-card: #1f1c14;
+  --bg-elevate: #262217;
+  --ink: #ece7dd;
+  --ink-soft: #b3ac9f;
+  --ink-faint: #7f796e;
+  --hairline: rgba(236, 231, 221, 0.12);
+
+  --accent: #e0523a;
+  --accent-ink: #ff7a5f;
+
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.3), 0 18px 44px -18px rgba(0, 0, 0, 0.5);
+  --shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.35), 0 40px 90px -24px rgba(0, 0, 0, 0.65);
+
+  --nav-rule: rgba(236, 231, 221, 0.14);
+}
+
+/* ---------- 基础重置 ---------- */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+
+body {
+  font-family: var(--font-ui);
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.7;
+  min-height: 100vh;
+  transition: background 0.5s ease, color 0.5s ease;
+}
+
+/* ============================================================
+   顶部导航 —— 杂志页眉式（细规则线 + 居中刊名）
+   ============================================================ */
+.nav {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  width: 100%;
+  padding: 28px var(--gutter) 20px;
+  border-bottom: 1px solid var(--nav-rule);
+  position: sticky;
+  top: 0;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  z-index: 50;
+  transition: background 0.5s ease;
+}
+
+.masthead {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.masthead .dot { color: var(--accent); }
+
+/* 居中刊名 —— 杂志报头感 */
+.tagline {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-serif-en);
+  font-style: italic;
+  font-size: 0.82rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.nav-actions { display: flex; align-items: center; gap: 16px; }
+
+/* 主次导航链路（编辑风格：字间较宽的小标题） */
+.nav-links { display: flex; gap: 26px; }
+.nav-links a {
+  font-size: 0.82rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+.nav-links a:hover { color: var(--accent); }
+
+.github-btn {
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--accent);
+  padding-bottom: 2px;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: color 0.3s ease;
+}
+.github-btn:hover { color: var(--accent); }
+.github-btn svg { width: 14px; height: 14px; }
+
+.theme-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: var(--ink);
+  padding: 4px;
+  transition: transform 0.25s ease;
+}
+.theme-toggle:hover { transform: translateY(-2px); }
+
+/* ============================================================
+   文章主导 —— 大标题 + 引言（杂志开篇）
+   ============================================================ */
+.lead {
+  padding: var(--space-5) var(--gutter) var(--space-4);
+  border-bottom: 1px solid var(--hairline);
+  animation: fade-in 1s ease both;
+}
+
+.lead-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-family: var(--font-serif-en);
+  font-size: 0.8rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: var(--space-3);
+}
+.lead-top .rule { flex: 0 0 44px; height: 1px; background: var(--accent); }
+
+h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2.6rem, 7vw, 4.6rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+  max-width: 18ch;
+}
+
+.lead p {
+  margin-top: var(--space-3);
+  max-width: 44ch;
+  color: var(--ink-soft);
+  font-size: 1.06rem;
+  line-height: 1.9;
+}
+
+/* ============================================================
+   项目专题 —— 不对称杂志网格
+   使用 12 栏语义：Feature(大) 占2栏，Standard 占1栏，交错排布。
+   ============================================================ */
+.magazine {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--space-4) var(--gutter);
+  padding: var(--space-4) var(--gutter) var(--space-5);
+}
+
+.mag-head { /* 专题引言栏 */ }
+.mag-head h2 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--hairline);
+}
+.mag-head small {
+  display: block;
+  margin-top: 14px;
+  color: var(--ink-faint);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+/* 文章卡片容器 */
+.story {
+  position: relative;
+  border: none;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s ease;
+  overflow: hidden;
+  animation: fade-up 0.9s ease var(--d, 0.2s) both;
+}
+.story:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-hover);
+}
+
+/* 每个故事的视觉重量通过栏数控制 */
+.span-feature { grid-column: span 8; }
+.span-side    { grid-column: span 4; }
+.span-half    { grid-column: span 6; }
+.span-third   { grid-column: span 4; }
+
+/* 故事内衬：不对称内边距 */
+.story-inner {
+  padding: clamp(24px, 4vw, 40px);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* 序号 —— 大号衬线数码，杂志页码感 */
+.story-index {
+  font-family: var(--font-serif-en);
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  line-height: 1;
+  color: var(--accent);
+  margin-bottom: var(--space-3);
+  user-select: none;
+}
+
+/* 主题图块 —— 用衬线大字 + 强调色，代替图片的抽象图块 */
+.story-tile {
+  aspect-ratio: 16 / 9;
+  display: grid;
+  place-items: center;
+  background: var(--bg-elevate);
+  font-family: var(--font-display);
+  font-size: 2rem;
+  color: var(--accent);
+  margin-bottom: var(--space-3);
+  transition: background 0.4s ease, color 0.4s ease;
+}
+.story:hover .story-tile { background: var(--accent); color: #fff; }
+
+.story .kicker {
+  font-family: var(--font-serif-en);
+  font-size: 0.72rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 10px;
+}
+
+.story h3 {
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+  margin-bottom: 14px;
+}
+
+.story .dek { /* 副标题 / 摘要 */
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  line-height: 1.85;
+  margin-bottom: var(--space-3);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 底部元信息 + 阅读动作 */
+.story-foot {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.story-meta {
+  font-family: var(--font-serif-en);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.read-more {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  transition: color 0.3s ease, gap 0.3s ease;
+}
+.read-more:hover { color: var(--accent); gap: 12px; }
+.read-more .arrow { font-family: var(--font-serif-en); }
+
+/* ============================================================
+   引用 / 编者按 —— 编辑刊尾
+   ============================================================ */
+.pullquote {
+  padding: var(--space-4) var(--gutter) var(--space-5);
+  border-top: 1px solid var(--hairline);
+}
+.pullquote blockquote {
+  max-width: 34ch;
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 3vw, 1.8rem);
+  line-height: 1.6;
+  color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding-left: 24px;
+}
+.pullquote cite {
+  display: block;
+  margin-top: 18px;
+  font-style: normal;
+  font-size: 0.8rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* ============================================================
+   页脚 —— 杂志版权栏
+   ============================================================ */
+footer {
+  padding: var(--space-3) var(--gutter) var(--space-5);
+  border-top: 2px solid var(--accent);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+}
+footer .brand { font-family: var(--font-display); color: var(--ink); font-weight: 700; }
+
+/* ---------- 动效 ---------- */
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+
+/* ============================================================
+   响应式
+   平板 / 手机：杂志栅格压缩为 1 列，Feature 保留宽幅
+   ============================================================ */
+@media (max-width: 960px) {
+  .tagline { display: none; }
+  .nav-links { display: none; } /* 平板隐藏中链，保留 GitHub 与主题钮 */
+}
+
+@media (max-width: 860px) {
+  .magazine { grid-template-columns: 1fr; }
+  .mag-head { display: none; }
+  .span-feature, .span-side, .span-half, .span-third { grid-column: span 1; }
+  h1 { letter-spacing: 0; }
+}
+
+@media (max-width: 600px) {
+  footer { flex-direction: column; gap: 8px; align-items: flex-start; }
+  .github-btn .label { display: none; }
+}
+
+/* ---------- 减少动效偏好 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+</style>
+</head>
+<body data-theme=\"light\">
+
+  <!-- 顶部导航：报头感 -->
+  <nav class=\"nav\">
+    <div class=\"masthead\">G<span class=\"dot\">.</span></div>
+    <div class=\"tagline\">Selected Works — Portfolio</div>
+    <div class=\"nav-actions\">
+      <div class=\"nav-links\">
+        <a href=\"#feature\">专题</a>
+        <a href=\"#projects\">项目</a>
+        <a href=\"#about\">编者</a>
+      </div>
+      <button class=\"theme-toggle\" id=\"themeToggle\" aria-label=\"切换主题\">
+        <span id=\"iconsSun\" hidden>☀</span>
+        <span id=\"iconsMoon\">☾</span>
+      </button>
+      <a class=\"github-btn\" href=\"#\">
+        <svg viewBox=\"0 0 16 16\" fill=\"currentColor\" aria-hidden=\"true\">
+          <path d=\"M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z\"/>\n        </svg>
+        <span class=\"label\">GitHub</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- 文章主导 -->
+  <header class=\"lead\" id=\"about\">
+    <div class=\"lead-top\"><span class=\"rule\"></span><span>作品专题 · Portfolio</span></div>
+    <h1>用工程讲述<br />三个产品的故事。</h1>
+    <p>这是一份以编辑之眼编辑的作品选集——从数据智库、电商运营到智能客服，每一篇都对应一次真实的构建、几次取舍以及对「好体验」的坚持。</p>
+  </header>
+
+  <!-- 项目杂志栅格 -->
+  <section class=\"magazine\" id=\"projects\">
+    <div class=\"mag-head\" id=\"feature\">
+      <h2>本期专题</h2>
+      <small>Feature ·<br />第 01 号 —<br />第 03 号</small>
+    </div>
+
+    <!-- 卡片 1：大篇幅 Feature -->
+    <article class=\"story span-feature\" style=\"--d:.15s\">
+      <div class=\"story-inner\">
+        <div class=\"story-index\">01</div>
+        <div class=\"story-tile\">问</div>
+        <div class=\"kicker\">Feature · Data</div>
+        <h3>问数与智库</h3>
+        <p class=\"dek\">将组织里散落的文档、报表与经验，沉淀为一个可自然语言检索的智能知识库。团队不再翻找文件，而是直接「提问」——让每一次决策都有据可依。</p>
+        <div class=\"story-foot\">
+          <span class=\"story-meta\">知识库 · AI · BI</span>
+          <a class=\"read-more\" href=\"#\">阅读全文 <span class=\"arrow\">→</span></a>
+        </div>
+      </div>
+    </article>
+
+    <!-- 卡片 2：侧栏（右） -->
+    <article class=\"story span-side\" style=\"--d:.3s\">
+      <div class=\"story-inner\">
+        <div class=\"story-index\">02</div>
+        <div class=\"story-tile\">市</div>
+        <div class=\"kicker\">Report · E-commerce</div>
+        <h3>电商运营助手</h3>
+        <p class=\"dek\">一张串联商品、订单与营销的工作台。用规则与自动化代替重复劳动，让运营把时间留给真正需要判断的事情。</p>
+        <div class=\"story-foot\">
+          <span class=\"story-meta\">运营 · SaaS</span>
+          <a class=\"read-more\" href=\"#\">阅读全文 <span class=\"arrow\">→</span></a>
+        </div>
+      </div>
+    </article>
+
+    <!-- 卡片 3：半栏（两栏结构中左侧占位构成不对称） -->
+    <article class=\"story span-half\" style=\"--d:.45s\">
+      <div class=\"story-inner\">
+        <div class=\"story-index\">03</div>
+        <div class=\"story-tile\">客</div>
+        <div class=\"kicker\">Essay · Service</div>
+        <h3>智能客服系统</h3>
+        <p class=\"dek\">基于大模型的多轮对话客服，7×24 在线、自动分流、人工无缝转交。让「服务」不必等待，也让每一次沟通更有人情味。</p>
+        <div class=\"story-foot\">
+          <span class=\"story-meta\">对话 AI · 大模型</span>
+          <a class=\"read-more\" href=\"#\">阅读全文 <span class=\"arrow\">→</span></a>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- 编者按 -->
+  <section class=\"pullquote\">
+    <blockquote>好产品的背后，往往不是某一次灵光，而是把每一个细节当作「正文」来对待的耐心。</blockquote>
+    <cite>— 编者按 · G.</cite>
+  </section>
+
+  <!-- 页脚 -->
+  <footer>
+    <span class=\"brand\">G<span class=\"dot\">.</span> Portfolio</span>
+    <span>© 2026 · 杂志编辑风格版式 · Made with care</span>
+  </footer>
+
+  <script>
+    /* ---------- 主题切换 ---------- */
+    const root = document.documentElement;
+    const toggle = document.getElementById('themeToggle');
+    const sun = document.getElementById('iconsSun');
+    const moon = document.getElementById('iconsMoon');
+
+    function applyTheme(t) {
+      root.setAttribute('data-theme', t);
+      sun.hidden = t !== 'dark';
+      moon.hidden = t === 'dark';
+      try { localStorage.setItem('g-theme-editorial', t); } catch (e) {}
+    }
+    toggle.addEventListener('click', () => {
+      applyTheme(root.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+    });
+    (function () {
+      let saved = null;
+      try { saved = localStorage.getItem('g-theme-editorial'); } catch (e) {}
+      applyTheme(saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,814 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f8f7f4'/%3E%3Cg fill='%230d1218'%3E%3Crect x='12' y='12' width='8' height='8'/%3E%3Crect x='4' y='4' width='4' height='4'/%3E%3Crect x='24' y='4' width='4' height='4'/%3E%3Crect x='4' y='24' width='4' height='4'/%3E%3Crect x='24' y='24' width='4' height='4'/%3E%3C/g%3E%3C/svg%3E">
+<title>知识库智能体 · 问答页设计稿</title>
+<link rel="stylesheet" href="design-system.css">
+<style>
+  /* ==========================================================================
+     本页只做布局与「原稿缺失的信息层」两件事。
+     颜色 / 圆角 / 阴影 / 字体一律来自 design-system.css 的 token，
+     下面出现的每个值都是 var(--...) 组合，没有任何写死色值。
+     ========================================================================== */
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  /* ---- 顶部提案标注条 ---- */
+  .proposal-bar {
+    display: flex; align-items: center; gap: .5rem;
+    min-height: 34px; padding: 0 var(--pad-x);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-subtle);
+  }
+  .app { min-height: calc(100vh - 34px); }
+
+  .app-top .brand .mark { font-size: 1.15rem; }
+
+  /* ---- 结构修复：文档大纲 ----
+     顶栏品牌名由 span 改为 h1（页面主标题），本页其余标题按
+     「h2 = 页面级区块 / h3 = 区块内小节」重排。
+     下面的规则只负责让新标签沿用旧标签的排版，渲染像素不变。 */
+  .app-top .brand h1 { font: inherit; letter-spacing: inherit; text-wrap: wrap; }
+  /* design-system.css 的 .empty h4 是标签选择器，标题改级后需在本页复述同一组取值 */
+  .empty h2 { font-size: var(--fs-h3); margin-bottom: .375rem; }
+  .top-actions { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
+  .top-actions .status-led { margin-right: .15rem; }
+
+  /* ---- 左栏：会话列表 ---- */
+  .rail { overflow-y: auto; }
+  /* 长会话里左栏必须吸顶，否则底部「服务状态」会被推到几屏之外 */
+  @media (min-width: 900px) {
+    .rail { position: sticky; top: 60px; align-self: start;
+      max-height: calc(100vh - 60px); }
+  }
+  .rail .panel-head h3, .rail .panel-head h2 { font-size: var(--fs-meta); }
+  .rail-new { width: 100%; }
+
+  .sess-list { display: flex; flex-direction: column; gap: 2px; }
+  .sess { position: relative; border-radius: var(--radius); }
+  .sess-main {
+    display: flex; flex-direction: column; justify-content: center; gap: .25rem;
+    width: 100%; min-height: 52px; padding: .5rem 2.75rem .5rem .625rem;
+    text-align: left;
+    border: 1px solid transparent; border-radius: var(--radius);
+    transition: background-color var(--t-2) var(--ease-state),
+                border-color var(--t-2) var(--ease-state);
+  }
+  .sess:hover { background: var(--surface-subtle); }
+  .sess.is-active .sess-main { background: var(--surface); border-color: var(--border-strong); }
+  .sess.is-active .sess-title { color: var(--fg); }
+  .sess-title { font-size: var(--fs-meta); font-weight: 600; color: var(--fg-secondary);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sess-meta { display: flex; align-items: center; gap: .375rem;
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  .sess-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--faint); flex: none; }
+
+  /* 删除键：hover / focus 才出现，触摸端常驻。44px 命中区 */
+  .sess-del {
+    position: absolute; right: .25rem; top: 50%; transform: translateY(-50%);
+    width: 44px; height: 44px; display: grid; place-items: center;
+    border-radius: var(--radius); color: var(--muted);
+    opacity: 0; pointer-events: none;
+    transition: opacity var(--t-2) var(--ease-state),
+                color var(--t-2) var(--ease-state),
+                background-color var(--t-2) var(--ease-state);
+  }
+  .sess-del::before, .sess-del::after {
+    content: ""; position: absolute; left: 50%; top: 50%;
+    width: 13px; height: 1px; background: currentColor;
+  }
+  .sess-del::before { transform: translate(-50%, -50%) rotate(45deg); }
+  .sess-del::after  { transform: translate(-50%, -50%) rotate(-45deg); }
+  .sess:hover .sess-del, .sess:focus-within .sess-del { opacity: 1; pointer-events: auto; }
+  .sess-del:hover { color: var(--accent); background: var(--surface-sunken); }
+
+  /* ---- 会话列表空态（状态演示） ---- */
+  .rail-state { display: flex; flex-direction: column; gap: .5rem; }
+  .empty-compact { padding: var(--sp-4) var(--sp-3); }
+  .empty-compact h4, .empty-compact h2 { font-size: var(--fs-meta); margin-bottom: .25rem; }
+  .empty-compact p { font-size: var(--fs-mini); line-height: 1.75; }
+
+  .health-list { display: flex; flex-direction: column; gap: .5rem; }
+  .health-row { display: grid; grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center; gap: .5rem; font-size: var(--fs-mini); }
+  .health-k { font-family: var(--font-mono); color: var(--faint); }
+  .health-v { display: inline-flex; align-items: center; gap: .4em;
+    font-family: var(--font-mono); color: var(--fg-secondary); }
+  .health-row .status-led { width: 6px; height: 6px; }
+  .rail-health { margin-top: auto; }
+
+  /* ---- 主区 ---- */
+  .pane-inner { display: flex; flex-direction: column; width: 100%;
+    min-width: 0; max-width: 58rem; margin-inline: auto; }
+  .stream { display: grid; gap: var(--sp-5); }
+  .msg-user .msg-body { justify-self: start; max-width: 40rem; }
+
+  /* ---- Markdown 答案排版 ---- */
+  .prose { font-size: var(--fs-body); line-height: 1.85; color: var(--fg); overflow-wrap: anywhere; }
+  .prose > * + * { margin-top: var(--sp-4); }
+  .prose h4, .prose h3 { margin-top: var(--sp-5); font-family: var(--font-display);
+    font-size: var(--fs-h3); font-weight: 700; line-height: 1.4; letter-spacing: 0; }
+  .prose > h4:first-child, .prose > h3:first-child { margin-top: 0; }
+  .prose ol, .prose ul { display: grid; gap: .5rem; padding-left: 1.4rem; }
+  .prose ol { list-style: decimal; }
+  .prose ol li::marker { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  .prose ul { list-style: none; padding-left: 0; }
+  .prose ul > li { position: relative; padding-left: 1rem; }
+  .prose ul > li::before { content: ""; position: absolute; left: .125rem; top: .95em;
+    width: 7px; height: 1px; background: var(--faint); }
+  .prose code { font-family: var(--font-mono); font-size: .875em;
+    padding: .12em .4em; border: 1px solid var(--border);
+    background: var(--surface-subtle); border-radius: var(--radius); }
+
+  /* ---- 运行轨迹：常驻可见的一等公民 ---- */
+  .trace-name { display: flex; flex-wrap: wrap; align-items: baseline;
+    gap: .25rem .5rem; min-width: 0; font-weight: 600; }
+  .trace-tool { font-weight: 400; color: var(--faint); font-size: var(--fs-mini); }
+  .trace-args { width: 100%; font-size: var(--fs-mini); font-weight: 400;
+    color: var(--muted); overflow-wrap: anywhere; }
+
+  .msg-foot { display: flex; flex-wrap: wrap; align-items: center;
+    gap: .375rem var(--sp-4); margin-top: var(--sp-4); padding-top: .625rem;
+    border-top: 1px solid var(--border);
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  .msg-foot .sep { width: 1px; height: 10px; background: var(--border); }
+  .msg-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: var(--sp-3); }
+
+  /* ---- 引用来源 ---- */
+  .cites { margin-top: var(--sp-5); }
+  .cites-hd { display: flex; flex-wrap: wrap; align-items: center;
+    justify-content: space-between; gap: .5rem; margin-bottom: .5rem; }
+  .cite-hd { flex-wrap: wrap; }
+  .cite-score { margin-left: auto; }
+  .cite + .cite { margin-top: var(--sp-2); }
+  .cite .ic { color: var(--faint); }
+
+  /* ---- 拒答面板 ---- */
+  .refuse { border: 1px solid var(--border); border-left: 2px solid var(--warn);
+    border-radius: var(--radius); background: var(--warn-tint); padding: var(--sp-4); }
+  .refuse-hd { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem;
+    margin-bottom: .625rem; color: var(--warn); }
+  .refuse-hd .refuse-title { font-weight: 700; color: var(--fg); font-size: var(--fs-meta); }
+  .refuse > p { font-size: var(--fs-meta); line-height: 1.8; color: var(--fg); }
+  .refuse-sub { margin-top: var(--sp-3); display: block; }
+  .refuse-list { display: grid; gap: .375rem; margin-top: .5rem;
+    font-size: var(--fs-meta); color: var(--fg-secondary); }
+  .refuse-list > li { position: relative; padding-left: 1rem; }
+  .refuse-list > li::before { content: ""; position: absolute; left: .125rem; top: .95em;
+    width: 7px; height: 1px; background: var(--muted); }
+  .refuse-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: var(--sp-4); }
+
+  /* ---- 空结果面板：检索执行完但 0 命中，中性表达，不用警告色 ---- */
+  .empty-actions { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; margin-top: var(--sp-4); }
+
+  /* ---- 骨架屏（首屏加载态） ---- */
+  .sk-stack { display: grid; gap: .625rem; margin-top: var(--sp-3); }
+  .sk { display: block; height: 12px; border-radius: var(--radius); background: var(--surface-subtle); }
+  .sk.is-title { height: 20px; width: min(42%, 16rem); }
+  .sk.is-mid   { width: 82%; }
+  .sk.is-short { width: 56%; }
+  .sk-now { margin-top: .75rem; }
+  @media (prefers-reduced-motion: no-preference) {
+    .sk { animation: sk-pulse 1.8s var(--ease-loop) infinite; }
+  }
+  @keyframes sk-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+
+  /* ---- 文件解析卡 ---- */
+  .parse .panel-head h3, .parse .panel-head h2 { font-size: var(--fs-h3); }
+  .parse-hd { display: flex; align-items: center; gap: var(--sp-3); margin-bottom: var(--sp-4); }
+  .parse-hd .ic { color: var(--accent); }
+  .parse-name { font-size: var(--fs-meta); font-weight: 600; overflow-wrap: anywhere; }
+  .kv { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr);
+    font-size: var(--fs-meta); }
+  .kv dt, .kv dd { padding: .4rem 0; border-bottom: 1px solid var(--border); }
+  .kv dt { font-family: var(--font-mono); font-size: var(--fs-mini);
+    color: var(--faint); letter-spacing: .06em; }
+  .kv dd { color: var(--fg); overflow-wrap: anywhere; }
+  .kv > :nth-last-child(1), .kv > :nth-last-child(2) { border-bottom: 0; }
+  .kv-spaced { margin-top: var(--sp-3); }
+  .parse-hint { margin-top: var(--sp-3); font-size: var(--fs-mini); color: var(--muted); line-height: 1.7; }
+
+  /* ---- 附件小片（用户侧） ---- */
+  .attach-chip { display: inline-flex; align-items: center; gap: .5rem;
+    margin-top: .625rem; padding: .4rem .625rem;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); font-family: var(--font-mono);
+    font-size: var(--fs-mini); color: var(--fg-secondary); min-height: 44px; }
+  .attach-chip .ic { color: var(--accent); }
+
+  /* ---- 错误面板：独立于答案正文 ---- */
+  .err { border-left: 2px solid var(--accent); }
+  .err .panel-head { background: var(--accent-tint); border-bottom-color: var(--border-accent); }
+  .err .panel-head h3, .err .panel-head h2 { font-size: var(--fs-h3); }
+  .err .panel-body > p { font-size: var(--fs-meta); color: var(--fg-secondary); line-height: 1.75; }
+  .err-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: var(--sp-4); }
+
+  /* ---- 设计说明（提案稿专用，不是产品 UI） ---- */
+  .note { margin-top: var(--sp-3); padding: .625rem .75rem;
+    border: 1px dashed var(--border-strong); border-radius: var(--radius); }
+  .note .eyebrow { display: block; margin-bottom: .25rem; }
+  .note p { font-size: var(--fs-mini); line-height: 1.75; color: var(--muted); }
+
+  /* ---- Composer ---- */
+  .composer-wrap { position: sticky; bottom: 0; z-index: 20; margin-top: var(--sp-5);
+    padding: var(--sp-3) 0 var(--sp-5);
+    background: var(--bg); border-top: 1px solid var(--border); }
+  .composer-actions { display: flex; align-items: center; gap: .5rem; }
+  .composer-actions .btn { height: 44px; }
+  .btn-icon { width: 44px; padding: 0; }
+  .stop-glyph { width: 9px; height: 9px; background: currentColor; flex: none; }
+  .composer-foot { display: flex; flex-wrap: wrap; align-items: center;
+    justify-content: space-between; gap: .25rem var(--sp-3);
+    margin-top: .5rem; font-family: var(--font-mono);
+    font-size: var(--fs-mini); color: var(--faint); }
+
+  /* ==========================================================================
+     响应式
+     ========================================================================== */
+  @media (max-width: 899px) {
+    .sess-list { flex-direction: row; }
+    .sess { flex: 0 0 auto; }
+    .sess-main { width: 12.5rem; }
+    .rail-state { width: 12.5rem; }
+    .rail-new { width: auto; }
+    .rail-health { margin-top: 0; }
+    .rail-health .panel-body { padding: var(--sp-3); }
+    .health-list { flex-direction: row; flex-wrap: wrap; gap: var(--sp-3); }
+    .health-row { grid-template-columns: auto; gap: .25rem; }
+    .health-k { display: none; }
+  }
+  @media (max-width: 767px) {
+    .top-actions { width: 100%; justify-content: flex-start; }
+    .kv { grid-template-columns: 5.25rem minmax(0, 1fr); }
+    /* 眉标在 390 下会折成「…非线上系 / 统」的单字孤行，按标题同一手法配平换行 */
+    .proposal-bar .eyebrow { text-wrap: balance; }
+    /* 附件名 + 体积在 390 下会把行尾剩成单字 */
+    .attach-chip > span { text-wrap: balance; }
+    /* 运行轨迹表头两栏在 390 下互相挤压：左栏尾字「路」、右栏尾字「s」都会单独掉一行。
+       左栏配平、右栏不许折，两者合起来才干净。 */
+    .trace-hd > span:first-child { text-wrap: balance; }
+    .trace-hd > span:last-child { white-space: nowrap; }
+    .trace-name { text-wrap: balance; }
+  }
+  @media (max-width: 640px) {
+    .composer { grid-template-columns: minmax(0, 1fr); }
+    .composer-actions { justify-content: flex-end; }
+  }
+  @media (max-width: 480px) {
+    .top-actions .badge-secondary { display: none; }
+    .prose ol, .prose ul { padding-left: 1.1rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="proposal-bar">
+  <span class="eyebrow">DESIGN PROPOSAL · 静态设计稿 · 非线上系统</span>
+</div>
+
+<div class="app">
+
+  <!-- ============================ 顶栏 ============================ -->
+  <header class="app-top">
+    <div class="brand">
+      <svg class="mark ic-lg" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <rect x="12" y="12" width="8" height="8" rx="2"/>
+        <rect x="4" y="4" width="4" height="4" rx="1"/>
+        <rect x="24" y="4" width="4" height="4" rx="1"/>
+        <rect x="4" y="24" width="4" height="4" rx="1"/>
+        <rect x="24" y="24" width="4" height="4" rx="1"/>
+      </svg>
+      <h1>知识库智能体</h1>
+      <span class="sub">KB AGENT · RAG</span>
+    </div>
+
+    <div class="top-actions">
+      <span class="badge badge-secondary mono">检索 18 ms</span>
+      <span class="badge badge-online mono">
+        <span class="status-led" aria-hidden="true"></span>:7954 ONLINE
+      </span>
+      <a class="btn btn-sm" href="index.html">
+        <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg>
+        <span>设计稿总览</span>
+      </a>
+      <button type="button" class="btn btn-ghost" id="themeBtn" aria-label="切换明暗主题">
+        <span id="themeLabel">DARK</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="app-body has-rail">
+
+    <!-- ============================ 左栏 ============================ -->
+    <aside class="rail" aria-label="会话列表">
+      <div class="rail-top">
+        <button type="button" class="btn btn-primary rail-new">
+          <svg class="ic" aria-hidden="true"><use href="#i-copy"></use></svg>
+          新建会话
+        </button>
+      </div>
+
+      <ul class="sess-list">
+        <li class="sess is-active">
+          <button type="button" class="sess-main" aria-current="true">
+            <span class="sess-title">冷链温控异常处置</span>
+            <span class="sess-meta"><span>12 轮</span><span class="sess-dot" aria-hidden="true"></span><span>刚刚</span></span>
+          </button>
+          <button type="button" class="sess-del" aria-label="删除会话：冷链温控异常处置"></button>
+        </li>
+        <li class="sess">
+          <button type="button" class="sess-main">
+            <span class="sess-title">报损流程与权限矩阵</span>
+            <span class="sess-meta"><span>6 轮</span><span class="sess-dot" aria-hidden="true"></span><span>18 分钟前</span></span>
+          </button>
+          <button type="button" class="sess-del" aria-label="删除会话：报损流程与权限矩阵"></button>
+        </li>
+        <li class="sess">
+          <button type="button" class="sess-main">
+            <span class="sess-title">加盟商结算口径答疑</span>
+            <span class="sess-meta"><span>3 轮</span><span class="sess-dot" aria-hidden="true"></span><span>昨天 21:40</span></span>
+          </button>
+          <button type="button" class="sess-del" aria-label="删除会话：加盟商结算口径答疑"></button>
+        </li>
+        <li class="sess">
+          <button type="button" class="sess-main">
+            <span class="sess-title">新品上市检查清单 v3</span>
+            <span class="sess-meta"><span>9 轮</span><span class="sess-dot" aria-hidden="true"></span><span>10 月 09 日</span></span>
+          </button>
+          <button type="button" class="sess-del" aria-label="删除会话：新品上市检查清单 v3"></button>
+        </li>
+        <li class="sess">
+          <button type="button" class="sess-main">
+            <span class="sess-title">食安抽检不合格处置</span>
+            <span class="sess-meta"><span>4 轮</span><span class="sess-dot" aria-hidden="true"></span><span>10 月 02 日</span></span>
+          </button>
+          <button type="button" class="sess-del" aria-label="删除会话：食安抽检不合格处置"></button>
+        </li>
+      </ul>
+
+      <div class="rail-state">
+        <span class="eyebrow">空态演示 · 无会话时</span>
+        <div class="empty empty-compact">
+          <h2>还没有会话</h2>
+          <p>从下方提问开始，提问会自动创建会话。</p>
+        </div>
+      </div>
+
+      <div class="rail-health panel">
+        <div class="panel-head">
+          <h2>服务状态</h2>
+          <span class="status-led" aria-hidden="true"></span>
+        </div>
+        <div class="panel-body">
+          <ul class="health-list">
+            <li class="health-row">
+              <span class="health-k">检索</span>
+              <span class="health-v"><span class="status-led" aria-hidden="true"></span>Milvus 18 ms</span>
+            </li>
+            <li class="health-row">
+              <span class="health-k">解析</span>
+              <span class="health-v"><span class="status-led" aria-hidden="true"></span>MinerU 就绪</span>
+            </li>
+            <li class="health-row">
+              <span class="health-k">索引</span>
+              <span class="health-v"><span class="status-led" aria-hidden="true"></span>1,284 段待检</span>
+            </li>
+            <li class="health-row">
+              <span class="health-k">生成</span>
+              <span class="health-v"><span class="status-led is-busy" aria-hidden="true"></span>14b 推理中</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ============================ 主区 ============================ -->
+    <main class="pane">
+      <div class="pane-inner">
+        <div class="stream">
+
+          <!-- ---------- 状态演示：首屏加载骨架 ---------- -->
+          <article class="msg msg-bot">
+            <div class="msg-avatar bot" aria-hidden="true">KB</div>
+            <div class="msg-body">
+              <span class="eyebrow">状态演示 · 首屏加载骨架</span>
+              <div class="sk-stack" aria-hidden="true">
+                <span class="sk is-title"></span>
+                <span class="sk"></span>
+                <span class="sk is-mid"></span>
+                <span class="sk is-short"></span>
+              </div>
+              <p class="t-mini sk-now">正在检索知识库…</p>
+              <div class="note">
+                <span class="eyebrow">设计说明</span>
+                <p>打开会话的瞬间先渲染与最终答案同构的骨架：轨迹位置、正文行数一次到位，真实内容返回后只替换灰条、不回跳布局。行宽刻意不一致，读起来是「正在写」，不是「坏了」。</p>
+              </div>
+            </div>
+          </article>
+
+          <!-- ---------- 第 1 轮：带 3 步轨迹 + 2 张引用来源卡 ---------- -->
+          <article class="msg msg-user">
+            <div class="msg-avatar me" aria-hidden="true">ME</div>
+            <div class="msg-body">
+              <p>冷链配送环节发现温度超标，门店该怎么处理？需要谁审批？</p>
+              <p class="msg-time">14:02:11</p>
+            </div>
+          </article>
+
+          <article class="msg msg-bot">
+            <div class="msg-avatar bot" aria-hidden="true">KB</div>
+            <div class="msg-body">
+
+              <div class="trace" aria-label="运行轨迹">
+                <div class="trace-hd">
+                  <span>运行轨迹 · RAG 检索链路</span>
+                  <span class="mono">3 步 · 约 0.7 s</span>
+                </div>
+                <div class="trace-step">
+                  <span class="trace-dot done" aria-hidden="true"></span>
+                  <span class="trace-name">向量召回<span class="trace-tool mono">BGE-M3 稠密 + 稀疏 · Milvus hybrid</span></span>
+                  <span class="trace-time">0.21 s</span>
+                </div>
+                <div class="trace-step">
+                  <span class="trace-dot done" aria-hidden="true"></span>
+                  <span class="trace-name">HyDE 假设性文档改写<span class="trace-tool mono">生成 1 篇伪答案并编码二次检索</span></span>
+                  <span class="trace-time">0.34 s</span>
+                </div>
+                <div class="trace-step">
+                  <span class="trace-dot done" aria-hidden="true"></span>
+                  <span class="trace-name">rerank 精排<span class="trace-tool mono">34 段截断至 2 段 · 最高分 0.87</span></span>
+                  <span class="trace-time">0.18 s</span>
+                </div>
+              </div>
+
+              <div class="prose">
+                <h3>结论</h3>
+                <p>冷链温度超标按 <strong>Ⅲ 级食品安全事件</strong> 处理。涉事批次立即封存，由门店食品安全员发起、区域运营经理审批，30 分钟内完成上报。</p>
+
+                <h3>处置步骤</h3>
+                <ol>
+                  <li>封存涉事批次，贴「禁止使用」标识移入隔离区，记录批次号、当前温度与偏离起始时间。</li>
+                  <li>在 <code>POS-报损流程</code> 提交记录，一级分类选「冷链温控」，系统自动带入该批次温控流水。</li>
+                  <li>等待系统路由审批。审批单发给 <code>区域运营经理</code>，超时 2 小时未处理自动升级至城市经理。</li>
+                  <li>回写处置结论。审批通过后填写销毁数量与供应商，同步到库存与结算。</li>
+                </ol>
+
+                <h3>温度判定口径</h3>
+                <div class="tbl-wrap">
+                  <table class="tbl">
+                    <thead>
+                      <tr><th>实测温度</th><th>判定</th><th>处理时限</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td class="mono">0 ~ 4 °C</td><td>合规</td><td>不适用</td></tr>
+                      <tr><td class="mono">4 ~ 8 °C</td><td>可疑，需复核</td><td>4 小时内</td></tr>
+                      <tr><td class="mono">高于 8 °C</td><td>Ⅲ 级事件</td><td>立即封存并上报</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="cites">
+                <div class="cites-hd">
+                  <span class="eyebrow">引用来源</span>
+                  <span class="badge">精排保留 2 段</span>
+                </div>
+
+                <div class="cite">
+                  <div class="cite-hd">
+                    <svg class="ic ic-sm" aria-hidden="true"><use href="#i-doc"></use></svg>
+                    <span class="doc">门店冷链温控管理规范</span>
+                    <span class="pg">v3.2 · p.12</span>
+                    <span class="cite-score">相似度 0.87</span>
+                  </div>
+                  <div class="cite-body">「冷藏车厢内温度全程应维持在 0 ~ 4 °C。运输途中出现温度偏离时，司机须记录偏离起止时间，并在到店后 30 分钟内通知门店食品安全员，由其决定封存或拒收。」</div>
+                </div>
+
+                <div class="cite">
+                  <div class="cite-hd">
+                    <svg class="ic ic-sm" aria-hidden="true"><use href="#i-doc"></use></svg>
+                    <span class="doc">食品安全事件分级与上报流程</span>
+                    <span class="pg">2025 修订 · p.4</span>
+                    <span class="cite-score">相似度 0.79</span>
+                  </div>
+                  <div class="cite-body">「温度类偏差按实测区间分为三级：0 ~ 4 °C 合规；4 ~ 8 °C 可疑，需在 4 小时内完成复核；高于 8 °C 判定为 Ⅲ 级事件，涉事批次立即封存并上报区域。」</div>
+                </div>
+              </div>
+
+              <div class="msg-foot">
+                <span>耗时 3.42 s</span><span class="sep" aria-hidden="true"></span>
+                <span>召回 34 段</span><span class="sep" aria-hidden="true"></span>
+                <span>精排保留 2 段</span><span class="sep" aria-hidden="true"></span>
+                <span>模型 qwen2.5-14b-instruct</span>
+              </div>
+
+              <div class="msg-actions">
+                <button type="button" class="btn btn-ghost">
+                  <svg class="ic" aria-hidden="true"><use href="#i-copy"></use></svg>复制答案
+                </button>
+                <button type="button" class="btn btn-ghost">重新生成</button>
+              </div>
+
+              <div class="note">
+                <span class="eyebrow">设计说明</span>
+                <p>原稿没有出处，RAG 的答案等于不可信。这里把召回结果直接摊在答案下方：文档名、版本、页码、相似度、原文片段，全部可核对。运行轨迹也从折叠的 details 提到答案之前，默认展开，不再藏。</p>
+              </div>
+            </div>
+          </article>
+
+          <!-- ---------- 第 2 轮：证据不足主动拒答 ---------- -->
+          <article class="msg msg-user">
+            <div class="msg-avatar me" aria-hidden="true">ME</div>
+            <div class="msg-body">
+              <p>加盟商 2025 年第四季度的返点比例是多少？帮我算一下。</p>
+              <p class="msg-time">14:03:47</p>
+            </div>
+          </article>
+
+          <article class="msg msg-bot">
+            <div class="msg-avatar bot" aria-hidden="true">KB</div>
+            <div class="msg-body">
+
+              <div class="trace" aria-label="运行轨迹">
+                <div class="trace-hd">
+                  <span>运行轨迹 · RAG 检索链路</span>
+                  <span class="mono">3 步 · 约 0.6 s</span>
+                </div>
+                <div class="trace-step">
+                  <span class="trace-dot done" aria-hidden="true"></span>
+                  <span class="trace-name">向量召回<span class="trace-tool mono">top-8 召回</span></span>
+                  <span class="trace-time">0.22 s</span>
+                </div>
+                <div class="trace-step">
+                  <span class="trace-dot done" aria-hidden="true"></span>
+                  <span class="trace-name">rerank 精排<span class="trace-tool mono">最高分 0.41</span></span>
+                  <span class="trace-time">0.19 s</span>
+                </div>
+                <div class="trace-step">
+                  <span class="trace-dot skip" aria-hidden="true"></span>
+                  <span class="trace-name">证据充分性校验<span class="trace-tool mono">阈值 0.62，未达阈值，转为澄清</span></span>
+                  <span class="trace-time">0.17 s</span>
+                </div>
+              </div>
+
+              <div class="refuse">
+                <div class="refuse-hd">
+                  <svg class="ic ic-lg" aria-hidden="true"><use href="#i-warn"></use></svg>
+                  <span class="badge badge-warn">已停止作答</span>
+                  <span class="refuse-title">证据不足，不猜</span>
+                </div>
+                <p>知识库中没有找到足够依据，已停止作答并列出可确认的部分。</p>
+
+                <span class="eyebrow refuse-sub">可确认的部分</span>
+                <ul class="refuse-list">
+                  <li>返点比例由《加盟商结算口径说明》定义，但该文档停留在 2024 年版，不含分季度细则。</li>
+                  <li>知识库中最新的结算样本只覆盖到 2024 年第三季度，没有 2025 年数据。</li>
+                  <li>返点基数是否按流水计算，取决于城市公司是否签署补充协议，库内无判定记录。</li>
+                </ul>
+
+                <span class="eyebrow refuse-sub">需要你补充</span>
+                <ul class="refuse-list">
+                  <li>返点基数是按流水还是按净收入？</li>
+                  <li>2025 年之后是否有生效的补充协议文件？</li>
+                </ul>
+
+                <div class="refuse-actions">
+                  <button type="button" class="btn">
+                    <svg class="ic" aria-hidden="true"><use href="#i-doc"></use></svg>上传补充文件
+                  </button>
+                  <button type="button" class="btn btn-ghost">改用联网检索</button>
+                </div>
+              </div>
+
+              <div class="note">
+                <span class="eyebrow">设计说明</span>
+                <p>拒答不等于失败。这里不返回一段「没有找到相关内容」的干瘪文字，而是把已确认的事实、缺口在哪、需要补什么一次性讲清，并给出两条可点的出路。轨迹里第三步标记为 skip，用户能看出是校验环节主动中止的。</p>
+              </div>
+            </div>
+          </article>
+
+          <!-- ---------- 第 3 轮：上传文件 + 解析确认 ---------- -->
+          <article class="msg msg-user">
+            <div class="msg-avatar me" aria-hidden="true">ME</div>
+            <div class="msg-body">
+              <p>这是刚导出的门店温控日报，你先解析一下。</p>
+              <div class="attach-chip">
+                <svg class="ic" aria-hidden="true"><use href="#i-doc"></use></svg>
+                <span>store_temp_log_2026W41.xlsx · 1.8 MB</span>
+              </div>
+              <p class="msg-time">14:06:20</p>
+            </div>
+          </article>
+
+          <article class="msg msg-bot">
+            <div class="msg-avatar bot" aria-hidden="true">KB</div>
+            <div class="msg-body">
+              <div class="prose">
+                <p>解析完成，这份表格已进入本会话的检索范围，接下来的提问会优先命中它。</p>
+              </div>
+
+              <div class="panel parse">
+                <div class="panel-head">
+                  <h2>文件解析完成</h2>
+                  <span class="badge badge-online">
+                    <span class="status-led" aria-hidden="true"></span>可检索
+                  </span>
+                </div>
+                <div class="panel-body">
+                  <div class="parse-hd">
+                    <svg class="ic ic-lg" aria-hidden="true"><use href="#i-doc"></use></svg>
+                    <div>
+                      <p class="parse-name mono">store_temp_log_2026W41.xlsx</p>
+                      <p class="t-mini">1.8 MB · 表格 · 上传于 14:06</p>
+                    </div>
+                  </div>
+
+                  <dl class="kv">
+                    <dt>解析引擎</dt>
+                    <dd>MinerU 云 API · 表格模式</dd>
+                    <dt>识别工作表</dt>
+                    <dd>3 个（明细 / 汇总 / 口径说明）</dd>
+                    <dt>切片</dt>
+                    <dd>128 段，平均 412 字</dd>
+                    <dt>入库集合</dt>
+                    <dd class="mono">store_temp_2026w41</dd>
+                    <dt>耗时</dt>
+                    <dd>6.4 s</dd>
+                  </dl>
+
+                  <p class="parse-hint">表格类文件保留单元格定位，问「哪几家门店超标」会直接引用到具体行，不做二次概括。</p>
+                </div>
+              </div>
+
+              <div class="cites">
+                <div class="cites-hd">
+                  <span class="eyebrow">引用来源</span>
+                  <span class="badge">来自本次上传</span>
+                </div>
+                <div class="cite">
+                  <div class="cite-hd">
+                    <svg class="ic ic-sm" aria-hidden="true"><use href="#i-doc"></use></svg>
+                    <span class="doc">store_temp_log_2026W41.xlsx</span>
+                    <span class="pg">工作表 明细 · 行 118</span>
+                    <span class="cite-score">相似度 0.91</span>
+                  </div>
+                  <div class="cite-body">「本周 38 家门店出现冷链温度超标，其中 11 家连续两周超标，建议纳入区域专项巡检名单。」</div>
+                </div>
+              </div>
+
+              <div class="msg-actions">
+                <button type="button" class="btn btn-ghost">列出这 11 家门店</button>
+                <button type="button" class="btn btn-ghost">导出解析结果</button>
+              </div>
+            </div>
+          </article>
+
+          <!-- ---------- 第 4 轮：错误态（独立面板，不拼进正文） ---------- -->
+          <article class="msg msg-user">
+            <div class="msg-avatar me" aria-hidden="true">ME</div>
+            <div class="msg-body">
+              <p>对比一下去年和今年的门店毛利率变化，按城市拆一下。</p>
+              <p class="msg-time">14:09:02</p>
+            </div>
+          </article>
+
+          <article class="msg msg-bot">
+            <div class="msg-avatar bot" aria-hidden="true">KB</div>
+            <div class="msg-body">
+
+              <div class="panel err">
+                <div class="panel-head">
+                  <h2>请求未完成</h2>
+                  <span class="badge badge-warn">
+                    <svg class="ic ic-sm" aria-hidden="true"><use href="#i-warn"></use></svg>
+                    检索网关超时
+                  </span>
+                </div>
+                <div class="panel-body">
+                  <p>向量检索网关在 30 秒内没有返回结果，本次回答已中止，没有产生任何结论。</p>
+                  <dl class="kv kv-spaced">
+                    <dt>中断阶段</dt>
+                    <dd>rerank 精排</dd>
+                    <dt>超时上限</dt>
+                    <dd class="mono">30 s</dd>
+                    <dt>请求 ID</dt>
+                    <dd class="mono">kb-2026-10-14-a91f3c</dd>
+                    <dt>重试预期</dt>
+                    <dd>网关通常在 1 分钟内自愈</dd>
+                  </dl>
+                  <div class="err-actions">
+                    <button type="button" class="btn btn-primary">重试</button>
+                    <button type="button" class="btn btn-ghost">缩小时间范围</button>
+                    <button type="button" class="btn btn-ghost">
+                      <svg class="ic" aria-hidden="true"><use href="#i-terminal"></use></svg>
+                      导出运行轨迹
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="note">
+                <span class="eyebrow">设计说明</span>
+                <p>故障提示和业务结论必须分属两块区域。错误只出现在这块独立面板里，回答区保持空白，用户不会把超时提示误读成「毛利率没有数据」。面板给出中断阶段、请求 ID 与可点的下一步，重试按钮不需要用户先回忆自己问了什么。</p>
+              </div>
+            </div>
+          </article>
+
+          <!-- ---------- 第 5 轮：检索执行但 0 命中（既不是错误，也不是证据不足拒答） ---------- -->
+          <article class="msg msg-user">
+            <div class="msg-avatar me" aria-hidden="true">ME</div>
+            <div class="msg-body">
+              <p>竞品「茶百道」最近一个季度的原料采购均价是多少？</p>
+              <p class="msg-time">14:12:05</p>
+            </div>
+          </article>
+
+          <article class="msg msg-bot">
+            <div class="msg-avatar bot" aria-hidden="true">KB</div>
+            <div class="msg-body">
+
+              <div class="trace" aria-label="运行轨迹">
+                <div class="trace-hd">
+                  <span>运行轨迹 · RAG 检索链路</span>
+                  <span class="mono">2 步 · 约 0.5 s</span>
+                </div>
+                <div class="trace-step">
+                  <span class="trace-dot done" aria-hidden="true"></span>
+                  <span class="trace-name">向量召回<span class="trace-tool mono">BGE-M3 稠密 + 稀疏 · Milvus hybrid · 命中 0 条</span></span>
+                  <span class="trace-time">0.31 s</span>
+                </div>
+                <div class="trace-step">
+                  <span class="trace-dot skip" aria-hidden="true"></span>
+                  <span class="trace-name">证据充分性校验<span class="trace-tool mono">0 条候选，直接判定为无依据，转入空结果提示</span></span>
+                  <span class="trace-time">0.17 s</span>
+                </div>
+              </div>
+
+              <div class="empty">
+                <h2>检索完成，命中 0 条</h2>
+                <p>知识库里没有与这个问题相关的内容 —— 检索链路正常，只是这次什么都没找到。换个问法重新检索，或先上传一份包含相关资料的文档。</p>
+                <div class="empty-actions">
+                  <button type="button" class="btn">换个问法</button>
+                  <button type="button" class="btn btn-ghost">
+                    <svg class="ic" aria-hidden="true"><use href="#i-doc"></use></svg>上传补充文件
+                  </button>
+                </div>
+              </div>
+
+              <div class="note">
+                <span class="eyebrow">设计说明</span>
+                <p>「检索 0 命中」与「证据不足拒答」是两个状态：前者是库里没有相关材料（链路正常，无依据可给）；后者是召回了片段但置信度不够（有据但不足，见上一轮）。空结果保持中性、不用警告色，给出换问法与补资料两条出路。</p>
+              </div>
+            </div>
+          </article>
+
+        </div>
+
+        <!-- ---------- Composer ---------- -->
+        <div class="composer-wrap">
+          <div class="composer">
+            <label class="sr-only" for="q">向知识库提问</label>
+            <textarea id="q" rows="2" placeholder="就当前知识库提问，支持上传文件作为补充依据"></textarea>
+            <div class="composer-actions">
+              <button type="button" class="btn btn-ghost btn-icon" aria-label="添加附件">
+                <svg class="ic" aria-hidden="true"><use href="#i-doc"></use></svg>
+              </button>
+              <button type="button" class="btn btn-ghost">
+                <span class="stop-glyph" aria-hidden="true"></span>停止生成
+              </button>
+              <button type="button" class="btn btn-primary">
+                发送<svg class="ic ic-sm" aria-hidden="true"><use href="#i-arrow-r"></use></svg>
+              </button>
+            </div>
+          </div>
+          <div class="composer-foot">
+            <span>检索范围：门店 SOP · 结算制度 · 食安规范</span>
+            <span>Enter 发送 · Shift + Enter 换行</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="icons.js" defer></script>
+<script>
+  (function () {
+    function sync() {
+      var el = document.getElementById('themeLabel');
+      if (!el) return;
+      el.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? 'LIGHT' : 'DARK';
+    }
+    document.addEventListener('click', function (e) {
+      if (e.target && e.target.closest && e.target.closest('#themeBtn')) setTimeout(sync, 0);
+    });
+    sync();
+  })();
+</script>
+</body>
+</html>

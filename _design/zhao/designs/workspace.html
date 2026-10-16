@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f8f7f4'/%3E%3Cg fill='%230d1218'%3E%3Crect x='12' y='12' width='8' height='8'/%3E%3Crect x='4' y='4' width='4' height='4'/%3E%3Crect x='24' y='4' width='4' height='4'/%3E%3Crect x='4' y='24' width='4' height='4'/%3E%3Crect x='24' y='24' width='4' height='4'/%3E%3C/g%3C/svg%3E">
+<title>运营智能体 · 工作台 | 设计稿</title>
+<link rel="stylesheet" href="design-system.css">
+<style>
+  /* ========================================================================
+     线上原版 4 处问题与本稿修法：
+       1. 零视觉层级        → 用 2px 顶边 / 反白块 / 语义 tint 建立三级层级（设计系统零阴影）
+       2. 统计条没有容器    → 店铺 / 商品 / 平台 各自成为带边框的 KPI 面板
+       3. 全 0 展示无意义零 → 数值降级为「未初始化」，并给出 ① 建店建档 ② 导入数据 的引导面板
+       4. 主色自相矛盾      → 主行动一律 --accent（朱红），不再混用青绿/蓝
+       5. 上手清单埋底      → 上手清单前置为反白面板，全页第一个看到的东西
+     ======================================================================== */
+  .app { grid-template-rows: auto auto 1fr; grid-template-columns: minmax(0, 1fr); }
+
+  /* ---- 结构修复：文档大纲 ----
+     顶栏品牌名由 span 改为 h1（页面主标题）；上手清单的标题由 h3 升为 h2、
+     4 个步骤标题由 h4 升为 h3，形成 h1 → h2 → h3 的完整层级。
+     下列规则只让新标签沿用旧标签的排版，渲染像素不变。 */
+  .app-top .brand h1 { font: inherit; letter-spacing: inherit; text-wrap: wrap; }
+  /* design-system.css 的 .panel-head h3 是标签选择器，标题改级后在本页复述同一取值 */
+  .panel-head h2 { font-size: var(--fs-h3); }
+  /* design-system.css 只给 .panel-inverted h3 反白，h2 需要同样的反白 */
+  .panel-inverted h2 { color: var(--bg); }
+  .onboard-step h3 { font-size: var(--fs-h3); }
+
+  .ribbon {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--sp-3) var(--sp-4); flex-wrap: wrap;
+    padding: .5rem var(--pad-x);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-subtle);
+  }
+  .ribbon .mono-note { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted); }
+  /* 眉标在 390 下会折成「…非线上系 / 统」的单字孤行，按标题同一手法配平换行 */
+  .ribbon .eyebrow { text-wrap: balance; }
+
+  .wrap { width: 100%; max-width: var(--max-w); margin-inline: auto; }
+  .sec { margin-bottom: var(--sp-7); }
+  .sec:last-child { margin-bottom: 0; }
+  .sec-hd {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: var(--sp-3) var(--sp-4); flex-wrap: wrap;
+    margin-bottom: var(--sp-4); padding-bottom: var(--sp-3);
+    border-bottom: 1px solid var(--border);
+  }
+  .sec-hd h2 { font-size: var(--fs-h2); }
+  .sec-hd .mono-note { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+
+  /* --- 反白面板内的文字与按钮（明暗双主题都要合格对比度） --------------
+     .btn:disabled 默认用 opacity:.45 降级，在反白底上会塌成「深底深字」，
+     所以在反白面板里换成「描边 + 降级文字色」，对比度不依赖 opacity。 */
+  .panel-inverted h4 { color: var(--bg); }
+  .panel-inverted .tick,
+  .panel-inverted .step-idx { color: var(--bg); }
+  .panel-inverted .t-mini { color: color-mix(in oklch, var(--bg) 72%, var(--fg)); }
+  .panel-inverted .eyebrow { color: color-mix(in oklch, var(--bg) 72%, var(--fg)); }
+  .panel-inverted .btn:disabled {
+    opacity: 1;
+    background: transparent;
+    border-color: var(--border);
+    color: color-mix(in oklch, var(--bg) 62%, var(--fg));
+  }
+
+  .tick {
+    display: inline-flex; align-items: center; gap: .4em;
+    padding: .2em .55em; border: 1px solid var(--border); border-radius: var(--radius);
+    font-family: var(--font-mono); font-size: var(--fs-mini);
+    font-weight: 600; letter-spacing: .04em; white-space: nowrap;
+  }
+  .tick.is-live { border-color: var(--success); color: var(--success); }
+  .tick.is-next { border-color: var(--accent); color: var(--accent); }
+
+  /* --- 上手清单（前置，反白面板承担全页最高层级） -------------------- */
+  .onboard { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .onboard-step {
+    min-width: 0; padding: var(--sp-4);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: .5rem;
+  }
+  .onboard-step:last-child { border-right: 0; }
+  .step-idx {
+    font-family: var(--font-mono); font-size: var(--fs-mini); font-weight: 700;
+    letter-spacing: .12em; opacity: .8;
+  }
+  .onboard-step h4 { font-size: var(--fs-h3); }
+  .onboard-step p { font-size: var(--fs-meta); line-height: 1.7; flex: 1; }
+  .onboard-step .tick { align-self: flex-start; }
+  .onboard-step .btn { align-self: stretch; }
+
+  /* --- 初始化引导（替代线上原版那个毫无意义的三个 0） ---------------- */
+  .callout {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: var(--sp-4) var(--sp-6); align-items: center;
+    border: 1px solid var(--border); border-left: 3px solid var(--accent);
+    border-radius: var(--radius); background: var(--accent-tint);
+    padding: var(--sp-4) var(--sp-5); margin-top: var(--sp-4);
+  }
+  .callout h3 { font-size: var(--fs-h3); margin-bottom: .375rem; }
+  .callout p { font-size: var(--fs-meta); color: var(--fg-secondary); }
+  .guide { display: flex; flex-direction: column; gap: var(--sp-3); }
+  .guide-item {
+    display: grid; grid-template-columns: 28px minmax(0, 1fr) auto;
+    gap: var(--sp-3); align-items: center;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); padding: var(--sp-3);
+  }
+  .guide-idx {
+    width: 28px; height: 28px; display: grid; place-items: center;
+    border: 1px solid var(--border-strong); border-radius: var(--radius);
+    font-family: var(--font-mono); font-size: var(--fs-mini); font-weight: 700; color: var(--fg);
+  }
+  .guide-text { min-width: 0; }
+  .guide-text b { display: block; font-size: var(--fs-meta); }
+  .guide-text span { font-size: var(--fs-mini); color: var(--muted); }
+
+  /* --- KPI 面板（给统计条一个容器 + 一条 2px 顶边做层级） ------------ */
+  .kpi-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-4); }
+  .kpi {
+    min-width: 0; padding: var(--sp-4);
+    border: 1px solid var(--border); border-top-width: 2px; border-radius: var(--radius);
+    background: var(--surface);
+    display: flex; flex-direction: column; gap: .5rem;
+  }
+  .kpi.is-lead { border-top-color: var(--accent); }
+  .kpi-lbl {
+    display: flex; align-items: center; gap: .5rem;
+    font-family: var(--font-mono); font-size: var(--fs-mini); font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--faint);
+  }
+  .kpi-val { font-family: var(--font-display); font-size: var(--fs-h1); font-weight: 700; line-height: 1.12; }
+  /* 未初始化态：数字不再是「数据」，只是缺省占位 */
+  .kpi-val.is-idle { color: var(--muted); }
+  .kpi-desc { font-size: var(--fs-meta); color: var(--muted); line-height: 1.7; flex: 1; }
+  .kpi-foot {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: .5rem; flex-wrap: wrap;
+    padding-top: var(--sp-3); border-top: 1px solid var(--border);
+  }
+
+  /* --- Tab（平台筛选 / 对象切换） ------------------------------------ */
+  .tabs { display: flex; gap: .25rem; flex-wrap: wrap; border-bottom: 1px solid var(--border); margin-bottom: var(--sp-4); }
+  .tab {
+    display: inline-flex; align-items: center; justify-content: center; gap: .4em;
+    min-height: 44px; padding: .5rem .875rem;
+    border: 1px solid transparent; border-bottom: 0;
+    border-radius: var(--radius) var(--radius) 0 0;
+    background: transparent; color: var(--muted);
+    font-family: var(--font-mono); font-size: var(--fs-mini);
+    font-weight: 600; letter-spacing: .06em; white-space: nowrap;
+    transition: color var(--t-2) var(--ease-state), background-color var(--t-2) var(--ease-state);
+  }
+  .tab:hover { color: var(--fg); background: var(--surface-subtle); }
+  .tab[aria-selected="true"] { background: var(--surface); border-color: var(--border); color: var(--fg); margin-bottom: -1px; }
+  .tab .n { color: var(--faint); }
+  .tab[aria-selected="true"] .n { color: var(--accent); }
+
+  /* --- 空态：指向下一步而不是只说「暂无数据」 ------------------------ */
+  .empty-actions { display: flex; justify-content: center; gap: var(--sp-3); flex-wrap: wrap; margin-top: var(--sp-4); }
+  .empty-next {
+    margin-top: var(--sp-4); padding-top: var(--sp-4); border-top: 1px solid var(--border);
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted);
+    display: flex; align-items: center; justify-content: center; gap: .5rem; flex-wrap: wrap;
+  }
+
+  /* --- 商品池表格 ---------------------------------------------------- */
+  .tbl-cover {
+    width: 44px; height: 44px; flex: none;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface-sunken);
+    display: grid; place-items: center; color: var(--faint);
+    font-family: var(--font-mono); font-size: 10px;
+  }
+  .cell-goods { display: flex; align-items: center; gap: var(--sp-3); min-width: 12rem; }
+  .cell-goods b { font-weight: 600; }
+  .cell-goods span { display: block; font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+  .cell-price { font-family: var(--font-mono); font-weight: 700; white-space: nowrap; }
+  .cell-actions { display: flex; gap: .375rem; flex-wrap: wrap; }
+  .tbl-note {
+    display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+    padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--border);
+    background: var(--surface-subtle);
+    font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--muted);
+  }
+
+  /* --- 响应式 -------------------------------------------------------- */
+  @media (max-width: 1023px) {
+    .onboard { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .onboard-step:nth-child(2) { border-right: 0; }
+    .onboard-step:nth-child(-n+2) { border-bottom: 1px solid var(--border); }
+    .callout { grid-template-columns: minmax(0, 1fr); gap: var(--sp-4); }
+  }
+  @media (max-width: 767px) {
+    .kpi-grid { grid-template-columns: minmax(0, 1fr); }
+    .onboard { grid-template-columns: minmax(0, 1fr); }
+    .onboard-step { border-right: 0; border-bottom: 1px solid var(--border); }
+    .onboard-step:last-child { border-bottom: 0; }
+    .guide-item { grid-template-columns: 28px minmax(0, 1fr); }
+    .guide-item .btn { grid-column: 1 / -1; }
+    /* 窄屏表格：中文最小内容宽度只有 1 个字，不干预的话「拼多多」会被拆成
+       「拼多 / 多」，状态与动作两列还会整列掉出视口。改为按最大内容宽度铺开，
+       由 .tbl-wrap 承担横向滚动（这正是它存在的理由）。本页只有这一张表。 */
+    .tbl-wrap .tbl { width: max-content; max-width: 960px; min-width: 100%; }
+    .tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab { flex: 0 0 auto; }
+  }
+</style>
+</head>
+<body class="js">
+
+<div class="app">
+
+  <!-- ================= 顶栏 ================= -->
+  <header class="app-top">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <rect x="12" y="12" width="8" height="8" rx="2"/>
+        <rect x="4" y="4" width="4" height="4" rx="1"/>
+        <rect x="24" y="4" width="4" height="4" rx="1"/>
+        <rect x="4" y="24" width="4" height="4" rx="1"/>
+        <rect x="24" y="24" width="4" height="4" rx="1"/>
+      </svg>
+      <h1>运营智能体</h1>
+      <span class="sub">OPERATIONS WORKSPACE</span>
+    </div>
+    <nav aria-label="主导航">
+      <a href="#top" aria-current="page">工作台</a>
+      <a href="imports.html">导入中心</a>
+      <a href="model-config.html">模型配置</a>
+      <a href="agent.html">Agent 中心</a>
+    </nav>
+    <div style="display:flex;align-items:center;gap:.5rem">
+      <span class="badge badge-online"><span class="status-led" aria-hidden="true"></span>:80 ONLINE</span>
+      <a class="btn btn-sm" href="index.html">
+        <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg>
+        <span>设计稿总览</span>
+      </a>
+      <button type="button" class="btn btn-ghost" id="themeBtn" aria-label="切换明暗主题">
+        <svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>主题
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= 设计稿声明带 ================= -->
+  <div class="ribbon">
+    <span class="eyebrow">DESIGN PROPOSAL · 静态设计稿 · 非线上系统</span>
+    <span class="mono-note">本稿修复 5 项：视觉层级 / KPI 容器 / 全 0 引导 / 主色统一 / 清单前置</span>
+  </div>
+
+  <!-- ================= 主体 ================= -->
+  <main class="app-body">
+    <div class="pane">
+      <div class="wrap" id="top">
+
+        <!-- ============ 上手清单（前置 · 反白面板） ============ -->
+        <section class="panel panel-inverted sec" id="agents">
+          <div class="panel-head" style="background:transparent;border-bottom-color:var(--border)">
+            <div>
+              <span class="eyebrow">GETTING STARTED · 4 STEPS</span>
+              <h2 style="margin-top:.25rem">上线前必须完成的 4 步</h2>
+            </div>
+            <span class="tick">已完成 0 / 4</span>
+          </div>
+          <div class="panel-body" style="padding:0">
+            <ol class="onboard">
+              <li class="onboard-step">
+                <span class="step-idx">STEP 01</span>
+                <h3>建店建档</h3>
+                <p>登记店铺主体、平台授权与经营类目，生成唯一 store_id，后续所有数据都挂在它下面。</p>
+                <span class="tick">未开始</span>
+                <button type="button" class="btn btn-primary">开始建档</button>
+              </li>
+              <li class="onboard-step">
+                <span class="step-idx">STEP 02</span>
+                <h3>导入数据</h3>
+                <p>导入商品、订单、库存。支持 CSV / 平台开放接口两种来源，导入后自动生成卖点草稿。</p>
+                <span class="tick">依赖 STEP 01</span>
+                <button type="button" class="btn" disabled>去导入中心</button>
+              </li>
+              <li class="onboard-step">
+                <span class="step-idx">STEP 03</span>
+                <h3>配置模型</h3>
+                <p>指定意图识别、向量化、生成的模型与密钥来源，配好后才能跑通 RAG 与文案生成。</p>
+                <span class="tick">依赖 STEP 01</span>
+                <button type="button" class="btn" disabled>去模型配置</button>
+              </li>
+              <li class="onboard-step">
+                <span class="step-idx">STEP 04</span>
+                <h3>启动 Agent</h3>
+                <p>开启竞品监控与素材生成子智能体，工作台开始出现真实数据与待办任务。</p>
+                <span class="tick">依赖 STEP 02 / 03</span>
+                <button type="button" class="btn" disabled>启动智能体</button>
+              </li>
+            </ol>
+          </div>
+        </section>
+
+        <!-- ============ KPI + 初始化引导 ============ -->
+        <section class="sec" id="kpi">
+          <div class="sec-hd">
+            <div>
+              <span class="eyebrow">KEY FIGURES</span>
+              <h2>经营概览</h2>
+            </div>
+            <span class="mono-note">统计口径：当前 store_id · 实时读取</span>
+          </div>
+
+          <div class="kpi-grid">
+            <article class="kpi is-lead">
+              <span class="kpi-lbl"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-db"></use></svg>店铺</span>
+              <span class="kpi-val is-idle mono">0</span>
+              <p class="kpi-desc">还没有已建档的店铺。建档后这里显示店铺数、平台授权状态与最近同步时间。</p>
+              <div class="kpi-foot">
+                <span class="badge badge-warn">未初始化</span>
+                <span class="t-mini mono">下一步 · STEP 01</span>
+              </div>
+            </article>
+
+            <article class="kpi">
+              <span class="kpi-lbl"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-search"></use></svg>商品</span>
+              <span class="kpi-val is-idle mono">0</span>
+              <p class="kpi-desc">商品池为空。下方表格是导入预览草稿，写库成功后才会计入这个数字。</p>
+              <div class="kpi-foot">
+                <span class="badge badge-warn">未初始化</span>
+                <span class="t-mini mono">下一步 · STEP 02</span>
+              </div>
+            </article>
+
+            <article class="kpi">
+              <span class="kpi-lbl"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-repo"></use></svg>平台</span>
+              <span class="kpi-val is-idle mono">0</span>
+              <p class="kpi-desc">抖音、淘宝、天猫、拼多多、京东 5 个渠道均未完成授权，无法拉取商品与订单。</p>
+              <div class="kpi-foot">
+                <span class="badge badge-warn">未初始化</span>
+                <span class="t-mini mono">下一步 · STEP 01</span>
+              </div>
+            </article>
+          </div>
+
+          <!-- 全 0 状态的替代物：引导面板，而不是三个没有意义的零 -->
+          <div class="callout">
+            <div>
+              <span class="eyebrow">SYSTEM NOT INITIALIZED</span>
+              <h3 style="margin-top:.375rem">系统尚未初始化</h3>
+              <p>三个统计项全为 0 说明不是经营结果，而是环境尚未建档。此时展示统计数字没有意义 —— 先把下面两步做完，工作台会立刻有数据。</p>
+            </div>
+            <div class="guide">
+              <div class="guide-item">
+                <span class="guide-idx">1</span>
+                <div class="guide-text">
+                  <b>建店建档</b>
+                  <span>登记主体与平台授权 → 生成 store_id</span>
+                </div>
+                <button type="button" class="btn btn-primary">去建档</button>
+              </div>
+              <div class="guide-item">
+                <span class="guide-idx">2</span>
+                <div class="guide-text">
+                  <b>导入数据</b>
+                  <span>上传商品与订单 CSV，或接平台开放接口</span>
+                </div>
+                <button type="button" class="btn">去导入中心</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ 平台筛选 + 店铺视图 ============ -->
+        <section class="sec" id="import">
+          <div class="sec-hd">
+            <div>
+              <span class="eyebrow">CHANNELS &amp; STORES</span>
+              <h2>平台与店铺</h2>
+            </div>
+            <span class="mono-note">已授权 0 / 5</span>
+          </div>
+
+          <div class="tabs" role="tablist" aria-label="平台筛选">
+            <button type="button" class="tab" role="tab" aria-selected="true">全部 <span class="n">0</span></button>
+            <button type="button" class="tab" role="tab" aria-selected="false">抖音 <span class="n">0</span></button>
+            <button type="button" class="tab" role="tab" aria-selected="false">淘宝 <span class="n">0</span></button>
+            <button type="button" class="tab" role="tab" aria-selected="false">天猫 <span class="n">0</span></button>
+            <button type="button" class="tab" role="tab" aria-selected="false">拼多多 <span class="n">0</span></button>
+            <button type="button" class="tab" role="tab" aria-selected="false">京东 <span class="n">0</span></button>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>店铺视图</h3>
+              <span class="badge">全部平台</span>
+            </div>
+            <div class="panel-body">
+              <!-- 空态要有引导性：说清楚为什么空、下一步做什么 -->
+              <div class="empty">
+                <svg class="ic ic-lg" aria-hidden="true" style="color:var(--faint)"><use href="#i-db"></use></svg>
+                <h4 style="margin-top:var(--sp-3)">还没有已建档的店铺</h4>
+                <p>店铺是一切数据的地基：商品、订单、库存、监控任务都必须挂在某个 store_id 下。没有店铺，平台筛选和经营概览都无法产生有效数据。</p>
+                <div class="empty-actions">
+                  <button type="button" class="btn btn-primary"><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"></use></svg>开始建店建档</button>
+                  <button type="button" class="btn">查看接入文档</button>
+                </div>
+                <p class="empty-next">
+                  <svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev"></use></svg>
+                  建档完成后，这里会显示店铺卡片：授权状态 · 商品数 · 最近同步时间
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ 商品池表格 ============ -->
+        <section class="sec">
+          <div class="sec-hd">
+            <div>
+              <span class="eyebrow">PRODUCT POOL</span>
+              <h2>商品池</h2>
+            </div>
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+              <span class="badge badge-warn">草稿 · 未入库</span>
+              <button type="button" class="btn">批量导入</button>
+              <button type="button" class="btn btn-primary">生成卖点</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <!-- 列宽交给 table 自身，绝不硬编码 grid 列宽 -->
+            <div class="tbl-wrap">
+              <table class="tbl">
+                <caption class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">商品池导入预览，共 6 条草稿记录</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">商品</th>
+                    <th scope="col">平台</th>
+                    <th scope="col">售价</th>
+                    <th scope="col">卖点</th>
+                    <th scope="col">状态</th>
+                    <th scope="col">动作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <div class="cell-goods">
+                        <span class="tbl-cover" aria-hidden="true">IMG</span>
+                        <span><b>三合一冲锋衣（男款）</b><span>SKU A2 藏青-L · 类目 男装外套</span></span>
+                      </div>
+                    </td>
+                    <td>抖音</td>
+                    <td class="cell-price">¥1,299</td>
+                    <td>防风防水 · 可拆内胆 · 三合一</td>
+                    <td><span class="badge badge-warn">待上架</span></td>
+                    <td><div class="cell-actions"><button type="button" class="btn">编辑</button><button type="button" class="btn btn-primary">发布</button></div></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="cell-goods">
+                        <span class="tbl-cover" aria-hidden="true">IMG</span>
+                        <span><b>重磅纯棉基础 T</b><span>SKU 共 12 个 · 类目 男装基础</span></span>
+                      </div>
+                    </td>
+                    <td>淘宝</td>
+                    <td class="cell-price">¥129</td>
+                    <td>270g 重磅 · 不塌领 · 4 色</td>
+                    <td><span class="badge">草稿</span></td>
+                    <td><div class="cell-actions"><button type="button" class="btn">编辑</button><button type="button" class="btn btn-primary">发布</button></div></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="cell-goods">
+                        <span class="tbl-cover" aria-hidden="true">IMG</span>
+                        <span><b>16 oz 帆布托特包</b><span>SKU 共 3 个 · 类目 箱包</span></span>
+                      </div>
+                    </td>
+                    <td>天猫</td>
+                    <td class="cell-price">¥89</td>
+                    <td>可装 16 寸笔电 · 加厚耐撕</td>
+                    <td><span class="badge">草稿</span></td>
+                    <td><div class="cell-actions"><button type="button" class="btn">编辑</button><button type="button" class="btn btn-primary">发布</button></div></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="cell-goods">
+                        <span class="tbl-cover" aria-hidden="true">IMG</span>
+                        <span><b>城市骑行背包 22L</b><span>SKU 共 5 个 · 类目 户外背包</span></span>
+                      </div>
+                    </td>
+                    <td>拼多多</td>
+                    <td class="cell-price">¥349</td>
+                    <td>防泼水 · 夜间反光条 · 16 寸仓</td>
+                    <td><span class="badge badge-info">待补图</span></td>
+                    <td><div class="cell-actions"><button type="button" class="btn">编辑</button><button type="button" class="btn btn-primary">发布</button></div></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="cell-goods">
+                        <span class="tbl-cover" aria-hidden="true">IMG</span>
+                        <span><b>保暖内衣套装</b><span>SKU 共 8 个 · 类目 男装内衣</span></span>
+                      </div>
+                    </td>
+                    <td>京东</td>
+                    <td class="cell-price">¥199</td>
+                    <td>恒温暖 · 不起球 · 三件套</td>
+                    <td><span class="badge">草稿</span></td>
+                    <td><div class="cell-actions"><button type="button" class="btn">编辑</button><button type="button" class="btn btn-primary">发布</button></div></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="cell-goods">
+                        <span class="tbl-cover" aria-hidden="true">IMG</span>
+                        <span><b>折叠露营椅</b><span>SKU 共 2 个 · 类目 户外家具</span></span>
+                      </div>
+                    </td>
+                    <td>抖音</td>
+                    <td class="cell-price">¥259</td>
+                    <td>铝合金 · 承重 150kg · 3 秒开合</td>
+                    <td><span class="badge">草稿</span></td>
+                    <td><div class="cell-actions"><button type="button" class="btn">编辑</button><button type="button" class="btn btn-primary">发布</button></div></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="tbl-note">
+              <svg class="ic ic-sm" aria-hidden="true"><use href="#i-warn"></use></svg>
+              <span>以上 6 条为导入预览草稿，尚未写入商品表 —— 这也是上方「商品」KPI 仍为 0 的原因。点击「发布」完成入库后，统计才会变化。</span>
+            </div>
+          </div>
+        </section>
+
+        <p class="t-mini mono" style="margin-top:var(--sp-6);color:var(--faint)">
+          设计稿说明：数字、表格与状态为示意数据，不接任何后端接口；所有颜色/圆角/字体均取自 design-system.css。
+        </p>
+
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<script src="icons.js" defer></script>
+<script>
+  /* 平台筛选 Tab（纯静态切换）。全部 0 时任何平台结果一致，这里演示的是选中态视觉。 */
+  (function () {
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+    function pick(t) {
+      tabs.forEach(function (x) { x.setAttribute('aria-selected', x === t ? 'true' : 'false'); });
+    }
+    tabs.forEach(function (t, i) {
+      t.addEventListener('click', function () { pick(t); });
+      t.addEventListener('keydown', function (e) {
+        var n = null;
+        if (e.key === 'ArrowRight') n = tabs[(i + 1) % tabs.length];
+        if (e.key === 'ArrowLeft') n = tabs[(i - 1 + tabs.length) % tabs.length];
+        if (n) { e.preventDefault(); n.focus(); pick(n); }
+      });
+    });
+  })();
+</script>
+</body>
+</html>

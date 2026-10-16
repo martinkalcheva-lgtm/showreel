@@ -6,6 +6,10 @@
 .env.*
 !.env.example
 
+# ===== 部署密钥/本地应用配置(不上传!) =====
+_deploy/
+*.genie
+
 # ===== 依赖与构建缓存 =====
 node_modules/
 .venv/

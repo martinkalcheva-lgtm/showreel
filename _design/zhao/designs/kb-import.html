@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" class="js">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>知识库导入 · 多智能体运营平台 UI 设计稿</title>
+  <meta name="description" content="静态设计稿：知识库文件导入页，8 步 RAG 导入流水线、每步实时耗时、条件分支跳过。">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f8f7f4'/%3E%3Cg fill='%230d1218'%3E%3Crect x='12' y='12' width='8' height='8'/%3E%3Crect x='4' y='4' width='4' height='4'/%3E%3Crect x='24' y='4' width='4' height='4'/%3E%3Crect x='4' y='24' width='4' height='4'/%3E%3Crect x='24' y='24' width='4' height='4'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="stylesheet" href="design-system.css">
+  <style>
+    /* ====================================================================
+       页面级布局规则（kb-import）
+       硬约束：只消费 design-system.css 的 token 与组件类。
+       本文件不新增任何颜色 / 圆角 / 阴影 / 字体族，只做栅格与流式布局。
+       ==================================================================== */
+    .app-top nav a { min-height: 44px; display: inline-flex; align-items: center; }
+    .app-top .top-actions { display: flex; align-items: center; gap: var(--sp-2); }
+
+    /* ---- 结构修复：文档大纲 ----
+       本页 12 个 section.panel 的标题原为 h3，直接落在 h1 之下会跳级，
+       统一升为 h2；上传区空态标题随之由 h4 升为 h3。
+       下列规则只让新标签沿用旧标签的排版，渲染像素不变。 */
+    .panel-head h2 { font-size: var(--fs-h3); }
+    /* design-system.css 的 .empty h4 是标签选择器，标题改级后在本页复述同一组取值 */
+    .empty h3 { font-size: var(--fs-h3); margin-bottom: .375rem; }
+
+    .stack   { display: flex; flex-direction: column; gap: var(--sp-6); }
+    .stack-5 { display: flex; flex-direction: column; gap: var(--sp-5); }
+    .stack-4 { display: flex; flex-direction: column; gap: var(--sp-4); }
+    .stack-3 { display: flex; flex-direction: column; gap: var(--sp-3); }
+    .stack-2 { display: flex; flex-direction: column; gap: var(--sp-2); }
+    .row     { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
+
+    /* 页头 */
+    .page-hd { display: flex; flex-direction: column; gap: var(--sp-3); }
+    .page-hd .t-lead { max-width: 52em; }
+
+    /* 拖拽上传区：复用 .empty 的虚线框语义 */
+    .drop { display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); text-align: center; }
+    .drop-mark { font-size: 2.25rem; color: var(--muted); line-height: 1; }
+    .drop .t-meta { max-width: 44em; }
+
+    /* 流水线步骤内容 */
+    .step-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: .375rem .625rem; min-width: 0; }
+    .step-no   { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+    .step-name { font-weight: 600; font-size: var(--fs-meta); }
+    .step-note { font-size: var(--fs-mini); color: var(--muted); }
+    .step-side { display: flex; flex-direction: column; align-items: flex-end; gap: .25rem; }
+    .trace-step.is-skip .step-name,
+    .trace-step.is-skip .step-note { color: var(--faint); }
+    .trace-step.is-run  { background: var(--surface-subtle); }
+
+    /* 文本工具：色值一律取自 token */
+    .ta-r  { text-align: right; }
+    .b700  { font-weight: 700; }
+    .txt-ok     { color: var(--success); }
+    .txt-warn   { color: var(--warn); }
+    .txt-accent { color: var(--accent); }
+    .txt-faint  { color: var(--faint); }
+    .tbl-note   { caption-side: bottom; text-align: left; color: var(--muted);
+                  padding: var(--sp-3) var(--sp-3) 0; font-size: var(--fs-mini); }
+    .tbl-lead  { font-family: var(--font-body); text-transform: none; letter-spacing: 0;
+                 font-size: var(--fs-meta); color: var(--fg); font-weight: 600; }
+
+    /* 进度计：4px 发丝条，色值全部来自语义 token */
+    .meter { height: 4px; min-width: 76px; background: var(--border); border-radius: var(--radius); overflow: hidden; }
+    .meter > span { display: block; height: 100%; background: var(--success); }
+    .meter.run  > span { background: var(--warn); }
+    .meter.fail > span { background: var(--accent); }
+
+    /* 文件清单 */
+    .fname { font-weight: 600; word-break: break-all; }
+    .cell-progress { display: flex; flex-direction: column; gap: .375rem; min-width: 92px; }
+
+    /* 键值表（侧栏运行参数） */
+    .kv { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .5rem var(--sp-3); font-size: var(--fs-mini); }
+    .kv dt { font-family: var(--font-mono); color: var(--faint); white-space: nowrap; }
+    .kv dd { font-family: var(--font-mono); color: var(--fg-secondary); text-align: right; overflow-wrap: anywhere; }
+
+    /* 批次汇总 */
+    .tally { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-3); }
+    .tally-cell { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: var(--sp-3); display: flex; flex-direction: column; gap: .25rem; }
+    .tally-val { font-family: var(--font-display); font-size: var(--fs-h2); font-weight: 700; line-height: 1.2; }
+    .tally-key { font-family: var(--font-mono); font-size: var(--fs-mini); color: var(--faint); }
+    .tally-cell.ok   .tally-val { color: var(--success); }
+    .tally-cell.bad  .tally-val { color: var(--accent); }
+    .tally-cell.skip .tally-val { color: var(--muted); }
+    .tally-cell.run  .tally-val { color: var(--warn); }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); }
+    .mb-4 { margin-bottom: var(--sp-4); }
+    .mt-4 { margin-top: var(--sp-4); }
+    .row-between { justify-content: space-between; }
+    .tag-row-center { justify-content: center; }
+    .panel-body-flush { padding: 0; }
+    .trace-flush { margin-bottom: 0; border: 0; border-radius: 0; }
+    .trace-last { margin-bottom: 0; }
+    .jump {
+      display: flex; align-items: center; gap: .5rem;
+      min-height: 44px; padding: 0 .625rem;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      background: var(--surface); color: var(--fg-secondary);
+      font-size: var(--fs-meta);
+      transition: background-color var(--t-2) var(--ease-state),
+                  border-color var(--t-2) var(--ease-state),
+                  color var(--t-2) var(--ease-state);
+    }
+    .jump:hover { background: var(--surface-subtle); border-color: var(--border-strong); color: var(--fg); }
+    .jump > span { flex: 1; min-width: 0; }
+
+    @media (max-width: 899px) { .grid-2 { grid-template-columns: minmax(0, 1fr); } }
+    @media (max-width: 639px) { .tally { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 767px) {
+      .app-top .brand .sub { display: none; }
+      .step-side { align-items: flex-end; }
+
+      /* 窄屏表格：中文的最小内容宽度只有 1 个字，浏览器会把 6 列全部压到
+         最小内容宽度，文件名列因此变成「两字一行」的竖排。这里改成按最大
+         内容宽度铺开，交给 .tbl-wrap 横向滚动 —— 那本来就是它的职责。 */
+      #batch .tbl { width: max-content; max-width: 880px; min-width: 100%; }
+    }
+
+    /* 页眉眉标在窄屏会折成「…非线上系 / 统」这种单字孤行，按标题同一手法配平 */
+    .page-hd .eyebrow { text-wrap: balance; }
+    /* 流水线步骤说明同理：避免「…已完成 318 / 412 / 页」把「页」留成孤字 */
+    .step-note { text-wrap: balance; }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ================================================================
+       应用顶栏
+       ================================================================ -->
+  <header class="app-top">
+    <a class="brand" href="../index.html">
+      <svg class="mark ic-lg" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <rect x="12" y="12" width="8" height="8" rx="2"/>
+        <rect x="4" y="4" width="4" height="4" rx="1"/>
+        <rect x="24" y="4" width="4" height="4" rx="1"/>
+        <rect x="4" y="24" width="4" height="4" rx="1"/>
+        <rect x="24" y="24" width="4" height="4" rx="1"/>
+      </svg>
+      <span>知识库智能体</span>
+      <span class="sub">:7954 / IMPORT</span>
+    </a>
+
+    <nav aria-label="页面导航">
+      <a href="#batch" aria-current="page">文件导入</a>
+      <a href="#pipeline">流水线</a>
+      <a href="#timing">耗时矩阵</a>
+      <a href="#spec">运行规格</a>
+    </nav>
+
+    <div class="top-actions">
+      <a class="btn btn-sm" href="index.html">
+        <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg>
+        <span>设计稿总览</span>
+      </a>
+      <button type="button" class="btn btn-sm" id="themeBtn" aria-label="切换明暗主题">
+        <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-agent"></use></svg>
+        <span id="themeBtnText" class="mono">DARK</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="app-body has-aside">
+    <!-- ============================================================
+         主栏
+         ============================================================ -->
+    <main class="pane">
+      <div class="stack">
+
+        <!-- 页头 -->
+        <header class="page-hd">
+          <span class="eyebrow">DESIGN PROPOSAL · 静态设计稿 · 非线上系统</span>
+          <h1 class="t-h1">知识库文件导入</h1>
+          <p class="t-lead">
+            单个文件进入向量库要穿过 8 个阶段。这条流水线的每一步都有独立的耗时记录与条件分支 ——
+            非 PDF 文件不经过 MinerU 解析直接进切分。把它整条摊开显示，比一个百分比进度条诚实得多。
+          </p>
+          <div class="row">
+            <span class="badge badge-accent">8 STEPS</span>
+            <span class="badge">RAG INGEST PIPELINE</span>
+            <span class="badge">Milvus 2.4 · BGE-M3</span>
+            <span class="status-led is-busy" aria-hidden="true"></span>
+            <span class="t-mini mono">批次 RUN-2026-1014-03 进行中</span>
+          </div>
+        </header>
+
+        <!-- 上传区 -->
+        <section class="panel reveal" aria-labelledby="h-upload">
+          <div class="panel-head">
+            <h2 id="h-upload">上传文件</h2>
+            <span class="badge">01 / 8</span>
+          </div>
+          <div class="panel-body">
+            <div class="empty drop">
+              <span class="drop-mark" aria-hidden="true">
+                <svg class="ic" aria-hidden="true" focusable="false"><use href="#i-doc"></use></svg>
+              </span>
+              <h3>把文件拖到这里，或选择本地文件</h3>
+              <p class="t-meta">
+                支持 PDF / DOCX / DOC / MD / TXT / XLSX。单文件 ≤ 200 MB，单批 ≤ 50 个。
+                服务端会逐个文件跑完整 8 步流水线，失败不阻塞同批其他文件。
+              </p>
+              <div class="row">
+                <button type="button" class="btn btn-primary">
+                  <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-doc"></use></svg>
+                  <span>选择文件</span>
+                </button>
+                <button type="button" class="btn btn-ghost">
+                  <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-server"></use></svg>
+                  <span>从对象存储拉取</span>
+                </button>
+              </div>
+              <div class="tag-row tag-row-center">
+                <span class="tag">PDF</span>
+                <span class="tag">DOCX</span>
+                <span class="tag">DOC</span>
+                <span class="tag">MD</span>
+                <span class="tag">TXT</span>
+                <span class="tag">XLSX</span>
+                <span class="tag">≤ 200 MB / FILE</span>
+                <span class="tag">≤ 50 FILES / BATCH</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 批次文件清单 -->
+        <section class="panel reveal" id="batch" aria-labelledby="h-batch">
+          <div class="panel-head">
+            <h2 id="h-batch">批次文件清单</h2>
+            <div class="row">
+              <span class="badge">RUN-2026-1014-03</span>
+              <span class="badge badge-accent mono" data-elapsed="41.2" data-unit="s">41.2s</span>
+            </div>
+          </div>
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th scope="col">文件</th>
+                  <th scope="col">大小</th>
+                  <th scope="col">类型</th>
+                  <th scope="col">状态</th>
+                  <th scope="col">进度</th>
+                  <th scope="col" class="ta-r">总耗时</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="fname">2024-Q3-供应链手册.pdf</td>
+                  <td class="mono">18.4 MB</td>
+                  <td><span class="tag">PDF</span></td>
+                  <td><span class="badge badge-online">已入库</span></td>
+                  <td>
+                    <div class="cell-progress">
+                      <span class="mono t-mini">8 / 8</span>
+                      <span class="meter"><span style="width:100%"></span></span>
+                    </div>
+                  </td>
+                  <td class="mono ta-r">92.42s</td>
+                </tr>
+                <tr>
+                  <td class="fname">门店运营SOP-v5.docx</td>
+                  <td class="mono">2.1 MB</td>
+                  <td><span class="tag">DOCX</span></td>
+                  <td><span class="badge">已失败</span></td>
+                  <td>
+                    <div class="cell-progress">
+                      <span class="mono t-mini">3 / 8 · 中断于 04</span>
+                      <span class="meter fail"><span style="width:38%"></span></span>
+                    </div>
+                  </td>
+                  <td class="mono ta-r">51.03s</td>
+                </tr>
+                <tr>
+                  <td class="fname">竞品定价策略.md</td>
+                  <td class="mono">46 KB</td>
+                  <td><span class="tag">MD</span></td>
+                  <td><span class="badge badge-online">已入库</span></td>
+                  <td>
+                    <div class="cell-progress">
+                      <span class="mono t-mini">8 / 8 · 含 1 步跳过</span>
+                      <span class="meter"><span style="width:100%"></span></span>
+                    </div>
+                  </td>
+                  <td class="mono ta-r">3.09s</td>
+                </tr>
+                <tr>
+                  <td class="fname">新品研发手册.pdf</td>
+                  <td class="mono">26.7 MB</td>
+                  <td><span class="tag">PDF</span></td>
+                  <td><span class="badge badge-warn">解析中</span></td>
+                  <td>
+                    <div class="cell-progress">
+                      <span class="mono t-mini" data-elapsed="38.4" data-unit="s">38.4s</span>
+                      <span class="meter run"><span style="width:43%"></span></span>
+                    </div>
+                  </td>
+                  <td class="mono ta-r"><span data-elapsed="41.2" data-unit="s">41.2s</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <!-- 说明文字必须在 .tbl-wrap 之外：caption 的宽度跟随表格（窄屏下 674px），
+               留在滚动容器内会被裁在视口边缘，读起来像断句。 -->
+          <p class="tbl-note">
+            每步耗时明细见下方「每步耗时矩阵」。合计 = 8 步耗时之和，不含排队等待。
+          </p>
+        </section>
+
+        <!-- 运行中的 8 步流水线：主角 -->
+        <section class="panel reveal" id="pipeline" aria-labelledby="h-pipe">
+          <div class="panel-head">
+            <h2 id="h-pipe">运行中流水线 · 新品研发手册.pdf</h2>
+            <div class="row">
+              <span class="status-led is-busy" aria-hidden="true"></span>
+              <span class="badge badge-warn mono">STEP 03 / 08</span>
+            </div>
+          </div>
+          <div class="panel-body panel-body-flush">
+            <div class="trace trace-flush">
+              <div class="trace-hd">
+                <span>INGEST TRACE · 8 STAGES</span>
+                <span class="mono">26.7 MB · PDF · PAGES 412</span>
+              </div>
+
+              <div class="trace-step">
+                <span class="trace-dot done" aria-hidden="true"></span>
+                <div class="step-main">
+                  <span class="step-no">01</span>
+                  <span class="step-name">上传文件</span>
+                  <span class="badge badge-online">完成</span>
+                  <span class="step-note">multipart 直传对象存储，SHA-256 校验</span>
+                </div>
+                <div class="step-side">
+                  <span class="trace-time">2.86s</span>
+                  <span class="step-note mono">27.9 MB/s</span>
+                </div>
+              </div>
+
+              <div class="trace-step">
+                <span class="trace-dot done" aria-hidden="true"></span>
+                <div class="step-main">
+                  <span class="step-no">02</span>
+                  <span class="step-name">检查文件</span>
+                  <span class="badge badge-online">完成</span>
+                  <span class="step-note">库内查重命中 0 条，识别为可解析 PDF 1.7</span>
+                </div>
+                <div class="step-side">
+                  <span class="trace-time">0.41s</span>
+                  <span class="step-note mono">412 PAGES</span>
+                </div>
+              </div>
+
+              <div class="trace-step is-run" aria-current="step">
+                <span class="trace-dot run" aria-hidden="true"></span>
+                <div class="step-main">
+                  <span class="step-no">03</span>
+                  <span class="step-name">PDF 解析（MinerU）</span>
+                  <span class="badge badge-warn">进行中</span>
+                  <span class="step-note">版面还原 + OCR，已完成 318 / 412 页</span>
+                </div>
+                <div class="step-side">
+                  <span class="trace-time mono" data-elapsed="38.4" data-unit="s">38.4s</span>
+                  <span class="step-note mono">MinerU API</span>
+                </div>
+              </div>
+
+              <div class="trace-step">
+                <span class="trace-dot" aria-hidden="true"></span>
+                <div class="step-main">
+                  <span class="step-no">04</span>
+                  <span class="step-name">图片提取</span>
+                  <span class="step-note">版面图 / 表格 / 印章落对象存储</span>
+                </div>
+                <div class="step-side"><span class="trace-time">待处理</span></div>
+              </div>
+
+              <div class="trace-step">
+                <span class="trace-dot" aria-hidden="true"></span>
+                <div class="step-main">
+                  <span class="step-no">05</span>
+                  <span class="step-name">文档切分</span>
+                  <span class="step-note">按标题层级切分，保留段落定位锚点</span>
+                </div>
+                <div class="step-side"><span class="trace-time">待处理</span></div>
+              </div>
+
+              <div class="trace-step">
+                <span class="trace-dot" aria-hidden="true"></span>
+                <div class="step-main">
+                  <span class="step-no">06</span>
+                  <span class="step-name">商品名识别</span>
+                  <span class="step-note">抽取商品名 / 规格 / 门店，回填元数据字段</span>
+                </div>
+                <div class="step-side"><span class="trace-time">待处理</span></div>
+              </div>
+
+              <div class="trace-step">
+                <span class="trace-dot" aria-hidden="true"></span>
+                <div class="step-main">
+                  <span class="step-no">07</span>
+                  <span class="step-name">向量生成（BGE-M3）</span>
+                  <span class="step-note">稠密向量 + 稀疏向量双路，1024 维</span>
+                </div>
+                <div class="step-side"><span class="trace-time">待处理</span></div>
+              </div>
+
+              <div class="trace-step">
+                <span class="trace-dot" aria-hidden="true"></span>
+                <div class="step-main">
+                  <span class="step-no">08</span>
+                  <span class="step-name">入库向量库（Milvus）</span>
+                  <span class="step-note">混合索引 upsert，写入文档级与块级元数据</span>
+                </div>
+                <div class="step-side"><span class="trace-time">待处理</span></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 条件分支：.md 跳过 PDF 解析 -->
+        <section class="panel reveal" aria-labelledby="h-branch">
+          <div class="panel-head">
+            <h2 id="h-branch">条件分支 · 竞品定价策略.md</h2>
+            <span class="badge badge-info mono">1 STEP SKIPPED</span>
+          </div>
+          <div class="panel-body">
+            <p class="t-meta mb-4">
+              <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-repo"></use></svg>
+              非 PDF / DOCX 文件没有版面结构，MinerU 解析会直接抛错。流水线在第 03 步做类型判断并置为
+              <span class="badge">跳过</span>，原始文本直通切分 —— 所以一个 46 KB 的 Markdown 反而比
+              26 MB 的 PDF 快一个数量级。
+            </p>
+            <div class="trace trace-last">
+              <div class="trace-hd">
+                <span>INGEST TRACE · 8 STAGES · SKIP PATH</span>
+                <span class="mono">46 KB · MD · UTF-8</span>
+              </div>
+
+              <div class="trace-step">
+                <span class="trace-dot done" aria-hidden="true"></span>
+                <div class="step-main">
+                  <span class="step-no">01</span><span class="step-name">上传文件</span>
+                  <span class="badge badge-online">完成</span>
+                  <span class="step-note">SHA-256 未命中库内指纹</span>
+                </div>
+                <div class="step-side"><span class="trace-time">0.06s</span></div>
+              </div>
+
+              <div class="trace-step">
+                <span class="trace-dot done" aria-hidden="true"></span>
+                <div class="step-main">
+                  <span class="step-no">02</span><span class="step-name">检查文件</span>
+                  <span class="badge badge-online">完成</span>
+                  <span class="step-note">UTF-8 无 BOM，正文 12,480 字</span>
+                </div>
+                <div class="step-side"><span class="trace-time">0.04s</span></div>
+              </div>
+
+              <div class="trace-step is-skip">
+                <span class="trace-dot skip" aria-hidden="true"></span>
+                <div class="step-main">
+                  <span class="step-no">03</span><span class="step-name">PDF 解析（MinerU）</span>
+                  <span class="badge">跳过</span>
+                  <span class="step-note">扩展名 .md 不在解析白名单，原文直通第 05 步</span>
+                </div>
+                <div class="step-side"><span class="trace-time">—</span></div>
+              </div>
+
+              <div class="trace-step">
+                <span class="trace-dot done" aria-hidden="true"></span>
+                <div class="step-main">
+                  <span class="step-no">04</span><span class="step-name">图片提取</span>
+                  <span class="badge badge-online">完成</span>
+                  <span class="step-note">扫描 Markdown 图片引用，命中 2 张，已落对象存储</span>
+                </div>
+                <div class="step-side"><span class="trace-time">0.09s</span></div>
+              </div>
+
+              <div class="trace-step">
+                <span class="trace-dot done" aria-hidden="true"></span>
+                <div class="step-main">
+                  <span class="step-no">05</span><span class="step-name">文档切分</span>
+                  <span class="badge badge-online">完成</span>
+                  <span class="step-note">42 个切块，平均 297 字</span>
+                </div>
+                <div class="step-side"><span class="trace-time">0.31s</span></div>
+              </div>
+
+              <div class="trace-step">
+                <span class="trace-dot done" aria-hidden="true"></span>
+                <div class="step-main">
+                  <span class="step-no">06</span><span class="step-name">商品名识别</span>
+                  <span class="badge badge-online">完成</span>
+                  <span class="step-note">抽出 11 个商品名，命中别名表 7 个</span>
+                </div>
+                <div class="step-side"><span class="trace-time">0.62s</span></div>
+              </div>
+
+              <div class="trace-step">
+                <span class="trace-dot done" aria-hidden="true"></span>
+                <div class="step-main">
+                  <span class="step-no">07</span><span class="step-name">向量生成（BGE-M3）</span>
+                  <span class="badge badge-online">完成</span>
+                  <span class="step-note">42 组稠密 + 稀疏双向量</span>
+                </div>
+                <div class="step-side"><span class="trace-time">1.44s</span></div>
+              </div>
+
+              <div class="trace-step">
+                <span class="trace-dot done" aria-hidden="true"></span>
+                <div class="step-main">
+                  <span class="step-no">08</span><span class="step-name">入库向量库（Milvus）</span>
+                  <span class="badge badge-online">完成</span>
+                  <span class="step-note">collection kb_pricing_v3，已可被检索命中</span>
+                </div>
+                <div class="step-side"><span class="trace-time">0.53s</span></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 每步耗时矩阵 -->
+        <section class="panel reveal" id="timing" aria-labelledby="h-timing">
+          <div class="panel-head">
+            <h2 id="h-timing">每步耗时矩阵</h2>
+            <span class="badge mono">STEP TIMING · SECONDS</span>
+          </div>
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th scope="col">文件</th>
+                  <th scope="col" class="ta-r">01 上传</th>
+                  <th scope="col" class="ta-r">02 检查</th>
+                  <th scope="col" class="ta-r">03 解析</th>
+                  <th scope="col" class="ta-r">04 图片</th>
+                  <th scope="col" class="ta-r">05 切分</th>
+                  <th scope="col" class="ta-r">06 识别</th>
+                  <th scope="col" class="ta-r">07 向量</th>
+                  <th scope="col" class="ta-r">08 入库</th>
+                  <th scope="col" class="ta-r">合计</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row" class="tbl-lead">2024-Q3-供应链手册.pdf</th>
+                  <td class="mono ta-r">1.92</td>
+                  <td class="mono ta-r">0.38</td>
+                  <td class="mono ta-r">62.74</td>
+                  <td class="mono ta-r">11.26</td>
+                  <td class="mono ta-r">3.41</td>
+                  <td class="mono ta-r">5.88</td>
+                  <td class="mono ta-r">6.02</td>
+                  <td class="mono ta-r">0.81</td>
+                  <td class="mono ta-r b700">92.42</td>
+                </tr>
+                <tr>
+                  <th scope="row" class="tbl-lead">门店运营SOP-v5.docx</th>
+                  <td class="mono ta-r">0.34</td>
+                  <td class="mono ta-r">0.19</td>
+                  <td class="mono ta-r">48.62</td>
+                  <td class="mono ta-r b700 txt-accent">中断</td>
+                  <td class="mono ta-r txt-faint">—</td>
+                  <td class="mono ta-r txt-faint">—</td>
+                  <td class="mono ta-r txt-faint">—</td>
+                  <td class="mono ta-r txt-faint">—</td>
+                  <td class="mono ta-r b700">51.03</td>
+                </tr>
+                <tr>
+                  <th scope="row" class="tbl-lead">竞品定价策略.md</th>
+                  <td class="mono ta-r">0.06</td>
+                  <td class="mono ta-r">0.04</td>
+                  <td class="mono ta-r txt-faint">跳过</td>
+                  <td class="mono ta-r">0.09</td>
+                  <td class="mono ta-r">0.31</td>
+                  <td class="mono ta-r">0.62</td>
+                  <td class="mono ta-r">1.44</td>
+                  <td class="mono ta-r">0.53</td>
+                  <td class="mono ta-r b700">3.09</td>
+                </tr>
+                <tr>
+                  <th scope="row" class="tbl-lead">新品研发手册.pdf</th>
+                  <td class="mono ta-r">2.86</td>
+                  <td class="mono ta-r">0.41</td>
+                  <td class="mono ta-r b700 txt-warn" data-elapsed="38.4" data-ellipsis>38.4…</td>
+                  <td class="mono ta-r txt-faint">—</td>
+                  <td class="mono ta-r txt-faint">—</td>
+                  <td class="mono ta-r txt-faint">—</td>
+                  <td class="mono ta-r txt-faint">—</td>
+                  <td class="mono ta-r txt-faint">—</td>
+                  <td class="mono ta-r b700"><span data-elapsed="41.2" data-ellipsis>41.2…</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="tbl-note">
+            <span class="mono">—</span> 表示该步被条件分支跳过；<span class="mono">…</span> 表示正在累加。
+            窄屏下本表可横向滚动。
+          </p>
+        </section>
+
+        <!-- 失败件诊断 -->
+        <section class="panel reveal" aria-labelledby="h-fail">
+          <div class="panel-head">
+            <h2 id="h-fail">失败诊断 · 门店运营SOP-v5.docx</h2>
+            <span class="badge badge-warn">EXIT CODE 4</span>
+          </div>
+          <div class="panel-body">
+            <div class="grid-2">
+              <div class="stack-3">
+                <div class="row">
+                  <svg class="ic ic-lg txt-warn" aria-hidden="true" focusable="false"><use href="#i-warn"></use></svg>
+                  <strong class="t-meta">图片提取失败：文档受密码保护</strong>
+                </div>
+                <p class="t-meta">
+                  第 04 步从 DOCX 媒体流里解压内嵌图片时，<span class="mono">EncryptedPackageException</span> 抛出。
+                  该文件已开启「限制编辑 + 文档加密」，明文包内容不可读。
+                </p>
+                <p class="t-meta">
+                  失败发生在入库之前，因此 Milvus 中不存在这个文档的半成品分片 —— 流水线按文件粒度回滚，不留脏数据。
+                </p>
+              </div>
+              <div class="stack-3">
+                <dl class="kv">
+                  <dt>失败阶段</dt><dd>04 图片提取</dd>
+                  <dt>异常类</dt><dd>EncryptedPackageException</dd>
+                  <dt>已回滚</dt><dd>Milvus / OSS</dd>
+                  <dt>建议处置</dt><dd>去密码后重传</dd>
+                </dl>
+                <div class="row">
+                  <button type="button" class="btn btn-sm">
+                    <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-terminal"></use></svg>
+                    <span>查看完整日志</span>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-ghost">重新导入此文件</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 批次汇总 -->
+        <section class="panel reveal" aria-labelledby="h-sum">
+          <div class="panel-head">
+            <h2 id="h-sum">批次汇总</h2>
+            <span class="badge mono">RUN-2026-1014-03</span>
+          </div>
+          <div class="panel-body">
+            <div class="tally">
+              <div class="tally-cell ok">
+                <span class="tally-val">2</span>
+                <span class="tally-key">成功入库</span>
+              </div>
+              <div class="tally-cell bad">
+                <span class="tally-val">1</span>
+                <span class="tally-key">失败</span>
+              </div>
+              <div class="tally-cell run">
+                <span class="tally-val">1</span>
+                <span class="tally-key">处理中</span>
+              </div>
+              <div class="tally-cell skip">
+                <span class="tally-val">1</span>
+                <span class="tally-key">条件分支跳过</span>
+              </div>
+            </div>
+            <div class="stack-3 mt-4">
+              <p class="t-meta">
+                <svg class="ic ic-sm txt-ok" aria-hidden="true" focusable="false"><use href="#i-check"></use></svg>
+                批次会在全部 4 个文件走到终态后自动结算，结算结果推送运营工作台首页。
+                期间已入库的 2 个文件<b>立即可被检索</b>，不需要等整个批次跑完。
+              </p>
+              <p class="t-mini">
+                累计新增 1,284 个文本块 + 214 张图片对象，Milvus collection
+                <span class="mono">kb_supply_chain_v3</span> 当前 68,410 条向量。
+              </p>
+              <div class="row">
+                <button type="button" class="btn btn-primary">
+                  <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-search"></use></svg>
+                  <span>用新文档提问</span>
+                </button>
+                <button type="button" class="btn btn-ghost">
+                  <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-copy"></use></svg>
+                  <span>复制本批次链接</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+    <!-- ============================================================
+         侧栏：运行规格
+         ============================================================ -->
+    <aside class="aside stack-5" id="spec" aria-label="运行规格">
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>运行参数</h2>
+          <span class="status-led is-busy" aria-hidden="true"></span>
+        </div>
+        <div class="panel-body">
+          <dl class="kv">
+            <dt>批号</dt><dd>RUN-2026-1014-03</dd>
+            <dt>操作人</dt><dd>运营管理员</dd>
+            <dt>开始</dt><dd>14:02:11</dd>
+            <dt>文件数</dt><dd>4</dd>
+            <dt>并发</dt><dd>2 / 4</dd>
+            <dt>解析引擎</dt><dd>MinerU 2.1</dd>
+            <dt>切分策略</dt><dd>hier-chunk 512/64</dd>
+            <dt>向量模型</dt><dd>BGE-M3 / 1024d</dd>
+            <dt>向量库</dt><dd>Milvus 2.4.4</dd>
+            <dt>索引</dt><dd>HNSW + SPARSE_INVERTED</dd>
+          </dl>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>流水线规格</h2><span class="badge">8 STEPS</span></div>
+        <div class="panel-body">
+          <ol class="stack-2">
+            <li class="row row-between"><span class="t-meta mono">01 上传文件</span><span class="badge badge-online">必过</span></li>
+            <li class="row row-between"><span class="t-meta mono">02 检查文件</span><span class="badge badge-online">必过</span></li>
+            <li class="row row-between"><span class="t-meta mono">03 PDF 解析</span><span class="badge badge-warn">条件</span></li>
+            <li class="row row-between"><span class="t-meta mono">04 图片提取</span><span class="badge badge-warn">条件</span></li>
+            <li class="row row-between"><span class="t-meta mono">05 文档切分</span><span class="badge badge-online">必过</span></li>
+            <li class="row row-between"><span class="t-meta mono">06 商品名识别</span><span class="badge badge-info">可选</span></li>
+            <li class="row row-between"><span class="t-meta mono">07 向量生成</span><span class="badge badge-online">必过</span></li>
+            <li class="row row-between"><span class="t-meta mono">08 入库向量库</span><span class="badge badge-online">必过</span></li>
+          </ol>
+          <p class="t-mini mt-4">
+            条件步不满足前置条件时置为「跳过」而非「失败」，跳过原因逐条落在运行轨迹里。
+          </p>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>近期批次</h2><span class="badge">HISTORY</span></div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr><th scope="col">批号</th><th scope="col">结果</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="mono">RUN-1014-02</td><td><span class="badge badge-online">6 / 6</span></td></tr>
+              <tr><td class="mono">RUN-1014-01</td><td><span class="badge">5 / 6</span></td></tr>
+              <tr><td class="mono">RUN-1013-08</td><td><span class="badge badge-online">12 / 12</span></td></tr>
+              <tr><td class="mono">RUN-1013-07</td><td><span class="badge">9 / 10</span></td></tr>
+              <tr><td class="mono">RUN-1013-06</td><td><span class="badge badge-online">3 / 3</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>关联页面</h2><span class="badge">:7954</span></div>
+        <div class="panel-body">
+          <ul class="stack-2">
+            <li>
+              <a class="jump" href="kb-chat.html">
+                <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-search"></use></svg>
+                <span>知识库问答</span>
+                <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg>
+              </a>
+            </li>
+            <li>
+              <a class="jump" href="workspace.html">
+                <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-db"></use></svg>
+                <span>运营智能体 :80</span>
+                <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg>
+              </a>
+            </li>
+            <li>
+              <a class="jump" href="index.html">
+                <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-repo"></use></svg>
+                <span>设计稿总览</span>
+                <svg class="ic ic-sm" aria-hidden="true" focusable="false"><use href="#i-arrow-r"></use></svg>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-body">
+          <p class="t-mini">
+            本页为静态设计稿：流水线、耗时与批次数据均为示意，不连接任何后端服务。
+          </p>
+        </div>
+      </section>
+
+    </aside>
+  </div>
+</div>
+
+<script src="icons.js"></script>
+<script>
+  (function () {
+    'use strict';
+
+    /* 主题按钮文案：icons.js 已绑定点击切换，这里只同步标签 */
+    var lbl = document.getElementById('themeBtnText');
+    var root = document.documentElement;
+    function syncThemeLabel() {
+      if (!lbl) return;
+      lbl.textContent = root.getAttribute('data-theme') === 'dark' ? 'LIGHT' : 'DARK';
+    }
+    syncThemeLabel();
+    var btn = document.getElementById('themeBtn');
+    if (btn) btn.addEventListener('click', syncThemeLabel);
+
+    /* 进行中步骤的实时累加耗时
+       data-elapsed  = 首屏已耗时（秒），作为累加起点
+       data-unit     = 可选单位后缀，如 "s"
+       data-ellipsis = 可选，进行中追加省略号「…」
+       只改 textContent，不动布局，配合 .mono 等宽数字避免宽度抖动 */
+    var nodes = Array.prototype.slice.call(document.querySelectorAll('[data-elapsed]'));
+    if (nodes.length) {
+      var t0 = Date.now();
+      nodes.forEach(function (n) {
+        n._base = parseFloat(n.getAttribute('data-elapsed')) || 0;
+        n._unit = n.getAttribute('data-unit') || '';
+        n._ell  = n.hasAttribute('data-ellipsis') ? '\u2026' : '';
+      });
+      function tick() {
+        var d = (Date.now() - t0) / 1000;
+        for (var i = 0; i < nodes.length; i++) {
+          var n = nodes[i];
+          n.textContent = (n._base + d).toFixed(1) + n._unit + n._ell;
+        }
+      }
+      tick();
+      setInterval(tick, 100);
+    }
+  })();
+</script>
+</body>
+</html>

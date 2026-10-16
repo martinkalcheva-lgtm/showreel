@@ -33,13 +33,13 @@ export function newSessionId() {
  * 提交查询（流式），响应 JSON 含 session_id
  * POST /kbq/query  { query, session_id, is_stream: true }
  */
-export async function submitQuery(query, sessionId) {
+export async function submitQuery(query, sessionId, isStream = true) {
   // 演示模式
   if (MOCK) return { session_id: sessionId }
   const res = await fetch(`${BASE}/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query, session_id: sessionId, is_stream: true }),
+    body: JSON.stringify({ query, session_id: sessionId, is_stream: isStream }),
   })
   if (!res.ok) {
     const msg = await res.text().catch(() => '')
