@@ -1,0 +1,139 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 0;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  margin-bottom: 0 !important;
+}
+
+.selectorRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.selectorLabel {
+  flex-shrink: 0;
+  color: var(--octop-text-secondary, #888);
+}
+
+.selector {
+  min-width: 240px;
+}
+
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 0;
+}
+
+.threadList {
+  border-radius: 10px;
+}
+
+.threadItem {
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: var(--octop-hover-bg, rgba(128, 128, 128, 0.08));
+  }
+}
+
+.threadIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin-inline-end: 12px;
+  border-radius: 8px;
+  background: var(--octop-hover-bg, rgba(128, 128, 128, 0.1));
+  flex-shrink: 0;
+}
+
+.threadMain {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.threadTitle {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.threadMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.messages {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.messageRow {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.userRow {
+  flex-direction: row-reverse;
+}
+
+.avatar {
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.bubble {
+  max-width: 82%;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.userBubble {
+  background: var(--octop-primary-weak, rgba(22, 119, 255, 0.12));
+}
+
+.assistantBubble {
+  background: var(--octop-hover-bg, rgba(128, 128, 128, 0.1));
+}
+
+.bubbleRole {
+  font-size: 11px;
+  opacity: 0.6;
+  margin-bottom: 2px;
+}
+
+.bubbleTime {
+  font-size: 11px;
+}
+
+.bubbleText {
+  white-space: pre-wrap;
+}

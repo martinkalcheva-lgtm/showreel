@@ -1,0 +1,51 @@
+import { Bot } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { useElapsedSince } from "../../../hooks/useElapsedSeconds";
+import styles from "../index.module.less";
+
+interface ThinkingBubbleProps {
+  onCancel?: () => void;
+  startedAt: number;
+}
+
+export default function ThinkingBubble({
+  onCancel,
+  startedAt,
+}: ThinkingBubbleProps) {
+  const { t } = useTranslation();
+  const elapsed = useElapsedSince(startedAt);
+
+  return (
+    <div className={styles.thinkingBubble}>
+      <div className={styles.avatarCol}>
+        <div className={styles.botAvatar}>
+          <Bot
+            size={18}
+            strokeWidth={1.6}
+            aria-hidden
+            style={{ color: "var(--fn-text-tertiary, #9ca3af)" }}
+          />
+        </div>
+      </div>
+      <div className={styles.thinkingContent}>
+        <span className={styles.thinkingDot} />
+        <span className={styles.thinkingDot} />
+        <span className={styles.thinkingDot} />
+        <span className={styles.thinkingText}>
+          {t("chat.thinking")}
+          {` · ${elapsed}s`}
+        </span>
+        {onCancel && (
+          <button
+            className={styles.thinkingCancelBtn}
+            onClick={onCancel}
+            type="button"
+            title={t("common.cancel")}
+          >
+            {t("common.cancel")}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
