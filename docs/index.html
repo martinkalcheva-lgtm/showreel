@@ -465,6 +465,81 @@
     .nav-inner { flex-wrap: wrap; height: auto; padding: 10px 0; }
     .nav-links { flex-wrap: wrap; gap: 14px; }
   }
+
+  /* ===== 移动端自适应（仅小屏生效，桌面端完全不变） ===== */
+  @media (max-width: 760px) {
+    .wrap { padding-left: 18px; padding-right: 18px; }
+
+    /* 顶部导航：压缩成两行，避免吃掉半屏 */
+    .nav-inner { gap: 10px; padding: 8px 0; }
+    .brand-mark { width: 36px; height: 36px; flex-basis: 36px; font-size: 17px; }
+    .brand-name { font-size: 16px; }
+    .nav-links { gap: 12px; margin-left: 0; }
+    .nav-links a { font-size: 13.5px; padding: 6px 2px; }
+    .nav-gh { font-size: 12.5px; margin-left: auto; }
+
+    /* 首屏 */
+    .hero { min-height: auto; padding: 32px 0 40px; }
+    .kicker { font-size: 13px; margin-bottom: 14px; }
+    .hero h1 { font-size: clamp(30px, 8.2vw, 40px); max-width: 100%; }
+    .hero p { font-size: 15px; margin-top: 18px; }
+    .hero-cta { gap: 10px; margin-top: 24px; }
+    .btn { min-height: 44px; padding: 11px 20px; font-size: 15px; }
+
+    /* 区块间距收紧 */
+    .projects { padding: 56px 0 60px; }
+    .about { padding: 56px 0; }
+    .sec-head { margin-bottom: 28px; }
+
+    /* 项目切换器：列表在上、面板在下 */
+    .pj-switcher { gap: 18px; }
+    .pj-list-nav { padding: 12px; gap: 8px; }
+    .pj-nav-item { padding: 10px 12px; gap: 10px; }
+    .pj-nav-item.active { transform: none; }
+    .pj-nav-item.active::after { display: none; }
+    .pj-nav-title { font-size: 15.5px; }
+    .pj-nav-sub { font-size: 12px; }
+    .pj-nav-bar-wrap { left: 12px; right: 12px; }
+
+    /* 项目面板 */
+    .pj-panel { padding: 18px 16px; min-height: 0; border-radius: 16px; }
+    .pj-panel .pj-title { font-size: clamp(22px, 6.4vw, 28px); }
+    .pj-panel .pj-desc { font-size: 15px; margin-top: 14px; }
+    .pj-panel .pj-points { gap: 8px; margin-top: 14px; }
+    .pj-panel .pj-points li { font-size: 14px; }
+    .pj-panel .tags { gap: 8px; margin-top: 16px; }
+    .pj-panel .pj-actions { gap: 8px; margin-top: 18px; }
+    .pj-panel .pj-visual { margin-top: 18px; }
+    .pj-panel .pj-visual img { aspect-ratio: 4 / 3; }
+    .btn.sm { min-height: 40px; padding: 9px 14px; font-size: 13.5px; }
+
+    /* 演示提示：手机没有 hover，改成点击后短暂显示 */
+    .demo-tip { white-space: normal; max-width: 100%; font-size: 13px; }
+    .demo-tip.show { display: flex; }
+
+    /* 技术栈 */
+    .sketch-tags li { font-size: 13.5px; padding: 4px 11px; }
+
+    /* 关于我 */
+    .about-grid { gap: 16px; }
+    .about h2 { font-size: 24px; }
+    .about-body p { font-size: 15px; }
+
+    /* 灯箱 */
+    .lb { padding: 12px; }
+    .lb-bar { gap: 10px; }
+
+    /* 页脚 */
+    .foot-inner { justify-content: center; text-align: center; font-size: 13px; }
+  }
+
+  @media (max-width: 400px) {
+    .wrap { padding-left: 14px; padding-right: 14px; }
+    .hero h1 { font-size: clamp(26px, 8.6vw, 34px); }
+    .pj-panel { padding: 16px 13px; }
+    .btn { padding: 10px 16px; font-size: 14px; }
+  }
+
 </style>
 </head>
 <body>
@@ -934,7 +1009,15 @@
       var a = e.target.closest ? e.target.closest('a.btn.sm:not(.ghost)') : null;
       if (!a) return;
       var st = a.getAttribute('data-demo');
-      if (st && st !== 'on') { e.preventDefault(); }
+      if (st && st !== 'on') {
+        e.preventDefault();
+        var tip = a.parentNode.querySelector(':scope > .demo-tip');
+        if (tip) {
+          tip.classList.add('show');
+          if (a._tipT) clearTimeout(a._tipT);
+          a._tipT = setTimeout(function () { tip.classList.remove('show'); }, 2600);
+        }
+      }
     });
   })();
 
