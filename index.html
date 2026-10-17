@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>octop 登录入口</title>
+  <style>
+    :root {
+      --bg: #f2f2f7;
+      --card: #ffffff;
+      --text: #1c1c1e;
+      --sub: #8e8e93;
+      --accent: #007aff;
+      --accent-press: #0062cc;
+      --radius: 18px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #000000;
+        --card: #1c1c1e;
+        --text: #f5f5f7;
+        --sub: #8e8e93;
+        --accent: #0a84ff;
+        --accent-press: #0a6bd6;
+      }
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      width: 100%;
+      max-width: 360px;
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 32px 24px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06);
+    }
+    .logo {
+      width: 64px; height: 64px;
+      margin: 0 auto 16px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #007aff, #0a84ff);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 28px; font-weight: 700;
+    }
+    h1 { font-size: 22px; margin: 0 0 6px; font-weight: 600; }
+    .sub { color: var(--sub); font-size: 14px; margin: 0 0 24px; line-height: 1.5; }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 14px 20px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      font-size: 17px;
+      font-weight: 600;
+      border-radius: 14px;
+      transition: background 0.15s ease, transform 0.05s ease;
+    }
+    .btn:active { background: var(--accent-press); transform: scale(0.99); }
+    .hint { color: var(--sub); font-size: 12px; margin: 18px 0 0; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="logo">o</div>
+    <h1>octop</h1>
+    <p class="sub">点击下方按钮进入登录后台</p>
+    <a class="btn" href="http://62.234.56.90:8088/login">进入登录页</a>
+    <p class="hint">若打不开，说明服务当前未在运行。<br />请确认服务器已启动且防火墙放通 8088 端口。</p>
+  </main>
+</body>
+</html>
