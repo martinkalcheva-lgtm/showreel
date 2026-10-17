@@ -331,6 +331,18 @@ export default function LoginPage() {
           style={{ borderRadius: 10 }}
         />
 
+        <Button
+          block
+          size="large"
+          onClick={() => {
+            setUsername("admin");
+            setPassword("admin123");
+          }}
+          style={{ borderRadius: 10, height: 40, fontWeight: 500 }}
+        >
+          一键填入 admin / admin123
+        </Button>
+
         {ldap?.enabled && (
           <p
             style={{
