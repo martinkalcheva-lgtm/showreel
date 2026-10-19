@@ -1056,6 +1056,8 @@
     }
     // 探测单个地址，done(true/false)
     function probeOne(url, done) {
+      // https 页面无法探测 http 资源（浏览器混合内容拦截），直接放行点击
+      if (location.protocol === 'https:' && url.indexOf('http:') === 0) { done(true); return; }
       try {
         var ctrl = new AbortController();
         var timer = setTimeout(function () { ctrl.abort(); }, 3000);
