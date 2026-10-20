@@ -137,7 +137,6 @@
   .hero-meta { font-family: var(--hand); font-size: 14px; color: var(--ink-3); margin-top: 18px; letter-spacing: .02em; }
   .hero-cta { display: flex; gap: 14px; margin-top: 34px; flex-wrap: wrap; }
 
-
   @keyframes orbitSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   @keyframes ringTilt { from { transform: rotateX(70deg) rotateZ(0deg); } to { transform: rotateX(70deg) rotateZ(360deg); } }
   @keyframes ringYaw { from { transform: rotateY(70deg) rotateZ(0deg); } to { transform: rotateY(70deg) rotateZ(360deg); } }
@@ -540,7 +539,6 @@
     .btn { padding: 10px 16px; font-size: 14px; }
   }
 
-
   /* ===== 手机瘦身：字号/间距整体下调（桌面端不受影响） ===== */
   @media (max-width: 760px) {
     html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
@@ -625,6 +623,53 @@
     .pj-panel .pj-title { font-size: 18px; }
   }
 
+  .sec { padding: 62px 0; position: relative; }
+  .sec + .sec::before { content: ""; position: absolute; left: 28px; right: 28px; top: 0; height: 2px; background: var(--line); opacity: .55; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  .stat { background: rgba(253,250,240,.72); border: 2.2px solid var(--ink); border-radius: 16px; padding: 20px 20px 18px; box-shadow: 3px 5px 0 rgba(58,50,40,.15); position: relative; transition: transform .2s ease, box-shadow .2s ease; }
+  .stat:hover { transform: translateY(-3px); box-shadow: 4px 8px 0 rgba(58,50,40,.17); }
+  .stat .num { font-size: clamp(30px, 3.6vw, 42px); font-weight: 700; color: var(--ink); line-height: 1.05; }
+  .stat .num small { font-size: 16px; font-weight: 700; margin-left: 2px; color: var(--ink-3); }
+  .stat .lab { font-size: 14px; color: var(--ink-3); margin-top: 8px; }
+  .stat::after { content: ""; position: absolute; right: 16px; top: 16px; width: 9px; height: 9px; border-radius: 50%; background: var(--paper); border: 2px solid var(--c-ink); }
+  .stat.s-blue::after { border-color: var(--accent); }
+  .stat.s-teal::after { border-color: var(--teal); }
+  .stat.s-amber::after { border-color: var(--amber); }
+  .stat.s-pink::after { border-color: var(--pink); }
+
+  .cards3 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; }
+  .cap { background: var(--paper); border: 2.2px solid var(--ink); border-radius: var(--radius); padding: 24px 22px; box-shadow: var(--shadow); position: relative; overflow: hidden; transition: transform .2s ease; }
+  .cap:hover { transform: translateY(-3px); }
+  .cap::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; }
+  .cap.c1::before { background: linear-gradient(180deg, #3b5b9a, #6d8cff); }
+  .cap.c2::before { background: linear-gradient(180deg, #2f7d6f, #59c3c1); }
+  .cap.c3::before { background: linear-gradient(180deg, #b46a2e, #efaa62); }
+  .cap .ico { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px 14px 12px 5px / 12px 5px 14px 12px; border: 2px solid var(--ink); background: var(--paper); box-shadow: 1.5px 2px 0 rgba(58,50,40,.16); font-weight: 700; font-size: 15px; color: var(--ink); }
+  .cap .ico svg { width: 20px; height: 20px; }
+  .cap h3 { font-size: 18px; font-weight: 700; color: var(--ink); margin-top: 14px; }
+  .cap .cat { font-size: 12.5px; color: var(--ink-3); letter-spacing: .06em; margin-top: 3px; }
+  .cap p { font-size: 14.5px; color: var(--ink-2); margin-top: 10px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 16px; }
+  .tag { font-size: 12.5px; color: var(--ink); background: rgba(255,253,246,.8); border: 1.8px solid var(--ink); border-radius: 14px 16px 14px 6px / 14px 6px 16px 14px; padding: 3px 12px; box-shadow: 1.5px 2px 0 rgba(58,50,40,.14); }
+  .cap .use { font-size: 13px; color: var(--ink-3); margin-top: 12px; padding-top: 10px; border-top: 1.6px dashed var(--line); }
+
+  .contact { border: 2.4px solid var(--ink); border-radius: 20px; box-shadow: 4px 7px 0 rgba(58,50,40,.18); background: rgba(253,250,240,.8); padding: 34px; display: flex; align-items: center; gap: 30px; flex-wrap: wrap; }
+  .contact h2 { font-size: clamp(24px, 3vw, 30px); color: var(--ink); font-weight: 700; line-height: 1.25; }
+  .contact p { font-size: 15px; color: var(--ink-2); margin-top: 8px; max-width: 42ch; }
+  .contact .info { display: grid; gap: 6px; margin-top: 16px; font-size: 15px; color: var(--ink-2); }
+  .contact .info span b { color: var(--ink); font-weight: 700; }
+  .contact .acts { margin-left: auto; display: flex; gap: 12px; flex-wrap: wrap; }
+
+  /* 新增板块：响应式 */
+  @media (max-width: 900px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .cards3 { grid-template-columns: 1fr; }
+    .contact .acts { margin-left: 0; }
+  }
+  @media (max-width: 560px) {
+    .stats { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
@@ -659,6 +704,26 @@
       <div class="hero-cta reveal">
         <a class="btn" href="#projects">看项目</a>
         <a class="btn ghost" href="#about">了解我</a>
+        <a class="btn gh" href="https://github.com/martinkalcheva-lgtm/showreel" target="_blank" rel="noopener">
+          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.4 7.4 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A7.99 7.99 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub 源代码
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="stats">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="sec-label">At a glance</p>
+        <h2>四个项目，全部真跑得起来</h2>
+        <p>打开就能点，点进去就是真系统，不是截图。</p>
+      </div>
+      <div class="stats">
+        <div class="stat s-amber"><div class="num">04<small>个</small></div><div class="lab">上线演示项目</div></div>
+        <div class="stat s-teal"><div class="num">03<small>套</small></div><div class="lab">独立业务系统</div></div>
+        <div class="stat s-blue"><div class="num">02<small>个</small></div><div class="lab">RAG 知识库问答</div></div>
+        <div class="stat s-pink"><div class="num">100<small>%</small></div><div class="lab">独立完成交付</div></div>
       </div>
     </div>
   </section>
@@ -795,6 +860,46 @@
     </div>
   </section>
 
+  <section class="sec" id="tools">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="sec-label">AI Toolkit</p>
+        <h2>日常在用的 AI 开发工具</h2>
+        <p>这些不是清单摆设，每个都在上面的项目里真用过。</p>
+      </div>
+      <div class="cards3">
+        <div class="cap c1">
+          <div class="ico">AI</div>
+          <h3>Claude Code</h3>
+          <div class="cat">Coding Agent</div>
+          <p>在终端里直接改整个工程，跨文件重构和排错最省事。</p>
+          <div class="use">用在：前后端联调、批量改样式</div>
+        </div>
+        <div class="cap c2">
+          <div class="ico">CU</div>
+          <h3>Cursor</h3>
+          <div class="cat">AI Editor</div>
+          <p>写业务代码的主力编辑器，改一处能看清影响范围。</p>
+          <div class="use">用在：Vue / FastAPI 日常开发</div>
+        </div>
+        <div class="cap c3">
+          <div class="ico">CX</div>
+          <h3>Codex</h3>
+          <div class="cat">Coding Agent</div>
+          <p>OpenAI 的命令行编码助手，适合长时间批量改造和多文件同步改。</p>
+          <div class="use">用在：多文件同步、重复劳动自动化</div>
+        </div>
+        <div class="cap c1">
+          <div class="ico">DS</div>
+          <h3>DeepSeek</h3>
+          <div class="cat">LLM</div>
+          <p>生成 SQL 和结构化输出的主力模型，中文业务语义理解稳。</p>
+          <div class="use">用在：问数 NL2SQL、客服话术</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="techstack" id="techstack" aria-labelledby="ts-h">
     <div class="wrap">
       <div class="sec-head reveal">
@@ -877,6 +982,29 @@
     </div>
   </section>
   </div>
+  <section class="sec" id="contact">
+    <div class="wrap">
+      <div class="contact">
+        <div>
+          <h2>想聊聊？</h2>
+          <p>项目、合作，或者只是想看看某一个系统是怎么做的，都可以直接找我。</p>
+          <div class="info">
+            <span>邮箱：<b>mengting2943@foxmail.com</b></span>
+            <span>电话：<b>13680225328</b></span>
+          </div>
+        </div>
+        <div class="acts">
+          <a class="btn" href="mailto:mengting2943@foxmail.com">发邮件</a>
+          <a class="btn ghost" href="tel:13680225328">打电话</a>
+          <a class="btn gh" href="https://github.com/martinkalcheva-lgtm/showreel" target="_blank" rel="noopener">
+            <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.4 7.4 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A7.99 7.99 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+            看 GitHub
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
 </main>
 
 <footer class="footer">
@@ -1011,7 +1139,6 @@
     }, 600);
   }
 
-
   // 技术栈：随滚动逐条跳出，滚到屏幕居中全部展示
   (function () {
     var board = document.querySelector('.sketch-board');
@@ -1040,7 +1167,6 @@
     window.addEventListener('resize', onScroll, { passive: true });
     update();
   })();
-
 
   // 在线演示：Docker 未启动时灰显 + 手绘叉叉禁止，启动后自动可点
   (function () {
@@ -1107,7 +1233,6 @@
       }
     });
   })();
-
 
   selectProject('ecom');
 })();
